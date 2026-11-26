@@ -165,9 +165,32 @@
   @keyframes awk{0%{opacity:0}10%{opacity:1}80%{opacity:1}100%{opacity:0}}
   body.combat #help .tr{display:inline}
   body.combat #help{max-width:calc(100vw - 360px)}
+  @media (max-width:760px){ body.combat #help{display:none} }
   #help .tr{display:none}
   @media (max-aspect-ratio:1/1){ #skills{transform:scale(.8);transform-origin:right bottom;right:12px} body.combat #stick{left:14px;bottom:22px;width:110px;height:110px} body.combat #runBtn{right:16px;bottom:240px;width:56px;height:56px} body.combat #sub{bottom:300px} body.combat #prompt{bottom:360px} #buffs{top:96px} }
   @media (max-height:500px){ #skills{transform:scale(.72);transform-origin:right bottom;right:10px;bottom:8px} body.combat #runBtn{right:236px;bottom:14px;width:52px;height:52px} }
+
+  /* ---------- 対戦（訓練場の中だけ） ---------- */
+  #pvhud{position:fixed;left:50%;top:12px;transform:translateX(-50%);display:none;align-items:center;gap:8px;padding:5px 12px;border-radius:14px;background:rgba(8,16,40,.78);box-shadow:inset 0 0 0 1px rgba(255,140,170,.55);font-size:12px;font-weight:700;pointer-events:none;z-index:12;white-space:nowrap}
+  body.pvp #pvhud{display:flex}
+  body.pvp #buffs{top:46px}
+  #pvhud b{color:#ffb3c6;font-family:var(--en);letter-spacing:.1em}
+  #pvhud i{display:block;width:min(34vw,180px);height:10px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden}
+  #pvhud i u{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff5a7a,#ffb0c0);transition:width .15s}
+  #pvhud.low i u{background:#ff3a4a}
+  #pvhud span{font-family:var(--en);min-width:64px}
+  #pvhud em{font-style:normal;color:#ffe08a}
+  .pname .hpb{display:none;width:64px;height:5px;margin:3px auto 1px;border-radius:3px;background:rgba(255,255,255,.18);overflow:hidden}
+  .pname.pv .hpb{display:block}
+  .pname .hpb u{display:block;height:100%;background:#ff6a86}
+  .pname.guest::after{content:none}
+  .pname.guest .nm::after{content:" ゲスト";font-size:10px;color:#ffd27a}
+  .dmg.me{color:#ff7a90;font-size:24px}
+  #hurt{position:fixed;inset:0;pointer-events:none;z-index:11;opacity:0;box-shadow:inset 0 0 140px 30px rgba(255,50,90,.75)}
+  #hurt.on{animation:hurt .45s ease-out}
+  @keyframes hurt{0%{opacity:1}100%{opacity:0}}
+  #buffs .pvp{color:#ffc0d0;box-shadow:inset 0 0 0 1px rgba(255,140,170,.7)} #buffs .dbf{color:#9fd8ff}
+  @media (max-aspect-ratio:1/1){ #pvhud{top:140px} body.pvp #buffs{top:174px} }
   /* スマホ用スティック */
   #stick{position:fixed;left:28px;bottom:28px;width:130px;height:130px;border-radius:50%;background:rgba(10,20,50,.35);box-shadow:inset 0 0 0 2px rgba(160,230,255,.5);display:none}
   #knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(160,230,255,.55);box-shadow:0 0 14px rgba(120,220,255,.6)}
@@ -237,6 +260,8 @@
   <footer><span class="c">所持金<b id="sCoin">0</b>円</span><span class="p" id="sPtWrap">ヨルマポイント<b id="sPt">0</b>pt</span><span class="bag" id="sBag">バッグ：なし</span></footer>
   <div id="shopMsg"></div>
 </div></div>
+<div id="pvhud"><b>HP</b><i><u id="pvBar"></u></i><span id="pvNum"></span><em id="pvScore"></em></div>
+<div id="hurt"></div>
 <div id="skills">
   <button class="sk" id="sk_atk" aria-label="通常攻撃"><i>爪</i><small>通常攻撃</small><kbd>J</kbd></button>
   <button class="sk" id="sk_s1" aria-label="スキル1 氷爪・霜断"><i>断</i><small>氷爪・霜断</small><kbd>1</kbd><span class="n"></span></button>
@@ -988,7 +1013,7 @@ loader.load('./shino_lite.vrm', gltf => {
   vrm.springBoneManager?.setInitState?.();
   syncRemotes();
   $('pbar').style.width = '100%'; $('lmsg').textContent = 'READY';
-  setTimeout(() => { $('loading').classList.add('hide'); $('title').classList.add('on'); setTimeout(() => $('title').classList.remove('on'), 3200); setTimeout(() => say('ここがノエルベルク……。雪、きれいやね。ちょっと歩こっか。'), 3800); setTimeout(() => { if (!speech && talking <= 0 && !shopOpen) say('うしろに訓練場があるけん、技の練習もできるよ。'); }, 9500); }, 400);
+  setTimeout(() => { $('loading').classList.add('hide'); $('title').classList.add('on'); setTimeout(() => $('title').classList.remove('on'), 3200); setTimeout(() => say('ここがノエルベルク……。雪、きれいやね。ちょっと歩こっか。'), 3800); setTimeout(() => { if (!speech && talking <= 0 && !shopOpen) say('うしろに訓練場があるけん、技の練習も、ほかの人との手合わせもできるよ。'); }, 9500); }, 400);
 }, e => { if (e.total) { const p = Math.round(e.loaded / e.total * 100); $('pbar').style.width = p + '%'; $('lmsg').textContent = `LOADING … ${p}%`; } },
 err => { console.error(err); $('lmsg').textContent = 'LOAD ERROR: ' + err.message; });
 
@@ -1168,7 +1193,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261126160032');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261126172837');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -1462,8 +1487,8 @@ function syncRemotes() {
   clearTimeout(syncRemotes.t); if ([...remotes.values()].some(r => r.missing)) syncRemotes.t = setTimeout(syncRemotes, 1000);
 }
 function makeRemote(p) {
-  const r = { peer: p.peer, name: peerName(p), vrm: null, pos: new THREE.Vector3(), yaw: 0, tgt: null, speed: 0, phase: 0, walkW: 0, runW: 0, baseHipsY: 0, footY: 0, lastC: 1, sayN: null, sayT: 0, blinkT: rand(1, 4), blinkV: 0, dead: false, act: null, actW: 0, actN: null, awakenT: 0, charged: false, claws: null, aura: null };
-  r.label = document.createElement('div'); r.label.className = 'pname' + (p.guest ? ' guest' : ''); r.label.textContent = r.name; r.label.style.display = 'none'; document.body.appendChild(r.label);
+  const r = { peer: p.peer, name: peerName(p), vrm: null, pos: new THREE.Vector3(), yaw: 0, tgt: null, speed: 0, phase: 0, walkW: 0, runW: 0, baseHipsY: 0, footY: 0, lastC: 1, sayN: null, sayT: 0, blinkT: rand(1, 4), blinkV: 0, dead: false, act: null, actW: 0, actN: null, pvH: PV.MAX, pvK: null, pvF: 0, hitByMeAt: 0, block: null, awakenT: 0, charged: false, claws: null, aura: null };
+  r.label = document.createElement('div'); r.label.className = 'pname' + (p.guest ? ' guest' : ''); r.nameEl = document.createElement('span'); r.nameEl.className = 'nm'; r.nameEl.textContent = r.name; r.hpEl = document.createElement('i'); r.hpEl.className = 'hpb'; r.hpEl.appendChild(document.createElement('u')); r.label.append(r.nameEl, r.hpEl); r.label.style.display = 'none'; document.body.appendChild(r.label);
   r.bubble = document.createElement('div'); r.bubble.className = 'psay'; document.body.appendChild(r.bubble);
   getVrmBuf().then(buf => loader.parse(buf, './', gltf => {
     const v = gltf.userData.vrm;
@@ -1488,7 +1513,8 @@ function applyPresence(r, p) {
   if (first || r.tgt.x !== X || r.tgt.z !== Z || r.tgt.speed !== (S ?? 0)) r.tgtAt = performance.now();
   r.tgt = { x: X, z: Z, yaw: Y ?? 0, speed: S ?? 0 };
   if (first) { r.pos.set(X, 0, Z); r.yaw = r.tgt.yaw; }
-  r.name = peerName(p); r.label.textContent = r.name;
+  r.name = peerName(p); r.nameEl.textContent = r.name;
+  applyPv(r, p.presence.pv);
   const act = p.presence.act;
   if (!act && r.actN === null) r.actN = -1;          // 合図なしを見た：次の合図からは必ず再生する
   if (!p.presence.say && r.sayN === null) r.sayN = -1;
@@ -1507,6 +1533,7 @@ function applyPresence(r, p) {
 }
 function removeRemote(k, r) {
   r.dead = true; remotes.delete(k); r.label.remove(); r.bubble.remove();
+  if (r.block) scene.remove(r.block);
   if (r.claws) removeClaws(r.claws); if (r.aura) { scene.remove(r.aura); r.aura.material.dispose(); }
   if (r.vrm) { scene.remove(r.vrm.scene); VRMUtils.deepDispose(r.vrm.scene); }
 }
@@ -1523,7 +1550,7 @@ function netTick(dt, t) {
   if (IN_FRAME && NET.status.available && netSendT <= 0) {
     netSendT = .1;
     const r2 = v => Math.round(v * 100) / 100;
-    const patch = { area: 'noelberg', st: [r2(player.pos.x), r2(player.pos.z), r2(Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw))), r2(player.speed)], say: mySay.n ? mySay : null, act: myAct.n ? myAct : null };
+    const patch = { area: 'noelberg', st: [r2(player.pos.x), r2(player.pos.z), r2(Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw))), r2(player.speed)], say: mySay.n ? mySay : null, act: myAct.n ? myAct : null, pv: [Math.round(PV.hp), PV.koN, (PV.freezeT > 0 ? 1 : 0) | (PV.invT > 0 ? 2 : 0)] };
     const key = JSON.stringify(patch);
     netKeepT -= .1;
     if (key !== lastSent || netKeepT <= 0) { lastSent = key; netKeepT = 3; netPost({ type: 'net:presence', patch }); }   // 3秒ごとに念のため送り直す
@@ -1535,6 +1562,7 @@ function netTick(dt, t) {
     const gx = r.tgt.x + Math.sin(r.tgt.yaw) * lead, gz = r.tgt.z + Math.cos(r.tgt.yaw) * lead;
     const d = Math.hypot(gx - r.pos.x, gz - r.pos.z);
     if (d > 6) r.pos.set(gx, 0, gz);
+    else if (r.act && r.act.name !== 'down') {}
     else { r.pos.x = damp(r.pos.x, gx, 7, dt); r.pos.z = damp(r.pos.z, gz, 7, dt); }
     let dy = r.tgt.yaw - r.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); r.yaw += dy * (1 - Math.exp(-dt * 10));
     r.speed = damp(r.speed, r.tgt.speed, 8, dt);
@@ -1558,6 +1586,7 @@ function netTick(dt, t) {
     r.vrm.expressionManager?.setValue('blink', r.blinkV ? (r.blinkV < 1 ? r.blinkV : 2 - r.blinkV) : 0);
     r.vrm.update(dt);
     placeTag(r.label, r.pos, (r.h || charH) + .28);
+    pvRemoteTick(r);
     if (r.sayT > 0) { r.sayT -= dt; if (r.sayT <= 0) r.bubble.classList.remove('on'); placeTag(r.bubble, r.pos, (r.h || charH) + .62); }
   }
 }
@@ -1581,6 +1610,7 @@ const CB = {
 };
 player.act = null; player.actW = 0;
 let speedMul = 1;
+const PV = { MAX: 1600, hp: 1600, koN: 0, wins: 0, downT: 0, invT: 0, slowT: 0, freezeT: 0, calmT: 0 };
 const enhanced = () => CB.awakenT > 0 || CB.charged;
 
 /* ---------- 訓練場の見た目 ---------- */
@@ -1730,8 +1760,9 @@ function hit(d, dmg, opt = {}) {
   drawHp(d);
 }
 // 前方の扇形
-function inCone(d, range, deg, from = player.pos, yaw = player.yaw) {
-  const dx = d.g.position.x - from.x, dz = d.g.position.z - from.z, dist = Math.hypot(dx, dz);
+function inCone(d, range, deg, from = player.pos, yaw = player.yaw) { return coneAt(d.g.position, range, deg, from, yaw); }
+function coneAt(q, range, deg, from, yaw) {
+  const dx = q.x - from.x, dz = q.z - from.z, dist = Math.hypot(dx, dz);
   if (dist > range + .4) return false;
   let a = Math.atan2(dx, dz) - yaw; a = Math.atan2(Math.sin(a), Math.cos(a));
   return Math.abs(a) < deg * Math.PI / 360 || dist < .9;
@@ -1746,8 +1777,7 @@ function autoAim(range = 5) {
   }
   if (best !== null) player.yaw = best;
 }
-function moveBy(dx, dz) {
-  const p = player.pos;
+function moveBy(dx, dz, p = player.pos) {
   if (inside(p.x + dx, p.z + dz)) { p.x += dx; p.z += dz; return true; }
   if (inside(p.x + dx, p.z)) { p.x += dx; return true; }
   if (inside(p.x, p.z + dz)) { p.z += dz; return true; }
@@ -1761,7 +1791,7 @@ function spawnWall(enh, A = player) {
   const local = A === player;
   const n = enh ? 5 : 3, life = enh ? 12 : 8, R = 2.4, spread = enh ? 2.3 : 1.3;
   const cx = A.pos.x + Math.sin(A.yaw) * R, cz = A.pos.z + Math.cos(A.yaw) * R;
-  const w = { panels: [], t: 0, life, cols: [] };
+  const w = { panels: [], t: 0, life, cols: [], owner: A };
   for (let i = 0; i < n; i++) {
     const a = A.yaw + (n === 1 ? 0 : (-spread / 2 + i * spread / (n - 1))) * .45;
     const x = A.pos.x + Math.sin(a) * R, z = A.pos.z + Math.cos(a) * R;
@@ -1777,6 +1807,7 @@ function spawnWall(enh, A = player) {
   const center = new THREE.Vector3(cx, 0, cz); groundRing(center, enh ? 4.2 : 3.2, .7);
   for (const p of w.panels) { burst(new THREE.Vector3(p.position.x, .4, p.position.z), 6, 2, 4); }
   for (const d of aliveDummies()) if (w.panels.some(p => Math.hypot(p.position.x - d.g.position.x, p.position.z - d.g.position.z) < 1.7)) hit(d, enh ? 260 : 140, { big: true, slow: enh ? 3 : 0, remote: !local });
+  pvp(A, q => w.panels.some(p => Math.hypot(p.position.x - q.x, p.position.z - q.z) < 1.7), enh ? 260 : 140, { big: true, slow: enh ? 3 : 0 });
 }
 const roadTex = canvasTex(128, 64, (c, w, h) => {
   const g = c.createRadialGradient(w / 2, h / 2, 2, w / 2, h / 2, w / 2); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h);
@@ -1842,6 +1873,14 @@ const ACT = {
     [.7, { head: [.1, 0, 0], spine: [.05, 0, 0], rightUpperArm: [-.6, .45, .6], leftUpperArm: [-.6, -.45, -.6], rightLowerArm: [0, 1.2, 0], leftLowerArm: [0, -1.2, 0], rightHand: [0, 0, -.6], leftHand: [0, 0, .6] }],
     [.88, { head: [-.1, 0, 0], spine: [-.05, 0, 0], rightUpperArm: [0, .1, .3], leftUpperArm: [0, -.1, -.3], rightLowerArm: [0, .2, 0], leftLowerArm: [0, -.2, 0] }],
     [1, { rightUpperArm: [0, .1, .5], leftUpperArm: [0, -.1, -.5] }]] },
+  down: { dur: 4, hit: 0, poses: [
+    [0, { spine: [-.25, 0, 0], chest: [-.15, 0, 0], head: [-.3, 0, 0], rightUpperArm: [0, .3, 1.0], leftUpperArm: [0, -.3, -1.0] }],
+    [.06, { spine: [.2, 0, .05], chest: [.1, 0, 0], head: [.2, 0, 0], ...CROUCH, _drop: [.12, 0, 0] }],
+    [.14, { spine: [.45, 0, .06], chest: [.25, 0, 0], head: [.45, .2, 0], rightUpperArm: [-.35, 0, 1.15], leftUpperArm: [-.35, 0, -1.15], rightLowerArm: [0, .3, 0], leftLowerArm: [0, -.3, 0],
+      leftUpperLeg: [-.15, 0, .08], rightUpperLeg: [-.15, 0, -.08], leftLowerLeg: [1.75, 0, 0], rightLowerLeg: [1.75, 0, 0], leftFoot: [.5, 0, 0], rightFoot: [.5, 0, 0], _drop: [.36, 0, 0] }],
+    [.94, { spine: [.5, 0, .06], chest: [.28, 0, 0], head: [.5, .2, 0], rightUpperArm: [-.35, 0, 1.15], leftUpperArm: [-.35, 0, -1.15], rightLowerArm: [0, .3, 0], leftLowerArm: [0, -.3, 0],
+      leftUpperLeg: [-.15, 0, .08], rightUpperLeg: [-.15, 0, -.08], leftLowerLeg: [1.75, 0, 0], rightLowerLeg: [1.75, 0, 0], leftFoot: [.5, 0, 0], rightFoot: [.5, 0, 0], _drop: [.36, 0, 0] }],
+    [1, { _drop: [0, 0, 0] }]] },
   awaken: { dur: 1.5, hit: .55, poses: [
     [0, { head: [.25, 0, 0], spine: [.15, 0, 0], rightUpperArm: [-.3, .9, .8], leftUpperArm: [-.3, -.9, -.8], rightLowerArm: [0, 1.4, 0], leftLowerArm: [0, -1.4, 0] }],
     [.45, { head: [.3, 0, 0], spine: [.2, 0, 0], rightUpperArm: [-.3, 1.0, .9], leftUpperArm: [-.3, -1.0, -.9], rightLowerArm: [0, 1.5, 0], leftLowerArm: [0, -1.5, 0], ...CROUCH }],
@@ -1856,7 +1895,7 @@ function applyAction(st = player) {
   const def = ACT[a ? a.name : st.lastAct]; if (!def) return;
   const k = a ? Math.min(1, a.t / def.dur) : 1;
   const P = poseMix(k, def.poses), w = st.actW;
-  for (const n in P) { const bn = bone(n); if (!bn) continue; const p = P[n]; bn.rotation.set(lerp(bn.rotation.x, p[0], w), lerp(bn.rotation.y, p[1], w), lerp(bn.rotation.z, p[2], w)); }
+  for (const n in P) { if (n === '_drop') { bone('hips').position.y -= P[n][0] * w; continue; } const bn = bone(n); if (!bn) continue; const p = P[n]; bn.rotation.set(lerp(bn.rotation.x, p[0], w), lerp(bn.rotation.y, p[1], w), lerp(bn.rotation.z, p[2], w)); }
 }
 
 /* ---------- 技を出す ---------- */
@@ -1866,7 +1905,7 @@ function showSkillName(text, enh) {
   if (enh) { const s = document.createElement('span'); s.textContent = '強化'; e.appendChild(s); }
   e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(skillNameT); skillNameT = setTimeout(() => e.classList.remove('on'), 1600);
 }
-const canAct = () => CB.on && vrm && !shopOpen && talking <= 0;
+const canAct = () => CB.on && vrm && !shopOpen && talking <= 0 && PV.hp > 0 && PV.freezeT <= 0;
 function startAct(name, extra = {}) {
   player.act = { name, t: 0, hitDone: false, ...extra }; player.lastAct = name;
   myAct = { k: name, n: (myAct.n || 0) + 1, y: Math.round(Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw)) * 100) / 100, e: extra.enh ? 1 : 0 };
@@ -1909,7 +1948,7 @@ function actTick(dt, A = player) {
   const a = A.act; if (!a) return;
   const local = A === player, rm = !local;
   const def = ACT[a.name], k0 = a.t / def.dur; a.t += dt; const k = Math.min(1, a.t / def.dur);
-  const fwd = (dist, k0_, k1_) => { if (!local) return; const f = THREE.MathUtils.clamp((k - k0_) / (k1_ - k0_), 0, 1) - THREE.MathUtils.clamp((k0 - k0_) / (k1_ - k0_), 0, 1); if (f > 0) moveBy(Math.sin(A.yaw) * dist * f, Math.cos(A.yaw) * dist * f); };
+  const fwd = (dist, k0_, k1_) => { const f = THREE.MathUtils.clamp((k - k0_) / (k1_ - k0_), 0, 1) - THREE.MathUtils.clamp((k0 - k0_) / (k1_ - k0_), 0, 1); if (f <= 0 || (a.name !== 's3' && foeAhead(A))) return; moveBy(Math.sin(A.yaw) * dist * f, Math.cos(A.yaw) * dist * f, A.pos); };
   const crossed = kk => k0 < kk && k >= kk;
   const P = A.pos, Y = A.yaw, aw = local ? CB.awakenT > 0 : (A.awakenT || 0) > 0;
   if (a.name.startsWith('atk')) {
@@ -1920,6 +1959,7 @@ function actTick(dt, A = player) {
       if (n === 2) slash({ at: P, yaw: Y, roll: .25, dir: 1, radius: 1.2, width: aw ? .75 : .55 });
       if (n === 3) { slash({ at: P, roll: Math.PI / 2 - .15, radius: 1.1, arc: 2.2, width: .6, fwd: .5, yaw: Y - .12 }); slash({ at: P, roll: Math.PI / 2 + .15, radius: 1.1, arc: 2.2, width: .6, fwd: .5, yaw: Y + .12 }); groundRing(new THREE.Vector3(P.x + Math.sin(Y) * 1.1, 0, P.z + Math.cos(Y) * 1.1), 1.4, .45); }
       for (const d of aliveDummies()) if (inCone(d, n === 3 ? 2.3 : 2.1, n === 3 ? 90 : 120, P, Y)) hit(d, [0, 60, 70, 130][n], { crit: n === 3, big: n === 3, remote: rm });
+      pvp(A, q => coneAt(q, n === 3 ? 2.3 : 2.1, n === 3 ? 90 : 120, P, Y), [0, 60, 70, 130][n], { crit: n === 3, big: n === 3 });
     }
   } else if (a.name === 's1') {
     fwd(a.enh ? 3.6 : 3, .25, .5);
@@ -1931,6 +1971,7 @@ function actTick(dt, A = player) {
       if (a.enh) slash({ at: P, yaw: Y, roll: 0, radius: 1.6, arc: 3.0, width: .8, fwd: .7, dur: .5, color: [1.6, 2.6, 3.2] });
       groundRing(new THREE.Vector3(P.x + Math.sin(Y), 0, P.z + Math.cos(Y)), a.enh ? 3 : 2.2, .6);
       for (const d of aliveDummies()) if (inCone(d, a.enh ? 3.2 : 2.6, 130, P, Y)) hit(d, a.enh ? 380 : 210, a.enh ? { freeze: 2, slow: 5, big: true, crit: true, remote: rm } : { slow: 4, big: true, remote: rm });
+      pvp(A, q => coneAt(q, a.enh ? 3.2 : 2.6, 130, P, Y), a.enh ? 380 : 210, a.enh ? { freeze: 2, slow: 5, big: true, crit: true } : { slow: 4, big: true });
     }
   } else if (a.name === 's2') {
     if (crossed(.5)) spawnWall(a.enh, A);
@@ -1941,6 +1982,7 @@ function actTick(dt, A = player) {
       if (Math.random() < .5) stepFX(P, Y, true);
       a.hitSet ||= new Set();
       for (const d of aliveDummies()) if (!a.hitSet.has(d) && Math.hypot(d.g.position.x - P.x, d.g.position.z - P.z) < 1.3) { a.hitSet.add(d); hit(d, a.enh ? 170 : 95, { slow: a.enh ? 4 : 2.5, remote: rm }); }
+      pvp(A, q => Math.hypot(q.x - P.x, q.z - P.z) < 1.3, a.enh ? 170 : 95, { slow: a.enh ? 4 : 2.5, set: a.hitSet });
     }
     if (crossed(.86)) slash({ at: P, yaw: Y, roll: Math.PI, radius: 1.0, arc: 3.4, width: .45, y: .35, fwd: 0, dur: .4 });
   } else if (a.name === 'charge') {
@@ -1952,9 +1994,11 @@ function actTick(dt, A = player) {
       else { A.awakenT = 12; A.charged = false; netToast(`${A.name} さんが 覚醒《白夜氷精》！`); }
       groundRing(P, 6, 1.0, [1.6, 2.4, 3]); groundRing(P, 3.5, .8, [2, 2.4, 2.6]); burst(new THREE.Vector3(P.x, 1.4, P.z), 40, 4, 4, 1.4);
       for (const d of aliveDummies()) if (Math.hypot(d.g.position.x - P.x, d.g.position.z - P.z) < 5) hit(d, 300, { slow: 4, big: true, remote: rm });
+      pvp(A, q => Math.hypot(q.x - P.x, q.z - P.z) < 5, 300, { slow: 4, big: true });
     }
   }
-  if (a.t >= def.dur) {
+  if (a.t >= def.dur && a.name === 'down' && !local && A.pvH <= 0) a.t = def.dur * .9;     // 起き上がるまで倒れたまま
+  else if (a.t >= def.dur) {
     A.act = null;
     if (local && a.name.startsWith('atk')) { CB.comboT = .55; if (CB.queued === 'atk') { CB.queued = null; attack(); } }
     if (!local && a.name !== 'charge' && a.name !== 'awaken' && !a.name.startsWith('atk')) A.charged = false;
@@ -1995,6 +2039,109 @@ aura.scale.set(2.2, 3.2, 1); scene.add(aura);
 const guardM = new THREE.Mesh(new THREE.IcosahedronGeometry(.95, 2), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.3, 1.9), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, wireframe: true }));
 scene.add(guardM);
 
+/* ---------- 対戦：訓練場の中では、ほかのプレイヤーのしのにも技が当たる ----------
+   当たったかどうかは「当てられた側」の画面で決める（届いた技を自分の位置で調べる）。
+   自分の HP は位置と一緒に送り、ほかの人の画面の名前の下に出る。
+   当てた側の画面のダメージ数字は見込み（実際の HP は相手の画面で決まる）。 */
+// 踏み込みは、目の前の対戦相手で止まる（どちらの画面でも同じ所で止まるように）
+function foeAhead(A) {
+  if (!inArena(A.pos.x, A.pos.z)) return false;
+  const near = q => inArena(q.x, q.z) && coneAt(q, 1.0, 100, A.pos, A.yaw);
+  if (A === player) { for (const r of remotes.values()) if (r.vrm && r.pvH > 0 && near(r.pos)) return true; return false; }
+  return PV.hp > 0 && near(player.pos);
+}
+const inArena = (x, z) => z > TRAIN.z0 + .1 && z < TRAIN.z1 && Math.abs(x) < TRAIN.x;
+const guardedBy = (who, q) => walls.some(w => w.owner === who && w.t < w.life && w.panels.some(p => Math.hypot(p.position.x - q.x, p.position.z - q.z) < 3.2));
+const pvDmg = (base, aw, guarded) => Math.round(base * (aw ? 1.3 : 1) * (guarded ? .6 : 1));
+function pvp(A, test, base, opt = {}) {
+  if (!inArena(A.pos.x, A.pos.z)) return;
+  const aw = A === player ? CB.awakenT > 0 : (A.awakenT || 0) > 0;
+  if (A === player) {
+    for (const r of remotes.values()) {
+      if (!r.vrm || !(r.pvH > 0) || (r.pvF & 2) || !inArena(r.pos.x, r.pos.z) || !test(r.pos)) continue;
+      if (opt.set) { if (opt.set.has(r)) continue; opt.set.add(r); }
+      const n = pvDmg(base, aw, guardedBy(r, r.pos));
+      hurtFx(r.pos, n, opt, opt.crit ? 'crit' : 'ice'); r.hitByMeAt = performance.now();
+      if (!aw) CB.gauge = Math.min(CB.GAUGE_MAX, CB.gauge + n);
+    }
+    return;
+  }
+  const P = player.pos;
+  if (PV.hp <= 0 || PV.invT > 0 || !inArena(P.x, P.z) || !test(P)) return;
+  if (opt.set) { if (opt.set.has(player)) return; opt.set.add(player); }
+  hurtMe(A, pvDmg(base, aw, guardedBy(player, P)), opt);
+}
+function hurtFx(q, n, opt, kind) {
+  const p = new THREE.Vector3(q.x, 1.6, q.z);
+  dmgText(p, n, kind);
+  if (opt.freeze) dmgText(p.clone().add(new THREE.Vector3(0, .35, 0)), '凍結', 'tag');
+  else if (opt.slow) dmgText(p.clone().add(new THREE.Vector3(0, .35, 0)), '鈍足', 'tag');
+  burst(p, opt.big ? 16 : 8, opt.big ? 3.2 : 2.2, 2.4);
+}
+function hurtMe(A, n, opt) {
+  PV.hp = Math.max(0, PV.hp - n); PV.calmT = 5;
+  hurtFx(player.pos, n, opt, 'me');
+  const h = $('hurt'); h.classList.remove('on'); void h.offsetWidth; h.classList.add('on');
+  if (opt.slow) PV.slowT = Math.max(PV.slowT, opt.slow * .6);
+  if (opt.freeze) PV.freezeT = Math.max(PV.freezeT, Math.min(1.2, opt.freeze));
+  if (PV.freezeT > 0 && player.act && player.act.name !== 'down') player.act = null;
+  if (PV.hp <= 0) knockOut(A);
+}
+function knockOut(A) {
+  PV.koN++; PV.downT = 4; PV.slowT = PV.freezeT = 0;
+  CB.charged = false; CB.awakenT = 0; CB.queued = null;
+  player.act = { name: 'down', t: 0, hitDone: true }; player.lastAct = 'down';
+  netToast(`${A.name} さんに倒されました`);
+  say(pick(['う……やられた……。', '……つよかね。次は負けんけん。', 'いたた……。もう一回、やろ。']), { relaxed_eye: .4, brow_relaxed: .5 });
+}
+// ほかのプレイヤーの HP を受け取る（HP・倒れた回数・状態）
+function applyPv(r, pv) {
+  if (!Array.isArray(pv) || pv.length < 3) return;
+  const h = num(pv[0], 0, PV.MAX), k = num(pv[1], 0, 1e6), f = num(pv[2], 0, 3);
+  if (h === null || k === null) return;
+  if (r.pvK !== null && k > r.pvK) {
+    const mine = performance.now() - (r.hitByMeAt || 0) < 5000;
+    if (mine) { PV.wins++; netToast(`${r.name} さんを倒しました！`); showSkillName('撃破！'); say(pick(['……勝った。', 'ふう……うちの勝ちやね。', 'ごめんね、手加減できんかった。'])); }
+    else netToast(`${r.name} さんが倒れました`);
+  }
+  r.pvK = k; r.pvH = h; r.pvF = f || 0;
+  if (h <= 0 && r.vrm && (!r.act || r.act.name !== 'down')) { r.act = { name: 'down', t: 0 }; r.lastAct = 'down'; r.awakenT = 0; r.charged = false; }
+  if (h > 0 && r.act && r.act.name === 'down') r.act = null;
+}
+function iceBlock() { const m = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.9, 1.0), iceMat); m.visible = false; scene.add(m); return m; }
+const myBlock = iceBlock();
+function pvRemoteTick(r) {
+  const on = inArena(r.pos.x, r.pos.z);
+  r.label.classList.toggle('pv', on);
+  if (on) r.hpEl.firstChild.style.width = (r.pvH / PV.MAX * 100) + '%';
+  r.block ||= iceBlock();
+  r.block.visible = !!(r.pvF & 1) && r.pvH > 0; if (r.block.visible) r.block.position.set(r.pos.x, .95, r.pos.z);
+  if (r.vrm) r.vrm.scene.visible = !((r.pvF & 2) && Math.sin(performance.now() / 33) > .3);
+}
+function pvTick(dt) {
+  const P = player.pos, arena = inArena(P.x, P.z);
+  PV.slowT = Math.max(0, PV.slowT - dt); PV.freezeT = Math.max(0, PV.freezeT - dt); PV.invT = Math.max(0, PV.invT - dt); PV.calmT = Math.max(0, PV.calmT - dt);
+  if (PV.downT > 0) {
+    PV.downT -= dt;
+    if (PV.downT <= 0) {                 // 入口で起き上がる
+      PV.downT = 0; PV.hp = PV.MAX; PV.invT = 2.5; player.act = null;
+      P.set(0, 0, TRAIN.z0 + 1.2); player.yaw = 0; player.speed = 0;
+      groundRing(P, 2, .6); burst(new THREE.Vector3(P.x, 1, P.z), 14, 2, 2.5);
+    }
+  } else if (!arena) PV.hp = Math.min(PV.MAX, PV.hp + 800 * dt);      // 訓練場の外ではすぐ回復
+  else if (PV.calmT <= 0) PV.hp = Math.min(PV.MAX, PV.hp + 40 * dt);  // しばらく当たらなければ少しずつ回復
+  myBlock.visible = PV.freezeT > 0; if (myBlock.visible) myBlock.position.set(P.x, .95, P.z);
+  // 復帰直後の無敵は、しのを点滅させる
+  vrm.scene.visible = !(PV.invT > 0 && Math.sin(PV.invT * 30) > .3);
+  // HP の表示（訓練場の中だけ）
+  document.body.classList.toggle('pvp', arena || PV.downT > 0);
+  const k = PV.hp / PV.MAX;
+  $('pvBar').style.width = (k * 100) + '%';
+  $('pvhud').classList.toggle('low', k < .3);
+  $('pvNum').textContent = `${Math.ceil(PV.hp)} / ${PV.MAX}`;
+  $('pvScore').textContent = PV.wins ? `撃破 ${PV.wins}` : '';
+}
+
 /* ---------- 毎フレーム ---------- */
 let wasCombat = false;
 function combatTick(dt, t) {
@@ -2004,7 +2151,7 @@ function combatTick(dt, t) {
   const inTrain = P.z > TRAIN.z0 - .4;
   if (inTrain !== wasCombat) {
     wasCombat = inTrain;
-    if (inTrain && !combatTick.seen) { combatTick.seen = true; showTitle('ARCRAVE UNIT 09', '第9隊 訓練場', '── しのの技を試せます ──'); setTimeout(() => say('訓練場……。ちょっと、体を動かそっか。'), 900); }
+    if (inTrain && !combatTick.seen) { combatTick.seen = true; showTitle('ARCRAVE UNIT 09', '第9隊 訓練場', '── 中では、ほかのプレイヤーと対戦できます ──'); setTimeout(() => say('訓練場……。ここでは、ほかのしのとも手合わせできるけん。'), 900); }
   }
   // 冷却
   for (const id in CB.cd) CB.cd[id] = Math.max(0, CB.cd[id] - dt);
@@ -2014,9 +2161,10 @@ function combatTick(dt, t) {
   // 霜道の上は速く走れる
   const fast = onRoad(P.x, P.z);
   if (fast) CB.speedT = .6; else CB.speedT = Math.max(0, CB.speedT - dt);
-  speedMul = CB.speedT > 0 ? 1.6 : 1;
+  speedMul = (CB.speedT > 0 ? 1.6 : 1) * (PV.slowT > 0 ? .6 : 1) * (PV.freezeT > 0 ? 0 : 1);
+  pvTick(dt);
   // 氷壁のそばは守られる
-  CB.guard = walls.some(w => w.t < w.life && w.panels.some(p => Math.hypot(p.position.x - P.x, p.position.z - P.z) < 3.2));
+  CB.guard = walls.some(w => w.owner === player && w.t < w.life && w.panels.some(p => Math.hypot(p.position.x - P.x, p.position.z - P.z) < 3.2));
   guardM.material.opacity = damp(guardM.material.opacity, CB.guard ? .07 + Math.sin(t * 3) * .02 : 0, 6, dt);
   guardM.position.set(P.x, .95, P.z); guardM.rotation.y += dt * .6; guardM.visible = guardM.material.opacity > .01;
   // 覚醒のオーラ
@@ -2095,6 +2243,8 @@ function updateSkillHud() {
   if (CB.charged && CB.awakenT <= 0) buffs.push(['chg', 'チャージ：次のスキル強化']);
   if (CB.speedT > 0) buffs.push(['spd', '霜道：移動速度アップ']);
   if (CB.guard) buffs.push(['grd', '白霜障壁：守られている']);
+  if (PV.freezeT > 0) buffs.push(['dbf', '凍結']); else if (PV.slowT > 0) buffs.push(['dbf', '鈍足']);
+  if (PV.invT > 0) buffs.push(['grd', '復帰直後：無敵']);
   const key = JSON.stringify(buffs);
   if (key !== updateSkillHud.k) { updateSkillHud.k = key; const b = $('buffs'); b.innerHTML = ''; for (const [c, txt] of buffs) { const s = document.createElement('span'); s.className = c; s.textContent = txt; b.appendChild(s); } }
 }
@@ -2152,7 +2302,7 @@ function tick(dt) {
   composer.render(dt);
 }
 loop();
-window.__walk = { player, keys, wallet, chests, interact: () => interact(), near: () => near?.label, openShop, closeShop, SHOPS, step: s => { for (let i = 0; i < s * 60; i++) tick(1 / 60); }, cam: () => ({ camYaw, camPitch }), setCam: (y, p, d) => { camYaw = y; camPitch = p; camDist = d; camInit = false; }, lockCam: v => { camLock = v; }, CB, dummies, attack, useSkill, net: NET, remotes, fakePeers: list => { NET.status = { available: true, connected: true }; NET.peers = list; syncRemotes(); updateNetUI(); }, vrm: () => vrm };
+window.__walk = { player, keys, wallet, chests, interact: () => interact(), near: () => near?.label, openShop, closeShop, SHOPS, step: s => { for (let i = 0; i < s * 60; i++) tick(1 / 60); }, cam: () => ({ camYaw, camPitch }), setCam: (y, p, d) => { camYaw = y; camPitch = p; camDist = d; camInit = false; }, lockCam: v => { camLock = v; }, CB, PV, dummies, attack, useSkill, net: NET, remotes, fakePeers: list => { NET.status = { available: true, connected: true }; NET.peers = list; syncRemotes(); updateNetUI(); }, vrm: () => vrm };
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); sizeBulbs(); });
 </script>
 </body>
