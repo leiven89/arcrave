@@ -1250,16 +1250,61 @@ function kAim(side, goal, w) {
   const up = kb(side + 'UpperArm'), lo = kb(side + 'LowerArm'), hand = kb(side + 'Hand');
   lo.rotation.y = kLerp(lo.rotation.y, side === 'left' ? -.12 : .12, w); lo.rotation.x = kLerp(lo.rotation.x, 0, w); lo.rotation.z = kLerp(lo.rotation.z, 0, w);
   hand.rotation.set(kLerp(hand.rotation.x, 0, w), kLerp(hand.rotation.y, 0, w), kLerp(hand.rotation.z, 0, w));
+  _aq.copy(up.quaternion);
+  up.rotation.set(0, 0, 0);                    // 横にのばした腕から向け直す（真逆向きからだと肩がねじれるため）
   karen.scene.updateMatrixWorld(true);
-  _aq.copy(up.quaternion); aimJoint(up, hand, goal);
+  aimJoint(up, hand, goal);
   if (w < .999) up.quaternion.slerpQuaternions(_aq, up.quaternion.clone(), w);
+}
+// 2関節IK：手を T に置き、肘は hint の向きへ曲げる（腰に手を当てるなど）
+const _ik = { S: new THREE.Vector3(), E: new THREE.Vector3(), H: new THREE.Vector3(), u: new THREE.Vector3(), P: new THREE.Vector3(), q0: new THREE.Quaternion(), q1: new THREE.Quaternion() };
+function kIK(side, T, hint, w) {
+  if (w <= .001) return;
+  const up = kb(side + 'UpperArm'), lo = kb(side + 'LowerArm'), hand = kb(side + 'Hand'), k = _ik;
+  k.q0.copy(up.quaternion); k.q1.copy(lo.quaternion);
+  up.rotation.set(0, 0, 0); lo.rotation.set(0, 0, 0);
+  karen.scene.updateMatrixWorld(true);
+  up.getWorldPosition(k.S); lo.getWorldPosition(k.E); hand.getWorldPosition(k.H);
+  const L1 = k.S.distanceTo(k.E), L2 = k.E.distanceTo(k.H);
+  k.u.copy(T).sub(k.S); let d = k.u.length(); k.u.normalize();
+  d = Math.min(Math.max(d, Math.abs(L1 - L2) + 1e-3), L1 + L2 - 1e-3);
+  // ① 肘は本来の曲がる向き（前腕の y 軸まわり）だけで曲げる。角度は手が T に届く長さから決める
+  const inner = Math.acos(THREE.MathUtils.clamp((L1 * L1 + L2 * L2 - d * d) / (2 * L1 * L2), -1, 1));
+  lo.rotation.set(0, (side === 'left' ? -1 : 1) * (Math.PI - inner), 0);
+  karen.scene.updateMatrixWorld(true);
+  // ② 上腕を回して、手を T へ向ける
+  aimJoint(up, hand, T);
+  // ③ 肩から T への軸のまわりで腕全体を回し、肘を hint の向きへ
+  lo.getWorldPosition(k.E);
+  const e = k.E.clone().sub(k.S); e.addScaledVector(k.u, -e.dot(k.u));
+  k.P.copy(hint).addScaledVector(k.u, -hint.dot(k.u));
+  if (e.lengthSq() > 1e-8 && k.P.lengthSq() > 1e-8) {
+    e.normalize(); k.P.normalize();
+    const ang = Math.atan2(new THREE.Vector3().crossVectors(e, k.P).dot(k.u), e.dot(k.P));
+    const wq = up.getWorldQuaternion(new THREE.Quaternion()), pq = up.parent.getWorldQuaternion(new THREE.Quaternion());
+    wq.premultiply(new THREE.Quaternion().setFromAxisAngle(k.u, ang));
+    up.quaternion.copy(pq.invert().multiply(wq));
+  }
+  up.quaternion.slerpQuaternions(k.q0, up.quaternion.clone(), w);
+  lo.quaternion.slerpQuaternions(k.q1, lo.quaternion.clone(), w);
+}
+// 左手を腰に当てる
+const _hipT = new THREE.Vector3(), _hipH = new THREE.Vector3();
+function kHipHand(w) {
+  if (w <= .001) return;
+  const yaw = kRoot.rotation.y, hp = kb('hips');
+  karen.scene.updateMatrixWorld(true); hp.getWorldPosition(_hipT);
+  _hipT.add(new THREE.Vector3(.17, .03, -.01).applyAxisAngle(_UP, yaw));
+  _hipH.set(1, -.15, -.7).normalize().applyAxisAngle(_UP, yaw);
+  kIK('left', _hipT, _hipH, w);
+  const hd = kb('leftHand'); hd.rotation.z = kLerp(hd.rotation.z, .35, w);
 }
 
 // 演技のポーズ
 Object.assign(KP, {
-  point: kPose({ leftUpperArm: [0, -.6, -1.0], leftLowerArm: [0, -1.6, 0], hips: [0, 0, .06], spine: [0, -.08, -.03], head: [-.1, -.15, .05], rightUpperLeg: [-.08, 0, -.04], rightLowerLeg: [.2, 0, 0], rightFoot: [.25, 0, 0] }),
+  point: kPose({ leftUpperArm: [1.05, -.35, -.76], leftLowerArm: [0, -1.63, 0], hips: [0, 0, .06], spine: [0, -.08, -.03], head: [-.1, -.15, .05], rightUpperLeg: [-.08, 0, -.04], rightLowerLeg: [.2, 0, 0], rightFoot: [.25, 0, 0] }),
   conduct: kPose({ leftUpperArm: [0, -.75, -.5], leftLowerArm: [0, -.8, 0], spine: [.04, 0, 0], head: [-.05, 0, 0], leftUpperLeg: [-.05, 0, .06], rightUpperLeg: [0, 0, -.06] }),
-  watch: kPose({ leftUpperArm: [0, -.6, -1.0], leftLowerArm: [0, -1.6, 0], spine: [-.12, 0, 0], chest: [-.06, 0, 0], head: [-.35, -.1, 0] }),
+  watch: kPose({ leftUpperArm: [1.05, -.35, -.76], leftLowerArm: [0, -1.63, 0], spine: [-.12, 0, 0], chest: [-.06, 0, 0], head: [-.35, -.1, 0] }),
   push: kPose({ spine: [-.08, 0, 0], head: [-.2, 0, 0], leftUpperLeg: [-.25, 0, .08], leftLowerLeg: [.4, 0, 0], rightUpperLeg: [.2, 0, -.06], rightFoot: [.3, 0, 0] }),
   tada: kPose({ leftUpperArm: [0, -.2, -.25], leftLowerArm: [0, -.15, 0], hips: [0, 0, -.07], spine: [0, 0, .06], head: [-.1, .1, -.12], leftUpperLeg: [-.05, 0, .05], rightUpperLeg: [0, 0, -.3], rightFoot: [.5, 0, 0], _y: [-.015, 0, 0] }),
 });
@@ -1338,7 +1383,7 @@ function kPerform(beat, dt) {
     else if (b < 27.6) {                                   // 両手で押し上げる
       pose = kBlend(KP.point, KP.push, seg(25, 25.5)); hands = { right: [0, .2, .3], left: [0, .2, .3] };
       const g = H.clone().add(off);
-      aims.push(['right', g.clone().add(L(-.15, 0, 0)), seg(25, 25.5)], ['left', g.clone().add(L(.15, 0, 0)), seg(25, 25.5)]);
+      aims.push(['right', g.clone().add(L(-.1, 0, 0)), seg(25, 25.5)], ['left', L(.45, 0, .35).setY(g.y + .1), seg(25, 25.5)]);   // 左手は体の左側で押し上げる（胸の前を横切らない）
     } else {                                               // じゃーん
       pose = kBlend(KP.push, KP.tada, seg(27.6, 28.3)); hands = { right: [0, .1, .2], left: [0, .2, .3] };
       aims.push(['right', L(-.9, 3.2, .3), 1 - seg(30.5, 31.8)]);
@@ -1364,7 +1409,7 @@ function kPerform(beat, dt) {
     if (at(28.4)) for (let i = 0; i < 6; i++) fwBurst(sky.clone().add(new THREE.Vector3(rand(-1.6, 1.6), rand(-.8, .6), rand(-.4, .4))), { n: 60, speed: 1, cols: [[2.8, 2, .6], [2.8, 2.4, 1.6]], life: 1.2, glitter: true, light: 2 });
     cam = b >= 25.5 && b < 31 ? 1 : 0;
   }
-  return { pose, aims, hands, cam };
+  return { pose, aims, hands, cam, hipL: act === 0 ? 1 - seg(9.4, 10) : act === 2 && b < 25 ? seg(20, 20.8) * (1 - seg(24.6, 25)) : 0 };
 }
 
 
@@ -1372,8 +1417,8 @@ function kPerform(beat, dt) {
 // 表情：表情つきモデルの細かい表情（口・眉・目）を使う
 function kSmile(x, wink = false) { setFace({ happy_mouth: Math.min(1, x * 1.1), brow_happy: x * .8, happy_eye: x > .95 ? .55 : 0, blink_smile_L: wink ? 1 : 0 }); }
 KP.idle = kPose({
-  leftUpperArm: [0, -.6, -1.0], leftLowerArm: [0, -1.6, 0], leftHand: [0, 0, .25],
-  rightUpperArm: [0, .5, .42], rightLowerArm: [-1.2, .2, 0], rightHand: [0, 0, -.15],
+  leftUpperArm: [1.05, -.35, -.76], leftLowerArm: [0, -1.63, 0], leftHand: [0, 0, .35],   // 腰に手（IKの結果と同じ角度）
+  rightUpperArm: [0, .5, .42], rightLowerArm: [-.4, .2, 0], rightHand: [0, 0, -.15],
   hips: [0, -.12, .04], spine: [.02, .08, -.03], chest: [-.04, .05, 0], neck: [0, .03, 0], head: [-.04, .1, .1],
   leftUpperLeg: [-.06, 0, .07], leftLowerLeg: [.14, 0, 0], leftFoot: [-.05, -.1, 0], rightUpperLeg: [0, 0, -.06], rightFoot: [0, .12, 0],
 });
@@ -1393,7 +1438,7 @@ function kIdle(beat, t, c) {
   p.head[0] += lk * .04 - w * .05; p.head[1] += lk * .18; p.head[2] += Math.sin(t * .6) * .05 + w * .15;
   p._y = [-.01 * Math.pow(Math.abs(Math.cos(Math.PI * beat)), 6), 0, 0];
   const f = .12 + .08 * Math.sin(t * 2.4);
-  return { pose: p, aims: [], hands: { right: [f, f + .1, .05], left: [.35, .4, .3] }, cam: 0 };
+  return { pose: p, aims: [], hands: { right: [f, f + .1, .05], left: [.35, .4, .3] }, cam: 0, hipL: 1 };
 }
 // 待機 → パフォーマンス → 待機 … をくり返す
 function kShowLoop(beat, dt, t) {
@@ -1526,7 +1571,7 @@ function updateTheme(dt) {
 }
 
 /* ---------- 選んだとき：暗転 → カチッとスポット → 振り向いて踊りだす ---------- */
-let kSm = null, kShow = null, kFin = null, kClock = 0, kLineT = 0;
+let kSm = null, kHipW = 0, kShow = null, kFin = null, kClock = 0, kLineT = 0;
 function selectKaren(el) {
   if (skill || kFin) return;
   if (!karen) { toast('カレンを読み込み中です…'); return; }
@@ -1630,6 +1675,7 @@ function karenTick(dt, rdt, t) {
   const hd = perfD ? perfD.hands : { right: [.15, .2, .15], left: [.15, .2, .15] };
   kHand('right', ...hd.right); kHand('left', ...hd.left);
   if (perfD) for (const [side, goal, w] of perfD.aims) kAim(side, goal, w);
+  kHipW += ((perfD?.hipL || 0) - kHipW) * (1 - Math.exp(-rdt * 8)); kHipHand(kHipW);
   // 花火のときはカメラを少し上へ・広く
   const camT = perfD ? perfD.cam : kFin ? .7 : 0;
   camWide += (camT * .4 - camWide) * (1 - Math.exp(-rdt * 2.5)); focus.y += (camT * .75 - focus.y) * (1 - Math.exp(-rdt * 2.5));
@@ -1678,8 +1724,8 @@ function setInfo(id) {
    ===================================================================== */
 const toastEl = document.getElementById('toast'); let toastT;
 function toast(m) { toastEl.textContent = m; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1700); }
-document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261126203352');
-document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261126203352');
+document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261126204608');
+document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261126204608');
 window.__sel = { karen: () => ({ karen, kRoot, kShow, kFin, kClock, SPOTS, M, select: () => selectKaren(ROSTER.find(r => r.id === 'karen').card), decide: karenDecide, KP, kApply, clock: v => { musicStop(); kClock = v; }, icon: karenIcon }), pose: n => setPose(n, 10), shot: setShot, select: () => selectShino(document.querySelector('.ic.ur')), step: (sec) => { for (let i = 0; i < sec * 60; i++) tick(1 / 60); }, state: () => ({ skill, conv: conv.visible, glow: handGlow.scale.x, shot }), POSES, bone: n => bone(n), THREE, ear: EAR_OFFSET, hint: ELBOW_HINT, dbg: () => { const f = n => bone(n).getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)); const t = EAR_OFFSET.clone(); bone('head').localToWorld(t); return { head: f('head'), hand: f('leftHand'), elbow: f('leftLowerArm'), sh: f('leftUpperArm'), target: t.toArray().map(v => +v.toFixed(3)), rawHand: vrm.humanoid.getRawBoneNode('leftHand').getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)) }; }, show: () => { vrm.scene.visible = true; document.getElementById('loading').classList.add('hide'); setShot('normal'); } };
 
 /* =====================================================================
