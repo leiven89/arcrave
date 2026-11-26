@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>アークレイヴ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Shippori+Mincho+B1:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  /* タイトル画面：夜空と雪、中央にロゴ、下に名前入力と開始ボタン（ゲーム本編と同じ暗い配色で固定） */
+  :root{
+    --night:#060a1c; --deep:#0e1838; --ice:#cdf6ff; --cyan:#3ff0ff; --gold:#ffd77a; --ink:#e8f6ff; --mute:#8fa6c8;
+    --display:"Shippori Mincho B1","Hiragino Mincho ProN",serif; --body:"Zen Kaku Gothic New","Hiragino Sans",sans-serif; --latin:"Rajdhani","Segoe UI",sans-serif;
+    color-scheme:dark;
+  }
+  html,body{height:100%}
+  body{margin:0;background:var(--night);color:var(--ink);font-family:var(--body);overflow:hidden}
+  #sky{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .wrap{position:relative;height:100%;display:grid;grid-template-rows:1fr auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px;box-sizing:border-box}
+  .logo{align-self:center;justify-self:center;text-align:center}
+  .logo small{display:block;font-family:var(--latin);font-weight:700;letter-spacing:.6em;font-size:clamp(11px,2.4vw,15px);color:var(--cyan);padding-left:.6em}
+  .logo h1{margin:.2em 0 0;font-family:var(--display);font-weight:800;font-size:clamp(46px,11vw,120px);letter-spacing:.12em;line-height:1.05;text-wrap:balance;
+    background:linear-gradient(180deg,#ffffff 25%,var(--ice) 60%,#7fc8ff);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 24px rgba(80,190,255,.45))}
+  .logo .sub{margin-top:.6em;font-family:var(--display);font-size:clamp(15px,3.4vw,22px);letter-spacing:.24em;color:var(--ink)}
+  .logo .sub b{color:var(--gold);font-weight:800}
+  .bottom{display:flex;flex-direction:column;align-items:center;gap:16px;padding-bottom:env(safe-area-inset-bottom,0px)}
+  .name{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700}
+  .name input{width:11em;font:700 16px var(--body);color:var(--ink);background:rgba(14,24,56,.7);border:1px solid rgba(160,230,255,.45);border-radius:4px;padding:8px 12px}
+  .name input:focus{outline:2px solid var(--cyan);outline-offset:1px}
+  #start{font:700 clamp(16px,3.6vw,20px)/1 var(--latin);letter-spacing:.5em;padding:18px 34px 18px calc(34px + .5em);color:#03101c;background:linear-gradient(120deg,#8fe9ff,var(--cyan));border:0;cursor:pointer;
+    clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);box-shadow:0 0 30px rgba(63,240,255,.45);animation:pulse 2.4s ease-in-out infinite}
+  #start:focus-visible{outline:3px solid var(--gold);outline-offset:4px}
+  @keyframes pulse{50%{filter:brightness(1.18)}}
+  nav{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+  nav a{font-size:13px;font-weight:700;color:var(--ink);text-decoration:none;padding:8px 14px;border:1px solid rgba(160,230,255,.35);background:rgba(14,24,56,.55);border-radius:4px}
+  nav a:hover,nav a:focus-visible{border-color:var(--cyan);outline:none}
+  .note{font-size:12px;color:var(--mute);text-align:center;line-height:1.7;max-width:34em;margin:0}
+  #online{font-size:12px;font-weight:700;color:var(--mute)} #online.live{color:#5aff9a}
+  @media (prefers-reduced-motion:reduce){#start{animation:none}}
+  /* ゲーム本編はこの枠の中で動く（タイトル画面がオンライン接続を受け持つ） */
+  #game{position:fixed;inset:0;width:100%;height:100%;border:0;display:none;background:#000;z-index:10}
+  body.playing #game{display:block}
+  body.playing .wrap,body.playing #sky{visibility:hidden}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="wrap">
+  <div class="logo">
+    <small>ARC RAVE // UNIT 09</small>
+    <h1>アークレイヴ</h1>
+    <div class="sub">白夜に咲く、<b>氷の約束</b></div>
+  </div>
+  <div class="bottom">
+    <label class="name">プレイヤー名 <input id="name" maxlength="12" autocomplete="nickname"></label>
+    <button id="start" type="button">TAP TO START</button>
+    <nav aria-label="画面へ直接移動">
+      <a href="lobby.html">ロビー</a>
+      <a href="walk.html">出撃：ノエルベルク</a>
+      <a href="gacha.html">ガチャ</a>
+      <a href="select.html">キャラ選択</a>
+    </nav>
+    <p class="note">初回はキャラクターデータ（約12MB）の読み込みに少し時間がかかります。出撃中は、同じ時間に出撃しているプレイヤーと一緒に街を歩けます。名前はほかのプレイヤーに表示されます。</p>
+    <div id="online">オンライン：準備中</div>
+  </div>
+</div>
+<iframe id="game" title="アークレイヴ" allow="autoplay; fullscreen"></iframe>
+
+<script type="module">
+/* ===== オンライン設定：Supabase の Project URL と anon（公開用）key を入れる ===== */
+const SUPABASE_URL = 'https://btevfohvenliztvrxpnf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_cXg9te78Wuuo3HH61XaIWg_Gzm4AmE2';   // 公開用の鍵（ページに載せてよいもの）
+const CHANNEL = 'noelberg-v1';
+
+const $ = id => document.getElementById(id);
+const game = $('game');
+function play(href) { game.src = href; document.body.classList.add('playing'); }
+$('start').addEventListener('click', () => play('lobby.html'));
+document.querySelectorAll('nav a').forEach(a => a.addEventListener('click', e => { e.preventDefault(); play(a.getAttribute('href')); }));
+
+/* ---- プレイヤー名（この端末に保存） ---- */
+const clean = v => (typeof v === 'string' ? v : '').replace(/[\u0000-\u001f\u007f​-‏‪-‮⁦-⁩]/g, '').trim().slice(0, 12);
+let myName = '';
+try { myName = clean(localStorage.getItem('arc_name') || ''); } catch (e) {}
+if (!myName) myName = 'プレイヤー' + Math.floor(Math.random() * 900 + 100);
+$('name').value = myName;
+$('name').addEventListener('change', () => { myName = clean($('name').value) || myName; $('name').value = myName; try { localStorage.setItem('arc_name', myName); } catch (e) {} me.name = myName; track(); });
+
+/* ---- 枠の中のゲームとの中継 ----
+   ゲーム → {type:'net:hello'} / {type:'net:presence', patch:{area, st, say}}
+   ゲーム ← {type:'net:status', available, connected} / {type:'net:peers', peers:[{peer, name, presence}]} */
+let status = { type: 'net:status', available: false, connected: false };
+const post = m => { try { game.contentWindow?.postMessage(m, '*'); } catch (e) {} };
+function setStatus(available, connected) {
+  status = { type: 'net:status', available, connected }; post(status);
+  const el = $('online'); el.classList.toggle('live', connected);
+  el.textContent = !available ? 'オンライン：オフライン（一人で探索）' : connected ? 'オンライン：接続中' : 'オンライン：つないでいます…';
+}
+
+/* ---- Supabase Realtime ----
+   presence：名前・いる場所・セリフ（出入りがわかる）
+   broadcast：位置・向き・速さ（1秒に5回まで） */
+const myId = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)).replace(/-/g, '').slice(0, 16);
+const me = { name: myName, area: null, say: null };
+const peers = new Map();         // id → {name, area, say, st}
+let ch = null, live = false, pendingSt = null, lastStSent = '', stKeep = 0, peersT = 0;
+const validSt = st => Array.isArray(st) && st.length === 4 && st.every(v => typeof v === 'number' && isFinite(v) && Math.abs(v) < 1000);
+const validSay = s => (s && typeof s.s === 'string') ? { s: s.s.slice(0, 120), n: Number(s.n) || 0 } : null;
+function sendPeers() {
+  clearTimeout(peersT);
+  peersT = setTimeout(() => post({ type: 'net:peers', peers: [...peers].filter(([, p]) => p.area === 'noelberg' && p.st).map(([id, p]) => ({ peer: id, name: p.name, guest: false, presence: { area: p.area, st: p.st, say: p.say } })) }), 30);
+}
+function track() { if (ch && live) ch.track({ name: me.name, area: me.area, say: me.say }).catch(() => {}); }
+function sendSt(force) {
+  if (!ch || !live || !me.area || !pendingSt) return;
+  const key = JSON.stringify(pendingSt);
+  if (!force && key === lastStSent && stKeep > 0) return;
+  lastStSent = key; stKeep = 15;
+  ch.send({ type: 'broadcast', event: 'st', payload: { id: myId, st: pendingSt } }).catch(() => {});
+}
+setInterval(() => { stKeep--; sendSt(false); }, 200);
+async function connect() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) { setStatus(false, false); return; }
+  setStatus(true, false);
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm');
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { realtime: { params: { eventsPerSecond: 10 } } });
+    ch = sb.channel(CHANNEL, { config: { presence: { key: myId }, broadcast: { self: false } } });
+    ch.on('presence', { event: 'sync' }, () => {
+      const state = ch.presenceState(), seen = new Set(); let fresh = false;
+      for (const [id, metas] of Object.entries(state)) {
+        if (id === myId || !Array.isArray(metas) || !metas.length) continue;
+        const m = metas[metas.length - 1] || {}; seen.add(id);
+        const old = peers.get(id); if (!old) fresh = true;
+        peers.set(id, { st: old?.st || null, name: clean(m.name) || 'プレイヤー', area: m.area === 'noelberg' ? 'noelberg' : null, say: validSay(m.say) });
+      }
+      for (const id of [...peers.keys()]) if (!seen.has(id)) peers.delete(id);
+      if (fresh) sendSt(true);          // 新しく来た人に自分の位置をすぐ届ける
+      sendPeers();
+    });
+    ch.on('broadcast', { event: 'st' }, ({ payload }) => {
+      const p = payload && peers.get(payload.id);
+      if (p && validSt(payload.st)) { p.st = payload.st; sendPeers(); }
+    });
+    ch.subscribe(s => {
+      live = s === 'SUBSCRIBED'; setStatus(true, live);
+      if (live) { track(); sendSt(true); }
+    });
+  } catch (e) { console.warn('online', e); setStatus(false, false); }
+}
+connect();
+
+addEventListener('message', e => {
+  if (e.source !== game.contentWindow) return;
+  const m = e.data || {};
+  if (m.type === 'net:hello') { post(status); sendPeers(); }
+  else if (m.type === 'net:presence' && m.patch && typeof m.patch === 'object') {
+    const p = m.patch, area = p.area === 'noelberg' ? 'noelberg' : null, say = validSay(p.say);
+    if (validSt(p.st)) pendingSt = p.st.map(v => Math.round(v * 100) / 100);
+    const changed = area !== me.area || JSON.stringify(say) !== JSON.stringify(me.say);
+    me.area = area; me.say = say;
+    if (changed) { track(); if (area) sendSt(true); }
+  }
+});
+// 出撃画面を離れたら、ほかのプレイヤーの画面から消える
+game.addEventListener('load', () => { me.area = null; me.say = null; pendingSt = null; track(); });
+
+/* ---- 夜空と雪 ---- */
+const cv = $('sky'), g = cv.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let W, H, flakes = [], stars = [];
+function size() {
+  const r = Math.min(devicePixelRatio || 1, 2);
+  W = cv.width = innerWidth * r; H = cv.height = innerHeight * r;
+  stars = Array.from({ length: 160 }, () => ({ x: Math.random() * W, y: Math.random() * H * .7, s: Math.random() * 1.6 * r, p: Math.random() * 6 }));
+  flakes = Array.from({ length: 140 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: (Math.random() * 2.2 + .6) * r, v: (Math.random() * .6 + .3) * r, w: Math.random() * 6 }));
+}
+size(); addEventListener('resize', size);
+function draw(t) {
+  requestAnimationFrame(draw);
+  if (document.body.classList.contains('playing')) return;
+  const gr = g.createLinearGradient(0, 0, 0, H);
+  gr.addColorStop(0, '#04071a'); gr.addColorStop(.6, '#0e1838'); gr.addColorStop(1, '#2a2350');
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  const glow = g.createRadialGradient(W * .5, H * 1.05, 0, W * .5, H * 1.05, H * .9);
+  glow.addColorStop(0, 'rgba(255,190,140,.28)'); glow.addColorStop(1, 'rgba(255,190,140,0)');
+  g.fillStyle = glow; g.fillRect(0, 0, W, H);
+  for (const s of stars) { g.globalAlpha = .4 + .4 * Math.sin(t / 700 + s.p); g.fillStyle = '#dfefff'; g.fillRect(s.x, s.y, s.s, s.s); }
+  g.globalAlpha = 1; g.fillStyle = '#ffffff';
+  for (const f of flakes) {
+    if (!reduce) { f.y += f.v; f.x += Math.sin(t / 1200 + f.w) * .3; if (f.y > H) { f.y = -5; f.x = Math.random() * W; } }
+    g.globalAlpha = .8; g.beginPath(); g.arc(f.x, f.y, f.r, 0, Math.PI * 2); g.fill();
+  }
+  g.globalAlpha = 1;
+}
+requestAnimationFrame(draw);
+window.__shell = { peers, me, setStatus, sendPeers, myId };
+</script>
+</body>
+</html>
