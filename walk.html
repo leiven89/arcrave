@@ -59,7 +59,8 @@
   @keyframes bump{30%{transform:scale(1.18);filter:brightness(1.5)}}
   /* オンライン表示・ほかのプレイヤーの名前と吹き出し */
   #net{position:fixed;left:20px;top:66px;display:none;align-items:center;gap:8px;height:30px;padding:0 14px 0 10px;font-size:12px;font-weight:700;letter-spacing:.04em}
-  #net.on{display:flex}
+  #net.on{display:flex;cursor:pointer}
+  #netToast{white-space:pre-line !important;text-align:center;line-height:1.6}
   #net i{width:9px;height:9px;border-radius:50%;background:#8a94b8;box-shadow:0 0 0 2px rgba(255,255,255,.12)}
   #net.live i{background:#5aff9a;box-shadow:0 0 10px #5aff9a}
   #netToast{position:fixed;left:50%;top:84px;transform:translateX(-50%);padding:8px 18px;border-radius:18px;background:rgba(8,16,40,.75);box-shadow:inset 0 0 0 1px rgba(160,230,255,.45);font-size:13px;font-weight:700;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:15}
@@ -176,7 +177,7 @@
 <div id="sub"></div>
 <div id="title"><small id="tSm">AREA 01 // NOELBERG</small><b id="tB">ノエルベルク</b><span id="tSp">── 聖夜の街 ──</span></div>
 <div id="wallet"><div class="w panel" id="wCoin"><span class="ic">円</span><span id="coinV">0</span></div><div class="w panel pt" id="wPt"><span class="ic">Y</span><span id="ptV">0</span></div></div>
-<div id="net" class="panel"><i></i><span id="netText">接続中…</span></div>
+<div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
@@ -1348,7 +1349,7 @@ const num = (v, lo, hi) => (typeof v === 'number' && isFinite(v)) ? Math.min(hi,
 addEventListener('message', e => {
   if (!IN_FRAME || e.source !== window.parent) return;
   const m = e.data || {};
-  if (m.type === 'net:status') { NET.status = { available: !!m.available, connected: !!m.connected }; updateNetUI(); }
+  if (m.type === 'net:status') { NET.status = { available: !!m.available, connected: !!m.connected, reconnects: Number(m.reconnects) || 0, log: Array.isArray(m.log) ? m.log.filter(x => typeof x === 'string').slice(-8) : [] }; updateNetUI(); }
   else if (m.type === 'net:peers' && Array.isArray(m.peers)) {
     NET.peers = m.peers.filter(p => p && typeof p.peer === 'string' && p.presence && p.presence.area === 'noelberg' && Array.isArray(p.presence.st));
     syncRemotes(); updateNetUI();
@@ -1358,13 +1359,15 @@ netPost({ type: 'net:hello', area: 'noelberg' });
 addEventListener('pagehide', () => netPost({ type: 'net:presence', patch: { area: null, st: null, say: null } }));
 
 let netToastT;
-function netToast(text) { const e = $('netToast'); e.textContent = text; e.classList.add('on'); clearTimeout(netToastT); netToastT = setTimeout(() => e.classList.remove('on'), 2600); }
+function netToast(text, ms = 2600) { const e = $('netToast'); e.textContent = text; e.classList.add('on'); clearTimeout(netToastT); netToastT = setTimeout(() => e.classList.remove('on'), ms); }
+// 左上のオンライン表示を押すと、接続の記録を出す（うまくつながらない時の手がかり）
+$('net').addEventListener('click', () => { const st = NET.status; netToast(['接続の記録' + (st.reconnects ? `（つなぎ直し ${st.reconnects}回）` : ''), ...(st.log?.length ? st.log : ['記録はまだありません'])].join(String.fromCharCode(10)), 6000); });
 function updateNetUI() {
   const el = $('net'), st = NET.status;
   el.classList.toggle('on', st.available);
   el.classList.toggle('live', st.available && st.connected);
   const n = NET.peers.length;
-  $('netText').textContent = !st.connected ? 'オンライン：接続中…' : n ? `オンライン：${n + 1}人で探索中` : 'オンライン：ほかのプレイヤー待ち';
+  $('netText').textContent = !st.connected ? 'オンライン：つないでいます…' : n ? `オンライン：${n + 1}人で探索中` : 'オンライン：ほかのプレイヤー待ち';
 }
 const peerName = p => (typeof p.name === 'string' && p.name.trim()) ? p.name.trim().slice(0, 24) : 'プレイヤー';
 
@@ -1384,7 +1387,13 @@ function syncRemotes() {
     }
     applyPresence(r, p);
   }
-  for (const [k, r] of remotes) if (!seen.has(k)) { netToast(`${r.name} さんが 帰りました`); removeRemote(k, r); }
+  const now = performance.now();
+  for (const [k, r] of remotes) {
+    if (seen.has(k)) { r.missing = 0; continue; }
+    if (!r.missing) r.missing = now;
+    else if (now - r.missing > 6000) { netToast(`${r.name} さんが 帰りました`); removeRemote(k, r); }
+  }
+  clearTimeout(syncRemotes.t); if ([...remotes.values()].some(r => r.missing)) syncRemotes.t = setTimeout(syncRemotes, 1000);
 }
 function makeRemote(p) {
   const r = { peer: p.peer, name: peerName(p), vrm: null, pos: new THREE.Vector3(), yaw: 0, tgt: null, speed: 0, phase: 0, walkW: 0, runW: 0, baseHipsY: 0, footY: 0, lastC: 1, sayN: null, sayT: 0, blinkT: rand(1, 4), blinkV: 0, dead: false };
@@ -1410,6 +1419,7 @@ function applyPresence(r, p) {
   const X = num(x, -80, 80), Z = num(z, -80, 20), Y = num(yaw, -100, 100), S = num(sp, 0, 8);
   if (X === null || Z === null) return;
   const first = !r.tgt;
+  if (first || r.tgt.x !== X || r.tgt.z !== Z || r.tgt.speed !== (S ?? 0)) r.tgtAt = performance.now();
   r.tgt = { x: X, z: Z, yaw: Y ?? 0, speed: S ?? 0 };
   if (first) { r.pos.set(X, 0, Z); r.yaw = r.tgt.yaw; }
   r.name = peerName(p); r.label.textContent = r.name;
@@ -1444,9 +1454,11 @@ function netTick(dt, t) {
   // ほかのプレイヤーを動かす
   for (const r of remotes.values()) {
     if (!r.vrm || !r.tgt) continue;
-    const d = Math.hypot(r.tgt.x - r.pos.x, r.tgt.z - r.pos.z);
-    if (d > 6) r.pos.set(r.tgt.x, 0, r.tgt.z);
-    else { r.pos.x = damp(r.pos.x, r.tgt.x, 9, dt); r.pos.z = damp(r.pos.z, r.tgt.z, 9, dt); }
+    const age = Math.min(.45, (performance.now() - (r.tgtAt || 0)) / 1000), lead = r.tgt.speed > .2 ? r.tgt.speed * age : 0;
+    const gx = r.tgt.x + Math.sin(r.tgt.yaw) * lead, gz = r.tgt.z + Math.cos(r.tgt.yaw) * lead;
+    const d = Math.hypot(gx - r.pos.x, gz - r.pos.z);
+    if (d > 6) r.pos.set(gx, 0, gz);
+    else { r.pos.x = damp(r.pos.x, gx, 7, dt); r.pos.z = damp(r.pos.z, gz, 7, dt); }
     let dy = r.tgt.yaw - r.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); r.yaw += dy * (1 - Math.exp(-dt * 10));
     r.speed = damp(r.speed, r.tgt.speed, 8, dt);
     const runK = THREE.MathUtils.clamp((r.speed - WALK) / (RUN - WALK), 0, 1);
