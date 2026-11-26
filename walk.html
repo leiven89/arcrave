@@ -1075,7 +1075,7 @@ function animate(dt, t, st = player, turn = headTurn, hipsY = baseHipsY) {
     const c = lerp(side === 'left' ? .35 : .6, lerp(.35, .9, run), w), sg = side === 'left' ? -1 : 1;
     for (const f of FINGERS) ['Proximal', 'Intermediate', 'Distal'].forEach((seg, i) => { const b = bone(side + f + seg); if (b) b.rotation.set(0, 0, sg * c * [1, 1.15, .8][i]); });
   }
-  if (st === player) applyAction();
+  applyAction(st);
   earIK((1 - Math.min(1, w * 1.6)) * (1 - (st.actW || 0)));
 }
 
@@ -1409,7 +1409,7 @@ const NET = { status: { available: false, connected: false }, peers: [] };
 const IN_FRAME = window.parent !== window;
 const MAX_REMOTE = MOBILE ? 2 : 4;      // しのを何人まで表示するか（1人あたり約12MBのモデル）
 const remotes = new Map();
-let mySay = {}, netSendT = 0, netKeepT = 0, lastSent = '';
+let mySay = {}, myAct = {}, netSendT = 0, netKeepT = 0, lastSent = '';
 function netPost(m) { if (IN_FRAME) try { window.parent.postMessage(m, '*'); } catch (e) {} }
 const num = (v, lo, hi) => (typeof v === 'number' && isFinite(v)) ? Math.min(hi, Math.max(lo, v)) : null;
 addEventListener('message', e => {
@@ -1462,7 +1462,7 @@ function syncRemotes() {
   clearTimeout(syncRemotes.t); if ([...remotes.values()].some(r => r.missing)) syncRemotes.t = setTimeout(syncRemotes, 1000);
 }
 function makeRemote(p) {
-  const r = { peer: p.peer, name: peerName(p), vrm: null, pos: new THREE.Vector3(), yaw: 0, tgt: null, speed: 0, phase: 0, walkW: 0, runW: 0, baseHipsY: 0, footY: 0, lastC: 1, sayN: null, sayT: 0, blinkT: rand(1, 4), blinkV: 0, dead: false };
+  const r = { peer: p.peer, name: peerName(p), vrm: null, pos: new THREE.Vector3(), yaw: 0, tgt: null, speed: 0, phase: 0, walkW: 0, runW: 0, baseHipsY: 0, footY: 0, lastC: 1, sayN: null, sayT: 0, blinkT: rand(1, 4), blinkV: 0, dead: false, act: null, actW: 0, actN: null, awakenT: 0, charged: false, claws: null, aura: null };
   r.label = document.createElement('div'); r.label.className = 'pname' + (p.guest ? ' guest' : ''); r.label.textContent = r.name; r.label.style.display = 'none'; document.body.appendChild(r.label);
   r.bubble = document.createElement('div'); r.bubble.className = 'psay'; document.body.appendChild(r.bubble);
   getVrmBuf().then(buf => loader.parse(buf, './', gltf => {
@@ -1489,6 +1489,16 @@ function applyPresence(r, p) {
   r.tgt = { x: X, z: Z, yaw: Y ?? 0, speed: S ?? 0 };
   if (first) { r.pos.set(X, 0, Z); r.yaw = r.tgt.yaw; }
   r.name = peerName(p); r.label.textContent = r.name;
+  const act = p.presence.act;
+  if (!act && r.actN === null) r.actN = -1;          // 合図なしを見た：次の合図からは必ず再生する
+  if (!p.presence.say && r.sayN === null) r.sayN = -1;
+  if (act && typeof act.k === 'string' && act.n !== r.actN) {
+    if (r.actN !== null && ACT[act.k] && r.vrm) {
+      r.act = { name: act.k, t: 0, enh: !!act.e || r.awakenT > 0 || r.charged }; r.lastAct = act.k;
+      const y = num(act.y, -10, 10); if (y !== null) { r.yaw = y; r.tgt.yaw = y; }
+    }
+    r.actN = act.n;
+  }
   const say = p.presence.say;
   if (say && typeof say.s === 'string' && say.n !== r.sayN) {
     if (r.sayN !== null) { r.bubble.textContent = say.s.slice(0, 120); r.bubble.classList.add('on'); r.sayT = Math.min(7, 2.5 + say.s.length * .12); }
@@ -1497,6 +1507,7 @@ function applyPresence(r, p) {
 }
 function removeRemote(k, r) {
   r.dead = true; remotes.delete(k); r.label.remove(); r.bubble.remove();
+  if (r.claws) removeClaws(r.claws); if (r.aura) { scene.remove(r.aura); r.aura.material.dispose(); }
   if (r.vrm) { scene.remove(r.vrm.scene); VRMUtils.deepDispose(r.vrm.scene); }
 }
 const _np = new THREE.Vector3();
@@ -1512,7 +1523,7 @@ function netTick(dt, t) {
   if (IN_FRAME && NET.status.available && netSendT <= 0) {
     netSendT = .1;
     const r2 = v => Math.round(v * 100) / 100;
-    const patch = { area: 'noelberg', st: [r2(player.pos.x), r2(player.pos.z), r2(Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw))), r2(player.speed)], say: mySay.n ? mySay : null };
+    const patch = { area: 'noelberg', st: [r2(player.pos.x), r2(player.pos.z), r2(Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw))), r2(player.speed)], say: mySay.n ? mySay : null, act: myAct.n ? myAct : null };
     const key = JSON.stringify(patch);
     netKeepT -= .1;
     if (key !== lastSent || netKeepT <= 0) { lastSent = key; netKeepT = 3; netPost({ type: 'net:presence', patch }); }   // 3秒ごとに念のため送り直す
@@ -1535,6 +1546,12 @@ function netTick(dt, t) {
       const foot = r.vrm.humanoid.getRawBoneNode(c > 0 ? 'rightFoot' : 'leftFoot').getWorldPosition(new THREE.Vector3()); stepFX(foot, r.yaw, r.runW > .5);
     }
     r.lastC = c;
+    if (r.act) actTick(dt, r);
+    r.awakenT = Math.max(0, r.awakenT - dt);
+    r.claws ||= makeClaws(); updateClaws(r.pos.z > TRAIN.z0 - .4 || !!r.act, r.claws, r.vrm);
+    if (!r.aura) { r.aura = new THREE.Sprite(aura.material.clone()); r.aura.scale.copy(aura.scale); scene.add(r.aura); }
+    r.aura.material.opacity = damp(r.aura.material.opacity, r.awakenT > 0 ? .3 + Math.sin(t * 6) * .06 : r.charged ? .16 : 0, 5, dt);
+    r.aura.position.set(r.pos.x, 1.1, r.pos.z); r.aura.visible = r.aura.material.opacity > .01;
     r.vrm.scene.position.set(r.pos.x, r.footY, r.pos.z); r.vrm.scene.rotation.y = r.yaw;
     rigVrm = r.vrm; animate(dt, t, r, 0, r.baseHipsY); rigVrm = null;
     r.blinkT -= dt; if (r.blinkT < 0) { r.blinkV += dt * 14; if (r.blinkV > 2) { r.blinkV = 0; r.blinkT = rand(1.8, 4.5); } }
@@ -1701,7 +1718,7 @@ function hit(d, dmg, opt = {}) {
   if (d.deadT > 0) return;
   dmg = Math.round(dmg * dmgMul() * rand(.92, 1.08));
   d.hp -= dmg; d.hitT = .25;
-  CB.gauge = Math.min(CB.GAUGE_MAX, CB.gauge + dmg * (CB.awakenT > 0 ? 0 : 1));
+  if (!opt.remote) CB.gauge = Math.min(CB.GAUGE_MAX, CB.gauge + dmg * (CB.awakenT > 0 ? 0 : 1));
   if (opt.slow) d.slowT = Math.max(d.slowT, opt.slow);
   if (opt.freeze) { d.freezeT = Math.max(d.freezeT, opt.freeze); d.block.visible = true; }
   const p = new THREE.Vector3(d.g.position.x, 1.6, d.g.position.z);
@@ -1740,25 +1757,26 @@ function moveBy(dx, dz) {
 /* ---------- 白霜障壁と霜道 ---------- */
 const walls = [], roads = [];
 const crystalMat = () => new THREE.MeshStandardMaterial({ color: 0xd8f6ff, emissive: 0x3ab8ff, emissiveIntensity: .9, roughness: .1, metalness: .05, transparent: true, opacity: .82, flatShading: true });
-function spawnWall(enh) {
+function spawnWall(enh, A = player) {
+  const local = A === player;
   const n = enh ? 5 : 3, life = enh ? 12 : 8, R = 2.4, spread = enh ? 2.3 : 1.3;
-  const cx = player.pos.x + Math.sin(player.yaw) * R, cz = player.pos.z + Math.cos(player.yaw) * R;
+  const cx = A.pos.x + Math.sin(A.yaw) * R, cz = A.pos.z + Math.cos(A.yaw) * R;
   const w = { panels: [], t: 0, life, cols: [] };
   for (let i = 0; i < n; i++) {
-    const a = player.yaw + (n === 1 ? 0 : (-spread / 2 + i * spread / (n - 1))) * .45;
-    const x = player.pos.x + Math.sin(a) * R, z = player.pos.z + Math.cos(a) * R;
+    const a = A.yaw + (n === 1 ? 0 : (-spread / 2 + i * spread / (n - 1))) * .45;
+    const x = A.pos.x + Math.sin(a) * R, z = A.pos.z + Math.cos(a) * R;
     const h = rand(1.9, 2.5) * (enh ? 1.15 : 1);
     const m = new THREE.Mesh(new THREE.CylinderGeometry(.42, .58, h, 6), crystalMat()); m.position.set(x, -h / 2, z); m.rotation.y = rand(0, 1); m.castShadow = true; scene.add(m);
     const spike = new THREE.Mesh(new THREE.ConeGeometry(.42, .8, 6), m.material); spike.position.y = h / 2 + .4; m.add(spike);
     m.userData = { h, delay: i * .05 };
     w.panels.push(m);
-    const col = { x, z, r: .52 }; colliders.push(col); w.cols.push(col);
+    if (local) { const col = { x, z, r: .52 }; colliders.push(col); w.cols.push(col); }
   }
   walls.push(w);
   // 生成時：周りの敵にダメージ
   const center = new THREE.Vector3(cx, 0, cz); groundRing(center, enh ? 4.2 : 3.2, .7);
   for (const p of w.panels) { burst(new THREE.Vector3(p.position.x, .4, p.position.z), 6, 2, 4); }
-  for (const d of aliveDummies()) if (w.panels.some(p => Math.hypot(p.position.x - d.g.position.x, p.position.z - d.g.position.z) < 1.7)) hit(d, enh ? 260 : 140, { big: true, slow: enh ? 3 : 0 });
+  for (const d of aliveDummies()) if (w.panels.some(p => Math.hypot(p.position.x - d.g.position.x, p.position.z - d.g.position.z) < 1.7)) hit(d, enh ? 260 : 140, { big: true, slow: enh ? 3 : 0, remote: !local });
 }
 const roadTex = canvasTex(128, 64, (c, w, h) => {
   const g = c.createRadialGradient(w / 2, h / 2, 2, w / 2, h / 2, w / 2); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h);
@@ -1831,12 +1849,13 @@ const ACT = {
     [1, { head: [-.2, 0, 0], spine: [-.1, 0, 0], rightUpperArm: [0, .2, -.3], leftUpperArm: [0, -.2, .3] }]] },
 };
 // animate() から呼ぶ：今の技の姿勢を、歩き・待機の姿勢に重ねる
-function applyAction() {
-  const a = player.act;
-  player.actW = damp(player.actW, a ? 1 : 0, a ? 30 : 9, 1 / 60);
-  if (!a && player.actW < .01) return;
-  const def = ACT[a ? a.name : player.lastAct], k = a ? Math.min(1, a.t / def.dur) : 1;
-  const P = poseMix(k, def.poses), w = player.actW;
+function applyAction(st = player) {
+  const a = st.act;
+  st.actW = damp(st.actW || 0, a ? 1 : 0, a ? 30 : 9, 1 / 60);
+  if (!a && st.actW < .01) return;
+  const def = ACT[a ? a.name : st.lastAct]; if (!def) return;
+  const k = a ? Math.min(1, a.t / def.dur) : 1;
+  const P = poseMix(k, def.poses), w = st.actW;
   for (const n in P) { const bn = bone(n); if (!bn) continue; const p = P[n]; bn.rotation.set(lerp(bn.rotation.x, p[0], w), lerp(bn.rotation.y, p[1], w), lerp(bn.rotation.z, p[2], w)); }
 }
 
@@ -1848,7 +1867,10 @@ function showSkillName(text, enh) {
   e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(skillNameT); skillNameT = setTimeout(() => e.classList.remove('on'), 1600);
 }
 const canAct = () => CB.on && vrm && !shopOpen && talking <= 0;
-function startAct(name, extra = {}) { player.act = { name, t: 0, hitDone: false, ...extra }; player.lastAct = name; }
+function startAct(name, extra = {}) {
+  player.act = { name, t: 0, hitDone: false, ...extra }; player.lastAct = name;
+  myAct = { k: name, n: (myAct.n || 0) + 1, y: Math.round(Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw)) * 100) / 100, e: extra.enh ? 1 : 0 };
+}
 function attack() {
   if (!canAct()) return;
   if (player.act) { if (player.act.name.startsWith('atk') && player.act.t > ACT[player.act.name].dur * .45) CB.queued = 'atk'; return; }
@@ -1882,79 +1904,84 @@ function useAwaken() {
   say('白夜に咲け……氷の約束。', { relaxed_eye: .1, brow_relaxed: .1 });
 }
 
-// 技の途中で起きること（当たり・移動・効果）
-function actTick(dt) {
-  const a = player.act; if (!a) return;
+// 技の途中で起きること（当たり・移動・効果）。A は技を出しているキャラ（自分 or ほかのプレイヤー）
+function actTick(dt, A = player) {
+  const a = A.act; if (!a) return;
+  const local = A === player, rm = !local;
   const def = ACT[a.name], k0 = a.t / def.dur; a.t += dt; const k = Math.min(1, a.t / def.dur);
-  const fwd = (dist, k0_, k1_) => { const f = THREE.MathUtils.clamp((k - k0_) / (k1_ - k0_), 0, 1) - THREE.MathUtils.clamp((k0 - k0_) / (k1_ - k0_), 0, 1); if (f > 0) moveBy(Math.sin(player.yaw) * dist * f, Math.cos(player.yaw) * dist * f); };
+  const fwd = (dist, k0_, k1_) => { if (!local) return; const f = THREE.MathUtils.clamp((k - k0_) / (k1_ - k0_), 0, 1) - THREE.MathUtils.clamp((k0 - k0_) / (k1_ - k0_), 0, 1); if (f > 0) moveBy(Math.sin(A.yaw) * dist * f, Math.cos(A.yaw) * dist * f); };
   const crossed = kk => k0 < kk && k >= kk;
-  const P = player.pos;
+  const P = A.pos, Y = A.yaw, aw = local ? CB.awakenT > 0 : (A.awakenT || 0) > 0;
   if (a.name.startsWith('atk')) {
     fwd(def.lunge, .25, .55);
     if (crossed(def.hit * .78)) {
-      const n = +a.name[3], aw = CB.awakenT > 0;
-      if (n === 1) slash({ roll: -.25, dir: -1, radius: 1.2, width: aw ? .75 : .55 });
-      if (n === 2) slash({ roll: .25, dir: 1, radius: 1.2, width: aw ? .75 : .55 });
-      if (n === 3) { slash({ roll: Math.PI / 2 - .15, radius: 1.1, arc: 2.2, width: .6, fwd: .5, yaw: player.yaw - .12 }); slash({ roll: Math.PI / 2 + .15, radius: 1.1, arc: 2.2, width: .6, fwd: .5, yaw: player.yaw + .12 }); groundRing(new THREE.Vector3(P.x + Math.sin(player.yaw) * 1.1, 0, P.z + Math.cos(player.yaw) * 1.1), 1.4, .45); }
-      for (const d of aliveDummies()) if (inCone(d, n === 3 ? 2.3 : 2.1, n === 3 ? 90 : 120)) hit(d, [0, 60, 70, 130][n], { crit: n === 3, big: n === 3 });
+      const n = +a.name[3];
+      if (n === 1) slash({ at: P, yaw: Y, roll: -.25, dir: -1, radius: 1.2, width: aw ? .75 : .55 });
+      if (n === 2) slash({ at: P, yaw: Y, roll: .25, dir: 1, radius: 1.2, width: aw ? .75 : .55 });
+      if (n === 3) { slash({ at: P, roll: Math.PI / 2 - .15, radius: 1.1, arc: 2.2, width: .6, fwd: .5, yaw: Y - .12 }); slash({ at: P, roll: Math.PI / 2 + .15, radius: 1.1, arc: 2.2, width: .6, fwd: .5, yaw: Y + .12 }); groundRing(new THREE.Vector3(P.x + Math.sin(Y) * 1.1, 0, P.z + Math.cos(Y) * 1.1), 1.4, .45); }
+      for (const d of aliveDummies()) if (inCone(d, n === 3 ? 2.3 : 2.1, n === 3 ? 90 : 120, P, Y)) hit(d, [0, 60, 70, 130][n], { crit: n === 3, big: n === 3, remote: rm });
     }
   } else if (a.name === 's1') {
     fwd(a.enh ? 3.6 : 3, .25, .5);
     if (crossed(.3)) { burst(new THREE.Vector3(P.x, .2, P.z), 10, 2, 1); }
     if (crossed(.46)) {
       const big = a.enh ? 1.35 : 1;
-      slash({ roll: .75, radius: 1.35 * big, arc: 2.6, width: .7 * big, fwd: .6, dur: .45, color: [.8, 2.4, 3.2] });
-      slash({ roll: -.75, radius: 1.35 * big, arc: 2.6, width: .7 * big, fwd: .6, dur: .45, dir: -1, color: [.8, 2.4, 3.2] });
-      if (a.enh) slash({ roll: 0, radius: 1.6, arc: 3.0, width: .8, fwd: .7, dur: .5, color: [1.6, 2.6, 3.2] });
-      groundRing(new THREE.Vector3(P.x + Math.sin(player.yaw), 0, P.z + Math.cos(player.yaw)), a.enh ? 3 : 2.2, .6);
-      for (const d of aliveDummies()) if (inCone(d, a.enh ? 3.2 : 2.6, 130)) hit(d, a.enh ? 380 : 210, a.enh ? { freeze: 2, slow: 5, big: true, crit: true } : { slow: 4, big: true });
+      slash({ at: P, yaw: Y, roll: .75, radius: 1.35 * big, arc: 2.6, width: .7 * big, fwd: .6, dur: .45, color: [.8, 2.4, 3.2] });
+      slash({ at: P, yaw: Y, roll: -.75, radius: 1.35 * big, arc: 2.6, width: .7 * big, fwd: .6, dur: .45, dir: -1, color: [.8, 2.4, 3.2] });
+      if (a.enh) slash({ at: P, yaw: Y, roll: 0, radius: 1.6, arc: 3.0, width: .8, fwd: .7, dur: .5, color: [1.6, 2.6, 3.2] });
+      groundRing(new THREE.Vector3(P.x + Math.sin(Y), 0, P.z + Math.cos(Y)), a.enh ? 3 : 2.2, .6);
+      for (const d of aliveDummies()) if (inCone(d, a.enh ? 3.2 : 2.6, 130, P, Y)) hit(d, a.enh ? 380 : 210, a.enh ? { freeze: 2, slow: 5, big: true, crit: true, remote: rm } : { slow: 4, big: true, remote: rm });
     }
   } else if (a.name === 's2') {
-    if (crossed(.5)) spawnWall(a.enh);
+    if (crossed(.5)) spawnWall(a.enh, A);
   } else if (a.name === 's3') {
-    const dist = a.enh ? 8.5 : 6.5, before = P.clone();
-    fwd(dist, .05, .85);
+    fwd(a.enh ? 8.5 : 6.5, .05, .85);
     if (k > .05 && k < .9) {
-      if (!a.lastRoad || a.lastRoad.distanceTo(P) > .7) { roadPiece(P.x, P.z, player.yaw, a.enh ? 9 : 6); a.lastRoad = P.clone(); }
-      if (Math.random() < .5) stepFX(P, player.yaw, true);
+      if (!a.lastRoad || a.lastRoad.distanceTo(P) > .7) { roadPiece(P.x, P.z, Y, a.enh ? 9 : 6); a.lastRoad = P.clone(); }
+      if (Math.random() < .5) stepFX(P, Y, true);
       a.hitSet ||= new Set();
-      for (const d of aliveDummies()) if (!a.hitSet.has(d) && Math.hypot(d.g.position.x - P.x, d.g.position.z - P.z) < 1.3) { a.hitSet.add(d); hit(d, a.enh ? 170 : 95, { slow: a.enh ? 4 : 2.5 }); }
+      for (const d of aliveDummies()) if (!a.hitSet.has(d) && Math.hypot(d.g.position.x - P.x, d.g.position.z - P.z) < 1.3) { a.hitSet.add(d); hit(d, a.enh ? 170 : 95, { slow: a.enh ? 4 : 2.5, remote: rm }); }
     }
-    if (crossed(.86)) slash({ roll: Math.PI, radius: 1.0, arc: 3.4, width: .45, y: .35, fwd: 0, dur: .4 });
-    void before;
+    if (crossed(.86)) slash({ at: P, yaw: Y, roll: Math.PI, radius: 1.0, arc: 3.4, width: .45, y: .35, fwd: 0, dur: .4 });
   } else if (a.name === 'charge') {
     if (Math.random() < dt * 40) { const ang = rand(0, Math.PI * 2), r = rand(1.2, 1.8); const s = shards[shardIdx++ % SH]; s.visible = true; s.position.set(P.x + Math.cos(ang) * r, rand(.2, 1.8), P.z + Math.sin(ang) * r); s.scale.setScalar(rand(.8, 1.4)); s.userData.v.set(-Math.cos(ang) * 2.2, rand(-.2, .6), -Math.sin(ang) * 2.2); s.userData.life = 0; s.userData.max = .55; }
-    if (crossed(.85)) { CB.charged = true; groundRing(P, 2.6, .6, [1.2, 2.2, 2.6]); burst(new THREE.Vector3(P.x, 1.2, P.z), 12, 1.6, 2); }
+    if (crossed(.85)) { if (local) CB.charged = true; else A.charged = true; groundRing(P, 2.6, .6, [1.2, 2.2, 2.6]); burst(new THREE.Vector3(P.x, 1.2, P.z), 12, 1.6, 2); }
   } else if (a.name === 'awaken') {
     if (crossed(.55)) {
-      CB.awakenT = 12; CB.charged = false; for (const id in CB.cd) CB.cd[id] = 0;
+      if (local) { CB.awakenT = 12; CB.charged = false; for (const id in CB.cd) CB.cd[id] = 0; }
+      else { A.awakenT = 12; A.charged = false; netToast(`${A.name} さんが 覚醒《白夜氷精》！`); }
       groundRing(P, 6, 1.0, [1.6, 2.4, 3]); groundRing(P, 3.5, .8, [2, 2.4, 2.6]); burst(new THREE.Vector3(P.x, 1.4, P.z), 40, 4, 4, 1.4);
-      for (const d of aliveDummies()) if (Math.hypot(d.g.position.x - P.x, d.g.position.z - P.z) < 5) hit(d, 300, { slow: 4, big: true });
+      for (const d of aliveDummies()) if (Math.hypot(d.g.position.x - P.x, d.g.position.z - P.z) < 5) hit(d, 300, { slow: 4, big: true, remote: rm });
     }
   }
   if (a.t >= def.dur) {
-    player.act = null;
-    if (a.name.startsWith('atk')) { CB.comboT = .55; if (CB.queued === 'atk') { CB.queued = null; attack(); } }
+    A.act = null;
+    if (local && a.name.startsWith('atk')) { CB.comboT = .55; if (CB.queued === 'atk') { CB.queued = null; attack(); } }
+    if (!local && a.name !== 'charge' && a.name !== 'awaken' && !a.name.startsWith('atk')) A.charged = false;
   }
 }
 
-/* ---------- 氷の爪（訓練場では手に出す） ---------- */
-const claws = [];
-{
-  const m = crystalMat(); m.emissiveIntensity = 1.4;
+/* ---------- 氷の爪（訓練場では手に出す）：自分とほかのプレイヤーそれぞれ ---------- */
+const clawMat = crystalMat(); clawMat.emissiveIntensity = 1.4;
+function makeClaws() {
+  const set = { op: 0, parts: [] };
   for (const side of ['left', 'right']) {
     const g = new THREE.Group(); g.visible = false; scene.add(g);
-    for (let i = 0; i < 3; i++) { const b = new THREE.Mesh(new THREE.ConeGeometry(.022, .34, 4), m); b.position.set((i - 1) * .045, .2 - Math.abs(i - 1) * .03, 0); b.rotation.z = (i - 1) * -.12; g.add(b); }
-    claws.push({ side, g, m });
+    for (let i = 0; i < 3; i++) { const b = new THREE.Mesh(new THREE.ConeGeometry(.022, .34, 4), clawMat.clone()); b.position.set((i - 1) * .045, .2 - Math.abs(i - 1) * .03, 0); b.rotation.z = (i - 1) * -.12; g.add(b); }
+    set.parts.push({ side, g });
   }
+  return set;
 }
+function removeClaws(set) { for (const p of set.parts) { scene.remove(p.g); p.g.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); } }
+const claws = makeClaws();
 const _ca = new THREE.Vector3(), _cb = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
-function updateClaws(show) {
-  for (const c of claws) {
-    c.m.opacity = damp(c.m.opacity, show ? .9 : 0, 6, 1 / 60);
-    c.g.visible = c.m.opacity > .02;
-    if (!c.g.visible || !vrm) continue;
-    const lo = vrm.humanoid.getRawBoneNode(c.side + 'LowerArm'), hd = vrm.humanoid.getRawBoneNode(c.side + 'Hand');
+function updateClaws(show, set = claws, v = vrm) {
+  set.op = damp(set.op, show ? .9 : 0, 6, 1 / 60);
+  for (const c of set.parts) {
+    c.g.visible = set.op > .02 && !!v;
+    if (!c.g.visible) continue;
+    c.g.children.forEach(b => { b.material.opacity = set.op; });
+    const lo = v.humanoid.getRawBoneNode(c.side + 'LowerArm'), hd = v.humanoid.getRawBoneNode(c.side + 'Hand');
     lo.getWorldPosition(_ca); hd.getWorldPosition(_cb);
     const dir = _cb.clone().sub(_ca).normalize();
     c.g.position.copy(_cb).addScaledVector(dir, .06);

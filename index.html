@@ -115,13 +115,16 @@ const GRACE = 8000;              // presence から消えても、この間は�
 let sb = null, ch = null, live = false, pendingSt = null, lastStSent = '', stKeep = 0, peersT = 0, statusT = 0, retryT = 0, joinNo = 0;
 const validSt = st => Array.isArray(st) && st.length === 4 && st.every(v => typeof v === 'number' && isFinite(v) && Math.abs(v) < 1000);
 const validSay = s => (s && typeof s.s === 'string') ? { s: s.s.slice(0, 120), n: Number(s.n) || 0 } : null;
+const ACTS = ['atk1', 'atk2', 'atk3', 's1', 's2', 's3', 'charge', 'awaken'];
+const validAct = a => (a && ACTS.includes(a.k) && isFinite(a.n)) ? { k: a.k, n: Number(a.n), y: isFinite(a.y) ? Math.round(Number(a.y) * 100) / 100 : 0, e: a.e ? 1 : 0 } : null;
+let lastActN = null;
 function visiblePeers() {
   const now = Date.now();
   return [...peers].filter(([, p]) => p.area === 'noelberg' && p.st && (p.present || now - p.stAt < GRACE));
 }
 function sendPeers() {
   clearTimeout(peersT);
-  peersT = setTimeout(() => post({ type: 'net:peers', peers: visiblePeers().map(([id, p]) => ({ peer: id, name: p.name, guest: false, presence: { area: p.area, st: p.st, say: p.say } })) }), 30);
+  peersT = setTimeout(() => post({ type: 'net:peers', peers: visiblePeers().map(([id, p]) => ({ peer: id, name: p.name, guest: false, presence: { area: p.area, st: p.st, say: p.say, act: p.act || null } })) }), 30);
 }
 setInterval(() => {               // しばらく音沙汰のない人だけを片付ける
   const now = Date.now(); let ch2 = false;
@@ -179,6 +182,11 @@ async function join() {
     if (!p.present && clean(payload.n)) p.name = clean(payload.n);
     sendPeers();
   });
+  c.on('broadcast', { event: 'act' }, ({ payload }) => {
+    if (c !== ch || !payload || typeof payload.id !== 'string') return;
+    const p = peers.get(payload.id.slice(0, 40)), act = validAct(payload.act);
+    if (p && act) { p.act = act; sendPeers(); }
+  });
   c.subscribe((s, err) => {
     if (c !== ch) return;
     if (s === 'SUBSCRIBED') { setLive(true); clearTimeout(retryT); }
@@ -207,6 +215,8 @@ addEventListener('message', e => {
     const p = m.patch, area = p.area === 'noelberg' ? 'noelberg' : null, say = validSay(p.say);
     if (validSt(p.st)) pendingSt = p.st.map(v => Math.round(v * 100) / 100);
     const changed = area !== me.area || JSON.stringify(say) !== JSON.stringify(me.say);
+    const act = validAct(p.act);
+    if (act && act.n !== lastActN) { lastActN = act.n; if (ch && live && area) ch.send({ type: 'broadcast', event: 'act', payload: { id: myId, act } }).catch(() => {}); }
     const left = me.area && !area;
     me.area = area; me.say = say;
     if (left) sendBye();
