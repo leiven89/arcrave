@@ -118,6 +118,56 @@
   @media (max-aspect-ratio:1/1){ #wallet{right:12px;top:150px;flex-direction:column;align-items:flex-end} #wallet .w{font-size:14px;height:30px} #shop .body{grid-template-columns:1fr} #map{right:12px;top:12px} #mapLabel{display:none} #top{left:12px;top:12px} #area b{font-size:14px} #sub{bottom:190px} #prompt{bottom:250px} }
   @media (max-height:500px){ #map{width:120px;height:120px} #mapLabel{display:none} #wallet{right:146px} #shop .box{height:94vh} #stick{width:110px;height:110px;bottom:16px;left:20px} #runBtn{bottom:22px;width:64px;height:64px} #sub{font-size:15px;bottom:14px} #prompt{bottom:96px} }
 
+
+  /* ---------- 訓練場：技のボタン・状態・ダメージ表示 ---------- */
+  #skills{position:fixed;right:18px;bottom:18px;width:300px;height:250px;display:none;pointer-events:none;z-index:12}
+  body.combat #skills{display:block}
+  .sk{position:absolute;display:grid;place-items:center;border-radius:50%;pointer-events:auto;cursor:pointer;touch-action:none;
+    background:radial-gradient(circle at 50% 35%,rgba(70,140,220,.55),rgba(8,18,48,.85));box-shadow:inset 0 0 0 2px rgba(160,230,255,.55),0 4px 14px rgba(0,0,0,.4);color:#eafcff;transition:transform .08s}
+  .sk::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(2,6,20,.72) var(--cd,0deg),transparent 0)}
+  .sk i{position:relative;font-style:normal;font-family:var(--min);font-weight:800;font-size:22px;line-height:1;text-shadow:0 0 10px rgba(120,220,255,.9)}
+  .sk small{position:absolute;bottom:-17px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;white-space:nowrap;color:rgba(230,245,255,.92);text-shadow:0 1px 3px #000}
+  .sk kbd{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#0c1430;box-shadow:inset 0 0 0 1px rgba(160,230,255,.6);font:700 11px/18px var(--en);text-align:center}
+  body.touch .sk kbd{display:none}
+  .sk .n{position:absolute;inset:0;display:grid;place-items:center;font:700 20px var(--en);color:#fff;text-shadow:0 0 6px #000}
+  .sk.ready{box-shadow:inset 0 0 0 2px rgba(160,240,255,.9),0 0 14px rgba(80,200,255,.45)}
+  .sk.enh{box-shadow:inset 0 0 0 3px #ffe08a,0 0 18px rgba(255,220,120,.7)}
+  .sk.push{transform:scale(.9)}
+  #sk_atk{right:0;bottom:24px;width:92px;height:92px} #sk_atk i{font-size:30px}
+  #sk_s1{right:108px;bottom:22px;width:62px;height:62px}
+  #sk_s2{right:96px;bottom:104px;width:62px;height:62px}
+  #sk_s3{right:20px;bottom:146px;width:62px;height:62px}
+  #sk_charge{right:186px;bottom:30px;width:52px;height:52px} #sk_charge i{font-size:18px}
+  #sk_awaken{right:178px;bottom:118px;width:66px;height:66px;background:radial-gradient(circle at 50% 35%,rgba(200,220,255,.4),rgba(20,20,60,.9))}
+  #sk_awaken::before{background:conic-gradient(rgba(255,230,140,.85) var(--g,0deg),rgba(2,6,20,.55) 0);-webkit-mask:radial-gradient(circle,transparent 58%,#000 60%);mask:radial-gradient(circle,transparent 58%,#000 60%)}
+  #sk_awaken .n{font-size:12px;top:auto;bottom:6px;inset:auto 0 6px 0}
+  #sk_awaken.full{animation:awkPulse 1s ease-in-out infinite} #sk_awaken.active{box-shadow:inset 0 0 0 3px #fff,0 0 26px rgba(200,240,255,.9)}
+  @keyframes awkPulse{50%{box-shadow:inset 0 0 0 3px #ffe08a,0 0 26px rgba(255,220,120,.9)}}
+  body.combat #runBtn{right:316px;bottom:26px;width:60px;height:60px}
+  #buffs{position:fixed;left:50%;top:14px;transform:translateX(-50%);display:none;gap:6px;flex-wrap:wrap;justify-content:center;max-width:70vw;pointer-events:none;z-index:12}
+  body.combat #buffs{display:flex}
+  #buffs span{padding:4px 12px;border-radius:12px;font-size:12px;font-weight:700;background:rgba(8,16,40,.75);box-shadow:inset 0 0 0 1px rgba(160,230,255,.5)}
+  #buffs .awk{color:#fff3c0;box-shadow:inset 0 0 0 1px #ffe08a} #buffs .chg{color:#bff3ff} #buffs .spd{color:#9affd0} #buffs .grd{color:#c8e6ff}
+  #skillName{position:fixed;left:50%;top:22%;transform:translateX(-50%);pointer-events:none;opacity:0;text-align:center;z-index:12}
+  #skillName.on{animation:skn 1.6s forwards}
+  #skillName b{font-family:var(--min);font-size:min(5.4vw,30px);font-weight:800;letter-spacing:.1em;color:#eafcff;text-shadow:0 0 18px rgba(80,200,255,.9),0 2px 6px #000}
+  #skillName span{display:inline-block;margin-left:10px;padding:2px 8px;border-radius:4px;background:#ffe08a;color:#3a2600;font-size:13px;font-weight:900;vertical-align:6px}
+  @keyframes skn{0%{opacity:0;transform:translate(-50%,10px)}12%{opacity:1;transform:translate(-50%,0)}75%{opacity:1}100%{opacity:0}}
+  .dmg{position:fixed;left:0;top:0;pointer-events:none;font:700 22px var(--en);color:#fff;text-shadow:0 0 6px rgba(0,0,0,.9),0 0 10px rgba(80,180,255,.6);z-index:11;will-change:transform}
+  .dmg.ice{color:#9fe8ff} .dmg.crit{color:#ffe08a;font-size:28px} .dmg.tag{font:900 13px var(--jp);color:#bff3ff;letter-spacing:.1em}
+  #awk{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:13;display:grid;place-items:center;background:radial-gradient(ellipse at center,rgba(220,245,255,.25),rgba(4,10,30,.7))}
+  #awk.on{animation:awk 1.7s forwards}
+  #awk::before,#awk::after{content:"";position:absolute;left:-10%;right:-10%;height:14vh;background:linear-gradient(90deg,transparent,rgba(160,230,255,.9),#fff,rgba(160,230,255,.9),transparent);transform:rotate(-8deg)}
+  #awk::before{top:30%} #awk::after{bottom:30%}
+  #awk div{position:relative;text-align:center;z-index:1}
+  #awk b{display:block;font-family:var(--min);font-size:min(9vw,64px);font-weight:800;letter-spacing:.16em;color:#0c1430;text-shadow:0 0 22px #fff}
+  #awk small{display:block;font:700 14px var(--en);letter-spacing:.6em;color:#0c1430}
+  @keyframes awk{0%{opacity:0}10%{opacity:1}80%{opacity:1}100%{opacity:0}}
+  body.combat #help .tr{display:inline}
+  body.combat #help{max-width:calc(100vw - 360px)}
+  #help .tr{display:none}
+  @media (max-aspect-ratio:1/1){ #skills{transform:scale(.8);transform-origin:right bottom;right:12px} body.combat #stick{left:14px;bottom:22px;width:110px;height:110px} body.combat #runBtn{right:16px;bottom:240px;width:56px;height:56px} body.combat #sub{bottom:300px} body.combat #prompt{bottom:360px} #buffs{top:96px} }
+  @media (max-height:500px){ #skills{transform:scale(.72);transform-origin:right bottom;right:10px;bottom:8px} body.combat #runBtn{right:236px;bottom:14px;width:52px;height:52px} }
   /* スマホ用スティック */
   #stick{position:fixed;left:28px;bottom:28px;width:130px;height:130px;border-radius:50%;background:rgba(10,20,50,.35);box-shadow:inset 0 0 0 2px rgba(160,230,255,.5);display:none}
   #knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(160,230,255,.55);box-shadow:0 0 14px rgba(120,220,255,.6)}
@@ -172,7 +222,7 @@
 </div>
 <div id="map"><canvas id="mapc" width="340" height="340"></canvas></div>
 <div id="mapLabel">MAP</div>
-<div id="help" class="panel"><b>W</b><b>A</b><b>S</b><b>D</b> / 矢印：移動　<b>Shift</b>：走る　<b>ドラッグ</b>：カメラ　<b>E</b>：話す</div>
+<div id="help" class="panel"><b>W</b><b>A</b><b>S</b><b>D</b> / 矢印：移動　<b>Shift</b>：走る　<b>ドラッグ</b>：カメラ　<b>E</b>：話す<span class="tr">　<b>J</b>：攻撃　<b>1</b><b>2</b><b>3</b>：スキル　<b>F</b>：チャージ　<b>R</b>：覚醒</span></div>
 <button id="prompt" class="panel"><kbd>E</kbd><span id="promptText">話す</span></button>
 <div id="sub"></div>
 <div id="title"><small id="tSm">AREA 01 // NOELBERG</small><b id="tB">ノエルベルク</b><span id="tSp">── 聖夜の街 ──</span></div>
@@ -187,6 +237,17 @@
   <footer><span class="c">所持金<b id="sCoin">0</b>円</span><span class="p" id="sPtWrap">ヨルマポイント<b id="sPt">0</b>pt</span><span class="bag" id="sBag">バッグ：なし</span></footer>
   <div id="shopMsg"></div>
 </div></div>
+<div id="skills">
+  <button class="sk" id="sk_atk" aria-label="通常攻撃"><i>爪</i><small>通常攻撃</small><kbd>J</kbd></button>
+  <button class="sk" id="sk_s1" aria-label="スキル1 氷爪・霜断"><i>断</i><small>氷爪・霜断</small><kbd>1</kbd><span class="n"></span></button>
+  <button class="sk" id="sk_s2" aria-label="スキル2 白霜障壁"><i>壁</i><small>白霜障壁</small><kbd>2</kbd><span class="n"></span></button>
+  <button class="sk" id="sk_s3" aria-label="スキル3 霜道ステップ"><i>滑</i><small>霜道ステップ</small><kbd>3</kbd><span class="n"></span></button>
+  <button class="sk" id="sk_charge" aria-label="特殊 氷気流チャージ"><i>気</i><small>チャージ</small><kbd>F</kbd><span class="n"></span></button>
+  <button class="sk" id="sk_awaken" aria-label="覚醒 白夜氷精"><i>覚</i><small>覚醒</small><kbd>R</kbd><span class="n"></span></button>
+</div>
+<div id="buffs"></div>
+<div id="skillName"></div>
+<div id="awk"><div><b>覚醒《白夜氷精》</b><small>BYAKUYA  HYOSEI</small></div></div>
 <div id="stick"><div id="knob"></div></div>
 <button id="runBtn">RUN</button>
 <div id="loading"><div class="t">SORTIE</div><div class="s">ノエルベルク</div><div class="bar"><i id="pbar" style="width:0%"></i></div><div class="m" id="lmsg">LOADING … 0%</div></div>
@@ -1014,7 +1075,8 @@ function animate(dt, t, st = player, turn = headTurn, hipsY = baseHipsY) {
     const c = lerp(side === 'left' ? .35 : .6, lerp(.35, .9, run), w), sg = side === 'left' ? -1 : 1;
     for (const f of FINGERS) ['Proximal', 'Intermediate', 'Distal'].forEach((seg, i) => { const b = bone(side + f + seg); if (b) b.rotation.set(0, 0, sg * c * [1, 1.15, .8][i]); });
   }
-  earIK(1 - Math.min(1, w * 1.6));
+  if (st === player) applyAction();
+  earIK((1 - Math.min(1, w * 1.6)) * (1 - (st.actW || 0)));
 }
 
 /* =====================================================================
@@ -1114,9 +1176,9 @@ $('prompt').addEventListener('click', interact);
    ===================================================================== */
 const WALK = 1.7, RUN = 4.0;
 function inside(x, z) {
-  if (z > Z_START || z < Z_END) return false;
-  const inPlaza = Math.hypot(x - PLAZA.x, z - PLAZA.z) < PLAZA.r - .4;
-  if (!inPlaza && Math.abs(x) > STREET_HALF - .35) return false;
+  if (z > TRAIN.z1 || z < Z_END) return false;
+  if (z > Z_START) { if (Math.abs(x) > (z < TRAIN.z0 ? STREET_HALF - .35 : TRAIN.x)) return false; }   // 訓練場
+  else { const inPlaza = Math.hypot(x - PLAZA.x, z - PLAZA.z) < PLAZA.r - .4; if (!inPlaza && Math.abs(x) > STREET_HALF - .35) return false; }
   for (const c of colliders) if ((x - c.x) ** 2 + (z - c.z) ** 2 < (c.r + .25) ** 2) return false;
   for (const b of boxes) {
     const dx = x - b.x, dz = z - b.z, cs = Math.cos(b.rot), sn = Math.sin(b.rot);
@@ -1133,14 +1195,14 @@ function updatePlayer(dt) {
   let mag = Math.min(1, Math.hypot(ix, iz));
   const running = (keys.ShiftLeft || keys.ShiftRight || runToggle) && mag > .1;
   let target = 0;
-  if (mag > .08 && talking <= 0 && !shopOpen) {
+  if (mag > .08 && talking <= 0 && !shopOpen && !player.act) {
     // カメラ基準の向き
     const fwd = new THREE.Vector3(-Math.sin(camYaw), 0, -Math.cos(camYaw)), rgt = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
     const dir = fwd.multiplyScalar(iz).add(rgt.multiplyScalar(ix)).normalize();
     const want = Math.atan2(dir.x, dir.z);
     let d = want - player.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
     player.yaw += d * (1 - Math.exp(-dt * 10));
-    target = (running ? RUN : WALK) * mag;
+    target = (running ? RUN : WALK) * mag * speedMul;
   }
   player.speed = damp(player.speed, target, 8, dt);
   if (player.speed > .01) {
@@ -1233,6 +1295,10 @@ function drawMap() {
   mg.fillStyle = 'rgba(40,60,110,.85)'; mg.fillRect(-30 * S, Z_END * S - 40, 60 * S, (Z_START - Z_END) * S + 80);
   mg.fillStyle = 'rgba(190,215,255,.9)';
   mg.fillRect(-STREET_HALF * S, Z_END * S, STREET_HALF * 2 * S, (Z_START - Z_END) * S);
+  mg.fillRect(-STREET_HALF * S, Z_START * S, STREET_HALF * 2 * S, (TRAIN.z0 - Z_START) * S);
+  mg.fillStyle = 'rgba(120,200,255,.85)'; mg.fillRect(-TRAIN.x * S, TRAIN.z0 * S, TRAIN.x * 2 * S, (TRAIN.z1 - TRAIN.z0) * S);
+  mg.fillStyle = '#ff6a7a'; for (const d of dummies) if (d.deadT <= 0) { mg.beginPath(); mg.arc(d.g.position.x * S, d.g.position.z * S, 5, 0, Math.PI * 2); mg.fill(); }
+  mg.fillStyle = 'rgba(190,215,255,.9)';
   mg.beginPath(); mg.arc(PLAZA.x * S, PLAZA.z * S, PLAZA.r * S, 0, Math.PI * 2); mg.fill();
   mg.fillStyle = '#3fae6a'; mg.beginPath(); mg.arc(TREE_POS.x * S, TREE_POS.z * S, 4.1 * S, 0, Math.PI * 2); mg.fill();
   mg.fillStyle = '#ffd27a'; mg.beginPath(); mg.arc(TREE_POS.x * S, TREE_POS.z * S, 5, 0, Math.PI * 2); mg.fill();
@@ -1480,6 +1546,538 @@ function netTick(dt, t) {
 }
 
 /* =====================================================================
+   第9隊 訓練場：しのの技を試す（スタート地点の後ろ）
+   通常攻撃《氷爪》3段／スキル1《氷爪・霜断》／スキル2《白霜障壁》／スキル3《霜道ステップ》
+   特殊《氷気流チャージ》：次のスキルを強化／覚醒《白夜氷精》：一定時間すべてのスキルが強化状態
+   ===================================================================== */
+const TRAIN = { x: 8.6, z0: 7.4, z1: 23 };
+const SK = {
+  s1: { name: 'スキル1《氷爪・霜断》', cd: 6 },
+  s2: { name: 'スキル2《白霜障壁》', cd: 12 },
+  s3: { name: 'スキル3《霜道ステップ》', cd: 8 },
+  charge: { name: '特殊《氷気流チャージ》', cd: 10 },
+  awaken: { name: '覚醒《白夜氷精》', cd: 0 },
+};
+const CB = {
+  on: false, cd: { s1: 0, s2: 0, s3: 0, charge: 0 }, charged: false, awakenT: 0, gauge: 0, GAUGE_MAX: 1800,
+  combo: 0, comboT: 0, queued: null, speedT: 0, guard: false,
+};
+player.act = null; player.actW = 0;
+let speedMul = 1;
+const enhanced = () => CB.awakenT > 0 || CB.charged;
+
+/* ---------- 訓練場の見た目 ---------- */
+{
+  const cz = (TRAIN.z0 + TRAIN.z1) / 2, W = TRAIN.x * 2 + .6, D = TRAIN.z1 - TRAIN.z0 + .6;
+  const floor = canvasTex(512, 512, (c, w, h) => {
+    c.fillStyle = '#26345e'; c.fillRect(0, 0, w, h);
+    for (let y = 0; y < h; y += 32) for (let x = (y / 32 % 2) * 16; x < w; x += 32) { c.fillStyle = `rgba(150,190,255,${rand(.05, .12)})`; c.fillRect(x + 1, y + 1, 30, 30); }
+    c.strokeStyle = 'rgba(120,220,255,.55)'; c.lineWidth = 6;
+    c.beginPath(); c.arc(w / 2, h * .55, 150, 0, Math.PI * 2); c.stroke();
+    c.lineWidth = 3; c.beginPath(); c.arc(w / 2, h * .55, 110, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.moveTo(w / 2, h * .55 - 170); c.lineTo(w / 2, h * .55 + 170); c.moveTo(w / 2 - 170, h * .55); c.lineTo(w / 2 + 170, h * .55); c.stroke();
+    for (let i = 0; i < 1800; i++) { c.fillStyle = `rgba(255,255,255,${rand(.15, .5)})`; c.fillRect(rand(0, w), rand(0, h), rand(1, 4), rand(1, 3)); }
+  });
+  const g = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshLambertMaterial({ map: floor }));
+  g.rotation.x = -Math.PI / 2; g.position.set(0, .006, cz); g.receiveShadow = true; scene.add(g);
+  // 柵（入口だけ開ける）
+  const postM = new THREE.MeshLambertMaterial({ color: 0x2a3048 }), railM = new THREE.MeshLambertMaterial({ color: 0x3a4a70, emissive: 0x0a1a30 });
+  const edge = [];
+  for (let x = -TRAIN.x - .3; x <= TRAIN.x + .31; x += 1.6) edge.push([x, TRAIN.z1 + .3]);
+  for (let z = TRAIN.z0 - .3; z <= TRAIN.z1 + .31; z += 1.6) { edge.push([-TRAIN.x - .3, z]); edge.push([TRAIN.x + .3, z]); }
+  for (let x = -TRAIN.x - .3; x <= TRAIN.x + .31; x += 1.6) if (Math.abs(x) > 4.2) edge.push([x, TRAIN.z0 - .3]);
+  for (const [x, z] of edge) { const p = new THREE.Mesh(new THREE.BoxGeometry(.12, 1.1, .12), postM); p.position.set(x, .55, z); scene.add(p); const cap = new THREE.Mesh(new THREE.BoxGeometry(.16, .06, .16), roofMat); cap.position.set(x, 1.13, z); scene.add(cap); }
+  const rail = (x0, z0, x1, z1) => { const len = Math.hypot(x1 - x0, z1 - z0); for (const y of [.45, .9]) { const r = new THREE.Mesh(new THREE.BoxGeometry(.05, .05, len), railM); r.position.set((x0 + x1) / 2, y, (z0 + z1) / 2); r.rotation.y = Math.atan2(x1 - x0, z1 - z0); scene.add(r); } };
+  rail(-TRAIN.x - .3, TRAIN.z1 + .3, TRAIN.x + .3, TRAIN.z1 + .3);
+  rail(-TRAIN.x - .3, TRAIN.z0 - .3, -TRAIN.x - .3, TRAIN.z1 + .3); rail(TRAIN.x + .3, TRAIN.z0 - .3, TRAIN.x + .3, TRAIN.z1 + .3);
+  rail(-TRAIN.x - .3, TRAIN.z0 - .3, -4.2, TRAIN.z0 - .3); rail(4.2, TRAIN.z0 - .3, TRAIN.x + .3, TRAIN.z0 - .3);
+  // 入口の看板（通りの側からも、訓練場の中からも読める）
+  const sign = textTex(1024, 200, (c, w, h) => {
+    c.fillStyle = '#0c1430'; c.beginPath(); c.roundRect(0, 0, w, h, 26); c.fill();
+    c.strokeStyle = '#3ff0ff'; c.lineWidth = 6; c.beginPath(); c.roundRect(12, 12, w - 24, h - 24, 20); c.stroke();
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = '#e8fbff'; c.font = '900 78px "Zen Kaku Gothic New", sans-serif'; c.fillText('第9隊 訓練場', w / 2, 84);
+    c.fillStyle = '#3ff0ff'; c.font = '700 34px "Rajdhani", sans-serif'; c.fillText('ARCRAVE UNIT 09  //  TRAINING GROUND', w / 2, 152);
+  });
+  const archM = new THREE.MeshLambertMaterial({ color: 0x1c2440 });
+  for (const x of [-4, 4]) { const p = new THREE.Mesh(new THREE.BoxGeometry(.22, 4.4, .22), archM); p.position.set(x, 2.2, TRAIN.z0 - .3); p.castShadow = true; scene.add(p); colliders.push({ x, z: TRAIN.z0 - .3, r: .2 }); }
+  const sm = new THREE.Mesh(new THREE.PlaneGeometry(4.4, .86), new THREE.MeshBasicMaterial({ map: sign, color: new THREE.Color(1.15, 1.15, 1.15), toneMapped: false, side: THREE.DoubleSide }));
+  sm.position.set(0, 3.9, TRAIN.z0 - .3); scene.add(sm);
+  const glowBar = new THREE.Mesh(new THREE.BoxGeometry(8.2, .06, .06), new THREE.MeshBasicMaterial({ color: new THREE.Color(.6, 2.2, 2.6), toneMapped: false })); glowBar.position.set(0, 4.4, TRAIN.z0 - .3); scene.add(glowBar);
+  for (const [x, z] of [[-7.6, 9], [7.6, 9], [-7.6, 21.6], [7.6, 21.6]]) lamp(x, z);
+  // 人形の走るレール
+  for (const z of [14.5, 18.5]) { const r = new THREE.Mesh(new THREE.PlaneGeometry(7.4, .12), new THREE.MeshBasicMaterial({ color: new THREE.Color(.4, 1.4, 1.8), toneMapped: false })); r.rotation.x = -Math.PI / 2; r.position.set(0, .012, z); scene.add(r); }
+}
+
+/* ---------- 訓練人形（左右に動く。鈍足・凍結がわかるように） ---------- */
+const dummies = [];
+function hpTex() { const c = document.createElement('canvas'); c.width = 160; c.height = 24; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
+function drawHp(d) {
+  const c = d.hpTex.image, g = c.getContext('2d'), k = Math.max(0, d.hp / d.max);
+  g.clearRect(0, 0, 160, 24); g.fillStyle = 'rgba(6,10,26,.85)'; g.fillRect(0, 4, 160, 16);
+  g.fillStyle = d.freezeT > 0 ? '#bff6ff' : d.slowT > 0 ? '#5ab8ff' : '#ff5a6a'; g.fillRect(3, 7, 154 * k, 10);
+  g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 2; g.strokeRect(1, 5, 158, 14);
+  d.hpTex.needsUpdate = true;
+}
+const iceMat = new THREE.MeshStandardMaterial({ color: 0xbfefff, emissive: 0x2a8ac8, emissiveIntensity: .7, roughness: .15, metalness: .1, transparent: true, opacity: .78 });
+function makeDummy(x0, z0, range, speed) {
+  const g = new THREE.Group(); g.position.set(x0, 0, z0); g.rotation.y = Math.PI; scene.add(g);
+  const straw = new THREE.MeshLambertMaterial({ color: 0xc8a060 }), wood = new THREE.MeshLambertMaterial({ color: 0x6a4428 });
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(.38, .44, .14, 16), new THREE.MeshLambertMaterial({ color: 0x3a4258 })); base.position.y = .07; g.add(base);
+  const body = new THREE.Group(); g.add(body);
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(.06, .07, 1.1, 8), wood); post.position.y = .6; body.add(post);
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(.3, .34, .85, 12), straw); torso.position.y = 1.35; torso.castShadow = true; body.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(.22, 14, 10), straw); head.position.y = 2.0; head.castShadow = true; body.add(head);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(1.25, .08, .08), wood); arm.position.y = 1.55; body.add(arm);
+  const target = canvasTex(128, 128, (c, w) => { [['#d23a3a', 60], ['#fff', 46], ['#d23a3a', 32], ['#fff', 18], ['#d23a3a', 8]].forEach(([col, r]) => { c.fillStyle = col; c.beginPath(); c.arc(w / 2, w / 2, r, 0, 7); c.fill(); }); });
+  const tm = new THREE.Mesh(new THREE.CircleGeometry(.24, 24), new THREE.MeshLambertMaterial({ map: target })); tm.position.set(0, 1.4, .33); body.add(tm);
+  const block = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.4, 1.0), iceMat); block.position.y = 1.2; block.visible = false; g.add(block);
+  const frost = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: 0x6ad8ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); frost.position.y = 1.3; frost.scale.setScalar(2.2); g.add(frost);
+  const tex = hpTex();
+  const bar = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })); bar.position.y = 2.55; bar.scale.set(1.1, .165, 1); bar.renderOrder = 5; g.add(bar);
+  const d = { g, body, mats: [straw, wood], block, frost, bar, hpTex: tex, x0, z0, range, speed, ph: rand(0, 6), hp: 3000, max: 3000, slowT: 0, freezeT: 0, hitT: 0, deadT: 0, col: { x: x0, z: z0, r: .42 } };
+  colliders.push(d.col); drawHp(d); dummies.push(d); return d;
+}
+makeDummy(-2.6, 14.5, 2.2, .9); makeDummy(2.6, 14.5, 2.2, 1.1); makeDummy(0, 18.5, 3.2, .7);
+
+/* ---------- 効果（斬撃・破片・数字） ---------- */
+const fx = [];
+function addFx(obj, life, update, parent = scene) { parent.add(obj); fx.push({ obj, life, t: 0, update, parent }); return obj; }
+const slashTex = canvasTex(256, 64, (c, w, h) => {
+  const g = c.createLinearGradient(0, 0, w, 0); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.6, 'rgba(255,255,255,.55)'); g.addColorStop(.92, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  c.fillStyle = g; c.fillRect(0, 0, w, h);
+  const v = c.createLinearGradient(0, 0, 0, h); v.addColorStop(0, 'rgba(0,0,0,1)'); v.addColorStop(.5, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,1)');
+  c.globalCompositeOperation = 'destination-out'; c.fillStyle = v; c.fillRect(0, 0, w, h);
+});
+function arcGeo(radius, arc, width) {
+  const N = 28, pos = [], uv = [], idx = [];
+  for (let i = 0; i <= N; i++) {
+    const u = i / N, a = -arc / 2 + u * arc, wv = width * Math.sin(u * Math.PI * .9 + .1);
+    for (const [r, v] of [[radius - wv / 2, 0], [radius + wv / 2, 1]]) { pos.push(Math.sin(a) * r, 0, Math.cos(a) * r); uv.push(u, v); }
+    if (i < N) { const k = i * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); return g;
+}
+const arcCache = {};
+// 斬撃の弧：yaw=向き、roll=傾き（0で水平、π/2で縦）、dir=振る向き（1:右→左、-1:左→右）
+function slash({ yaw = player.yaw, roll = 0, radius = 1.15, arc = 2.4, width = .5, y = 1.05, fwd = .35, dur = .32, color = [.6, 2.2, 3], dir = 1, at = player.pos }) {
+  const key = `${radius}|${arc}|${width}`, geo = arcCache[key] ||= arcGeo(radius, arc, width);
+  const outer = new THREE.Group(); outer.position.set(at.x + Math.sin(yaw) * fwd, y, at.z + Math.cos(yaw) * fwd); outer.rotation.y = yaw;
+  const inner = new THREE.Group(); inner.rotation.z = roll; outer.add(inner);
+  const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: slashTex, color: new THREE.Color(...color), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false }));
+  m.scale.x = dir; inner.add(m);
+  return addFx(outer, dur, (o, k) => { m.rotation.y = dir * (k < .4 ? -.6 + k / .4 * .6 : 0); m.material.opacity = k < .4 ? 1 : 1 - (k - .4) / .6; m.scale.setScalar(1 + k * .15); m.scale.x *= dir; });
+}
+// 氷の破片
+const SH = 140, shards = [];
+for (let i = 0; i < SH; i++) {
+  const s = new THREE.Mesh(new THREE.OctahedronGeometry(.05, 0), new THREE.MeshBasicMaterial({ color: new THREE.Color(.9, 1.6, 2.2), toneMapped: false, transparent: true }));
+  s.visible = false; s.userData = { v: new THREE.Vector3(), life: 0, max: 1 }; scene.add(s); shards.push(s);
+}
+let shardIdx = 0;
+function burst(p, n = 14, spd = 3, up = 2.5, size = 1) {
+  for (let i = 0; i < n; i++) {
+    const s = shards[shardIdx++ % SH]; s.visible = true; s.position.copy(p); s.scale.setScalar(size * rand(.6, 1.6));
+    s.userData.v.set(rand(-1, 1) * spd, rand(.3, 1) * up, rand(-1, 1) * spd); s.userData.life = 0; s.userData.max = rand(.5, .9); s.material.opacity = 1;
+  }
+}
+// ダメージ表示
+const dmgEls = [];
+function dmgText(p, n, kind = '') {
+  const el = document.createElement('div'); el.className = 'dmg ' + kind; el.textContent = n; document.body.appendChild(el);
+  dmgEls.push({ el, p: p.clone().add(new THREE.Vector3(rand(-.3, .3), 0, rand(-.3, .3))), t: 0 });
+}
+// 地面の氷の輪
+function groundRing(p, r = 1.6, dur = .6, color = [.6, 1.8, 2.4]) {
+  const m = new THREE.Mesh(new THREE.RingGeometry(.2, 1, 48), new THREE.MeshBasicMaterial({ map: softTex, color: new THREE.Color(...color), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  m.rotation.x = -Math.PI / 2; m.position.set(p.x, .03, p.z);
+  return addFx(m, dur, (o, k) => { o.scale.setScalar(r * (.3 + k * .9)); o.material.opacity = 1 - k; });
+}
+
+/* ---------- 当たり判定とダメージ ---------- */
+const aliveDummies = () => dummies.filter(d => d.deadT <= 0);
+function dmgMul() { return CB.awakenT > 0 ? 1.3 : 1; }
+function hit(d, dmg, opt = {}) {
+  if (d.deadT > 0) return;
+  dmg = Math.round(dmg * dmgMul() * rand(.92, 1.08));
+  d.hp -= dmg; d.hitT = .25;
+  CB.gauge = Math.min(CB.GAUGE_MAX, CB.gauge + dmg * (CB.awakenT > 0 ? 0 : 1));
+  if (opt.slow) d.slowT = Math.max(d.slowT, opt.slow);
+  if (opt.freeze) { d.freezeT = Math.max(d.freezeT, opt.freeze); d.block.visible = true; }
+  const p = new THREE.Vector3(d.g.position.x, 1.6, d.g.position.z);
+  dmgText(p, dmg, opt.crit ? 'crit' : opt.slow || opt.freeze ? 'ice' : '');
+  if (opt.slow && !opt.freeze) dmgText(p.clone().add(new THREE.Vector3(0, .35, 0)), '鈍足', 'tag');
+  if (opt.freeze) dmgText(p.clone().add(new THREE.Vector3(0, .35, 0)), '凍結', 'tag');
+  burst(p, opt.big ? 18 : 8, opt.big ? 3.5 : 2.2, 2.4);
+  if (d.hp <= 0) { d.hp = 0; d.deadT = 3; burst(p, 26, 4, 3.5, 1.4); d.block.visible = false; }
+  drawHp(d);
+}
+// 前方の扇形
+function inCone(d, range, deg, from = player.pos, yaw = player.yaw) {
+  const dx = d.g.position.x - from.x, dz = d.g.position.z - from.z, dist = Math.hypot(dx, dz);
+  if (dist > range + .4) return false;
+  let a = Math.atan2(dx, dz) - yaw; a = Math.atan2(Math.sin(a), Math.cos(a));
+  return Math.abs(a) < deg * Math.PI / 360 || dist < .9;
+}
+// 近くの人形へ向きを合わせる
+function autoAim(range = 5) {
+  let best = null, bd = 1e9;
+  for (const d of aliveDummies()) {
+    const dx = d.g.position.x - player.pos.x, dz = d.g.position.z - player.pos.z, dist = Math.hypot(dx, dz);
+    let a = Math.atan2(dx, dz) - player.yaw; a = Math.atan2(Math.sin(a), Math.cos(a));
+    if (dist < range && Math.abs(a) < 1.4 && dist < bd) { bd = dist; best = Math.atan2(dx, dz); }
+  }
+  if (best !== null) player.yaw = best;
+}
+function moveBy(dx, dz) {
+  const p = player.pos;
+  if (inside(p.x + dx, p.z + dz)) { p.x += dx; p.z += dz; return true; }
+  if (inside(p.x + dx, p.z)) { p.x += dx; return true; }
+  if (inside(p.x, p.z + dz)) { p.z += dz; return true; }
+  return false;
+}
+
+/* ---------- 白霜障壁と霜道 ---------- */
+const walls = [], roads = [];
+const crystalMat = () => new THREE.MeshStandardMaterial({ color: 0xd8f6ff, emissive: 0x3ab8ff, emissiveIntensity: .9, roughness: .1, metalness: .05, transparent: true, opacity: .82, flatShading: true });
+function spawnWall(enh) {
+  const n = enh ? 5 : 3, life = enh ? 12 : 8, R = 2.4, spread = enh ? 2.3 : 1.3;
+  const cx = player.pos.x + Math.sin(player.yaw) * R, cz = player.pos.z + Math.cos(player.yaw) * R;
+  const w = { panels: [], t: 0, life, cols: [] };
+  for (let i = 0; i < n; i++) {
+    const a = player.yaw + (n === 1 ? 0 : (-spread / 2 + i * spread / (n - 1))) * .45;
+    const x = player.pos.x + Math.sin(a) * R, z = player.pos.z + Math.cos(a) * R;
+    const h = rand(1.9, 2.5) * (enh ? 1.15 : 1);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(.42, .58, h, 6), crystalMat()); m.position.set(x, -h / 2, z); m.rotation.y = rand(0, 1); m.castShadow = true; scene.add(m);
+    const spike = new THREE.Mesh(new THREE.ConeGeometry(.42, .8, 6), m.material); spike.position.y = h / 2 + .4; m.add(spike);
+    m.userData = { h, delay: i * .05 };
+    w.panels.push(m);
+    const col = { x, z, r: .52 }; colliders.push(col); w.cols.push(col);
+  }
+  walls.push(w);
+  // 生成時：周りの敵にダメージ
+  const center = new THREE.Vector3(cx, 0, cz); groundRing(center, enh ? 4.2 : 3.2, .7);
+  for (const p of w.panels) { burst(new THREE.Vector3(p.position.x, .4, p.position.z), 6, 2, 4); }
+  for (const d of aliveDummies()) if (w.panels.some(p => Math.hypot(p.position.x - d.g.position.x, p.position.z - d.g.position.z) < 1.7)) hit(d, enh ? 260 : 140, { big: true, slow: enh ? 3 : 0 });
+}
+const roadTex = canvasTex(128, 64, (c, w, h) => {
+  const g = c.createRadialGradient(w / 2, h / 2, 2, w / 2, h / 2, w / 2); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 2; for (let i = 0; i < 9; i++) { c.beginPath(); const x = rand(10, w - 10), y = rand(8, h - 8); c.moveTo(x, y); c.lineTo(x + rand(-14, 14), y + rand(-10, 10)); c.stroke(); }
+});
+function roadPiece(x, z, yaw, life) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.25, .9), new THREE.MeshBasicMaterial({ map: roadTex, color: new THREE.Color(.22, .62, .9), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  m.rotation.x = -Math.PI / 2; m.rotation.z = yaw + Math.PI / 2; m.position.set(x, .02, z); scene.add(m);
+  roads.push({ m, x, z, t: 0, life });
+}
+const onRoad = (x, z) => roads.some(r => r.t < r.life && Math.hypot(r.x - x, r.z - z) < .85);
+
+/* ---------- 技の姿勢（正規化ボーンの回転） ---------- */
+const mix3 = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
+const ss = k => k * k * (3 - 2 * k);
+// 区間 [k0,k1] で a→b
+function seg(k, k0, k1, a, b) { const t = THREE.MathUtils.clamp((k - k0) / (k1 - k0), 0, 1); return mix3(a, b, ss(t)); }
+function poseMix(k, keys) {          // keys: [[k, pose], ...] 時間順
+  const out = {};
+  const bones = new Set(keys.flatMap(([, p]) => Object.keys(p)));
+  for (const b of bones) {
+    let prev = null, next = null;
+    for (const [kk, p] of keys) { if (!p[b]) continue; if (kk <= k) prev = [kk, p[b]]; else if (!next) next = [kk, p[b]]; }
+    out[b] = !prev ? next[1] : !next ? prev[1] : seg(k, prev[0], next[0], prev[1], next[1]);
+  }
+  return out;
+}
+const CROUCH = { leftUpperLeg: [-.55, 0, .05], leftLowerLeg: [.95, 0, 0], rightUpperLeg: [-.2, 0, -.05], rightLowerLeg: [.75, 0, 0], leftFoot: [-.3, 0, 0], rightFoot: [-.45, 0, 0] };
+const ACT = {
+  atk1: { dur: .42, hit: .42, lunge: .45, poses: [
+    [0, { chest: [0, -.35, 0], spine: [.05, -.15, 0], rightUpperArm: [0, -.75, .35], rightLowerArm: [0, .7, 0], rightHand: [0, 0, .3] }],
+    [.32, { chest: [0, -.4, 0], spine: [.05, -.18, 0], rightUpperArm: [0, -.85, .3], rightLowerArm: [0, .6, 0] }],
+    [.55, { chest: [0, .45, 0], spine: [.08, .2, 0], rightUpperArm: [-.1, 1.25, .2], rightLowerArm: [0, .15, 0], rightHand: [0, 0, -.2] }],
+    [1, { chest: [0, .3, 0], spine: [.05, .12, 0], rightUpperArm: [-.1, 1.0, .5], rightLowerArm: [0, .3, 0] }]] },
+  atk2: { dur: .42, hit: .42, lunge: .45, poses: [
+    [0, { chest: [0, .35, 0], spine: [.05, .15, 0], leftUpperArm: [0, .75, -.35], leftLowerArm: [0, -.7, 0], leftHand: [0, 0, -.3] }],
+    [.32, { chest: [0, .4, 0], spine: [.05, .18, 0], leftUpperArm: [0, .85, -.3], leftLowerArm: [0, -.6, 0] }],
+    [.55, { chest: [0, -.45, 0], spine: [.08, -.2, 0], leftUpperArm: [-.1, -1.25, -.2], leftLowerArm: [0, -.15, 0], leftHand: [0, 0, .2] }],
+    [1, { chest: [0, -.3, 0], spine: [.05, -.12, 0], leftUpperArm: [-.1, -1.0, -.5], leftLowerArm: [0, -.3, 0] }]] },
+  atk3: { dur: .6, hit: .5, lunge: .7, poses: [
+    [0, { spine: [-.15, 0, 0], chest: [-.1, 0, 0], head: [-.1, 0, 0], rightUpperArm: [0, .35, -1.25], leftUpperArm: [0, -.35, 1.25], rightLowerArm: [0, .4, 0], leftLowerArm: [0, -.4, 0] }],
+    [.38, { spine: [-.2, 0, 0], chest: [-.12, 0, 0], head: [-.12, 0, 0], rightUpperArm: [0, .4, -1.35], leftUpperArm: [0, -.4, 1.35], ...CROUCH }],
+    [.55, { spine: [.35, 0, 0], chest: [.2, 0, 0], head: [.05, 0, 0], rightUpperArm: [-1.0, .35, .95], leftUpperArm: [-1.0, -.35, -.95], rightLowerArm: [0, .2, 0], leftLowerArm: [0, -.2, 0], ...CROUCH }],
+    [1, { spine: [.2, 0, 0], chest: [.1, 0, 0], rightUpperArm: [-.6, .3, 1.05], leftUpperArm: [-.6, -.3, -1.05] }]] },
+  s1: { dur: .75, hit: .48, poses: [
+    [0, { spine: [.2, 0, 0], chest: [.1, 0, 0], rightUpperArm: [0, 1.05, -.35], leftUpperArm: [0, -1.05, .35], rightLowerArm: [0, .9, 0], leftLowerArm: [0, -.9, 0], ...CROUCH }],
+    [.28, { spine: [.3, 0, 0], chest: [.12, 0, 0], rightUpperArm: [0, 1.15, -.45], leftUpperArm: [0, -1.15, .45], rightLowerArm: [0, 1.0, 0], leftLowerArm: [0, -1.0, 0], ...CROUCH }],
+    [.5, { spine: [.25, 0, 0], chest: [.05, 0, 0], rightUpperArm: [-.2, -.55, .55], leftUpperArm: [-.2, .55, -.55], rightLowerArm: [0, .1, 0], leftLowerArm: [0, -.1, 0], leftUpperLeg: [-.7, 0, .05], leftLowerLeg: [.6, 0, 0], rightUpperLeg: [.35, 0, -.05], rightLowerLeg: [.3, 0, 0] }],
+    [1, { spine: [.1, 0, 0], rightUpperArm: [-.1, -.3, .8], leftUpperArm: [-.1, .3, -.8] }]] },
+  s2: { dur: .95, hit: .5, poses: [
+    [0, { head: [-.15, 0, 0], spine: [-.1, 0, 0], rightUpperArm: [0, .2, -1.3], rightLowerArm: [0, .3, 0], rightHand: [0, 0, .4] }],
+    [.38, { head: [-.2, 0, 0], spine: [-.15, 0, 0], rightUpperArm: [0, .2, -1.4], rightLowerArm: [0, .2, 0] }],
+    [.52, { head: [.15, 0, 0], spine: [.5, 0, 0], chest: [.15, 0, 0], rightUpperArm: [-1.25, .25, .85], rightLowerArm: [0, .2, 0], rightHand: [.8, 0, 0], leftUpperArm: [.2, 0, -1.0], ...CROUCH }],
+    [.8, { head: [.1, 0, 0], spine: [.45, 0, 0], chest: [.12, 0, 0], rightUpperArm: [-1.2, .25, .85], rightLowerArm: [0, .2, 0], rightHand: [.8, 0, 0], ...CROUCH }],
+    [1, { spine: [.1, 0, 0], rightUpperArm: [-.3, 0, 1.1] }]] },
+  s3: { dur: .7, hit: 0, poses: [
+    [0, { spine: [.3, 0, 0], chest: [.1, .2, 0], rightUpperArm: [.85, 0, 1.0], leftUpperArm: [.85, 0, -1.0], rightLowerArm: [0, .3, 0], leftLowerArm: [0, -.3, 0], ...CROUCH }],
+    [.2, { spine: [.4, .1, 0], chest: [.12, .25, 0], rightUpperArm: [1.0, 0, .9], leftUpperArm: [-.4, -.4, -.9], leftUpperLeg: [-.75, 0, .15], leftLowerLeg: [.8, 0, 0], rightUpperLeg: [.45, 0, -.1], rightLowerLeg: [.5, 0, 0], leftFoot: [-.2, 0, 0], rightFoot: [.2, 0, 0] }],
+    [.85, { spine: [.38, .1, 0], chest: [.1, .25, 0], rightUpperArm: [1.0, 0, .9], leftUpperArm: [-.4, -.4, -.9], leftUpperLeg: [-.75, 0, .15], leftLowerLeg: [.8, 0, 0], rightUpperLeg: [.45, 0, -.1], rightLowerLeg: [.5, 0, 0], leftFoot: [-.2, 0, 0], rightFoot: [.2, 0, 0] }],
+    [1, { spine: [.1, 0, 0] }]] },
+  charge: { dur: 1.0, hit: .85, poses: [
+    [0, { head: [.2, 0, 0], spine: [.1, 0, 0], rightUpperArm: [-.45, .35, .75], leftUpperArm: [-.45, -.35, -.75], rightLowerArm: [0, 1.0, 0], leftLowerArm: [0, -1.0, 0], rightHand: [0, 0, -.6], leftHand: [0, 0, .6] }],
+    [.7, { head: [.1, 0, 0], spine: [.05, 0, 0], rightUpperArm: [-.6, .45, .6], leftUpperArm: [-.6, -.45, -.6], rightLowerArm: [0, 1.2, 0], leftLowerArm: [0, -1.2, 0], rightHand: [0, 0, -.6], leftHand: [0, 0, .6] }],
+    [.88, { head: [-.1, 0, 0], spine: [-.05, 0, 0], rightUpperArm: [0, .1, .3], leftUpperArm: [0, -.1, -.3], rightLowerArm: [0, .2, 0], leftLowerArm: [0, -.2, 0] }],
+    [1, { rightUpperArm: [0, .1, .5], leftUpperArm: [0, -.1, -.5] }]] },
+  awaken: { dur: 1.5, hit: .55, poses: [
+    [0, { head: [.25, 0, 0], spine: [.15, 0, 0], rightUpperArm: [-.3, .9, .8], leftUpperArm: [-.3, -.9, -.8], rightLowerArm: [0, 1.4, 0], leftLowerArm: [0, -1.4, 0] }],
+    [.45, { head: [.3, 0, 0], spine: [.2, 0, 0], rightUpperArm: [-.3, 1.0, .9], leftUpperArm: [-.3, -1.0, -.9], rightLowerArm: [0, 1.5, 0], leftLowerArm: [0, -1.5, 0], ...CROUCH }],
+    [.62, { head: [-.3, 0, 0], spine: [-.18, 0, 0], chest: [-.1, 0, 0], rightUpperArm: [0, .25, -.45], leftUpperArm: [0, -.25, .45], rightLowerArm: [0, .2, 0], leftLowerArm: [0, -.2, 0] }],
+    [1, { head: [-.2, 0, 0], spine: [-.1, 0, 0], rightUpperArm: [0, .2, -.3], leftUpperArm: [0, -.2, .3] }]] },
+};
+// animate() から呼ぶ：今の技の姿勢を、歩き・待機の姿勢に重ねる
+function applyAction() {
+  const a = player.act;
+  player.actW = damp(player.actW, a ? 1 : 0, a ? 30 : 9, 1 / 60);
+  if (!a && player.actW < .01) return;
+  const def = ACT[a ? a.name : player.lastAct], k = a ? Math.min(1, a.t / def.dur) : 1;
+  const P = poseMix(k, def.poses), w = player.actW;
+  for (const n in P) { const bn = bone(n); if (!bn) continue; const p = P[n]; bn.rotation.set(lerp(bn.rotation.x, p[0], w), lerp(bn.rotation.y, p[1], w), lerp(bn.rotation.z, p[2], w)); }
+}
+
+/* ---------- 技を出す ---------- */
+let skillNameT;
+function showSkillName(text, enh) {
+  const e = $('skillName'); e.innerHTML = ''; const b = document.createElement('b'); b.textContent = text; e.appendChild(b);
+  if (enh) { const s = document.createElement('span'); s.textContent = '強化'; e.appendChild(s); }
+  e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(skillNameT); skillNameT = setTimeout(() => e.classList.remove('on'), 1600);
+}
+const canAct = () => CB.on && vrm && !shopOpen && talking <= 0;
+function startAct(name, extra = {}) { player.act = { name, t: 0, hitDone: false, ...extra }; player.lastAct = name; }
+function attack() {
+  if (!canAct()) return;
+  if (player.act) { if (player.act.name.startsWith('atk') && player.act.t > ACT[player.act.name].dur * .45) CB.queued = 'atk'; return; }
+  const n = CB.comboT > 0 ? (CB.combo % 3) + 1 : 1;
+  CB.combo = n; autoAim(); startAct('atk' + n);
+}
+function useSkill(id) {
+  if (!canAct()) return;
+  if (id === 'awaken') return useAwaken();
+  if (CB.cd[id] > 0 || (player.act && !player.act.name.startsWith('atk'))) return;
+  if (player.act) player.act = null;
+  const enh = id !== 'charge' && enhanced();
+  if (id !== 'charge' && CB.charged && CB.awakenT <= 0) CB.charged = false;      // チャージを使う
+  CB.cd[id] = SK[id].cd * (CB.awakenT > 0 ? .5 : 1);
+  if (id !== 's2' && id !== 'charge') autoAim(id === 's3' ? 7 : 5);
+  startAct(id, { enh, yaw0: player.yaw });
+  showSkillName(SK[id].name, enh);
+  const lines = {
+    s1: enh ? ['……凍りついて。', '逃がさんけん。'] : ['……凍って。', 'いくよ。'],
+    s2: enh ? ['うちの後ろに。……誰も、通さん。'] : ['うちの後ろに。', '守るけん。'],
+    s3: enh ? ['ついてきて。……速いけんね。'] : ['ついてきて。', '滑るよ。'],
+    charge: ['……集めるけん。', '冷気、集まってきた。'],
+  }[id];
+  say(pick(lines), { relaxed_eye: .2, brow_relaxed: .2 });
+}
+function useAwaken() {
+  if (CB.awakenT > 0 || CB.gauge < CB.GAUGE_MAX) { if (CB.gauge < CB.GAUGE_MAX) showSkillName(`覚醒ゲージ ${Math.floor(CB.gauge / CB.GAUGE_MAX * 100)}%`); return; }
+  if (player.act) player.act = null;
+  CB.gauge = 0; startAct('awaken');
+  const c = $('awk'); c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); setTimeout(() => c.classList.remove('on'), 1700);
+  say('白夜に咲け……氷の約束。', { relaxed_eye: .1, brow_relaxed: .1 });
+}
+
+// 技の途中で起きること（当たり・移動・効果）
+function actTick(dt) {
+  const a = player.act; if (!a) return;
+  const def = ACT[a.name], k0 = a.t / def.dur; a.t += dt; const k = Math.min(1, a.t / def.dur);
+  const fwd = (dist, k0_, k1_) => { const f = THREE.MathUtils.clamp((k - k0_) / (k1_ - k0_), 0, 1) - THREE.MathUtils.clamp((k0 - k0_) / (k1_ - k0_), 0, 1); if (f > 0) moveBy(Math.sin(player.yaw) * dist * f, Math.cos(player.yaw) * dist * f); };
+  const crossed = kk => k0 < kk && k >= kk;
+  const P = player.pos;
+  if (a.name.startsWith('atk')) {
+    fwd(def.lunge, .25, .55);
+    if (crossed(def.hit * .78)) {
+      const n = +a.name[3], aw = CB.awakenT > 0;
+      if (n === 1) slash({ roll: -.25, dir: -1, radius: 1.2, width: aw ? .75 : .55 });
+      if (n === 2) slash({ roll: .25, dir: 1, radius: 1.2, width: aw ? .75 : .55 });
+      if (n === 3) { slash({ roll: Math.PI / 2 - .15, radius: 1.1, arc: 2.2, width: .6, fwd: .5, yaw: player.yaw - .12 }); slash({ roll: Math.PI / 2 + .15, radius: 1.1, arc: 2.2, width: .6, fwd: .5, yaw: player.yaw + .12 }); groundRing(new THREE.Vector3(P.x + Math.sin(player.yaw) * 1.1, 0, P.z + Math.cos(player.yaw) * 1.1), 1.4, .45); }
+      for (const d of aliveDummies()) if (inCone(d, n === 3 ? 2.3 : 2.1, n === 3 ? 90 : 120)) hit(d, [0, 60, 70, 130][n], { crit: n === 3, big: n === 3 });
+    }
+  } else if (a.name === 's1') {
+    fwd(a.enh ? 3.6 : 3, .25, .5);
+    if (crossed(.3)) { burst(new THREE.Vector3(P.x, .2, P.z), 10, 2, 1); }
+    if (crossed(.46)) {
+      const big = a.enh ? 1.35 : 1;
+      slash({ roll: .75, radius: 1.35 * big, arc: 2.6, width: .7 * big, fwd: .6, dur: .45, color: [.8, 2.4, 3.2] });
+      slash({ roll: -.75, radius: 1.35 * big, arc: 2.6, width: .7 * big, fwd: .6, dur: .45, dir: -1, color: [.8, 2.4, 3.2] });
+      if (a.enh) slash({ roll: 0, radius: 1.6, arc: 3.0, width: .8, fwd: .7, dur: .5, color: [1.6, 2.6, 3.2] });
+      groundRing(new THREE.Vector3(P.x + Math.sin(player.yaw), 0, P.z + Math.cos(player.yaw)), a.enh ? 3 : 2.2, .6);
+      for (const d of aliveDummies()) if (inCone(d, a.enh ? 3.2 : 2.6, 130)) hit(d, a.enh ? 380 : 210, a.enh ? { freeze: 2, slow: 5, big: true, crit: true } : { slow: 4, big: true });
+    }
+  } else if (a.name === 's2') {
+    if (crossed(.5)) spawnWall(a.enh);
+  } else if (a.name === 's3') {
+    const dist = a.enh ? 8.5 : 6.5, before = P.clone();
+    fwd(dist, .05, .85);
+    if (k > .05 && k < .9) {
+      if (!a.lastRoad || a.lastRoad.distanceTo(P) > .7) { roadPiece(P.x, P.z, player.yaw, a.enh ? 9 : 6); a.lastRoad = P.clone(); }
+      if (Math.random() < .5) stepFX(P, player.yaw, true);
+      a.hitSet ||= new Set();
+      for (const d of aliveDummies()) if (!a.hitSet.has(d) && Math.hypot(d.g.position.x - P.x, d.g.position.z - P.z) < 1.3) { a.hitSet.add(d); hit(d, a.enh ? 170 : 95, { slow: a.enh ? 4 : 2.5 }); }
+    }
+    if (crossed(.86)) slash({ roll: Math.PI, radius: 1.0, arc: 3.4, width: .45, y: .35, fwd: 0, dur: .4 });
+    void before;
+  } else if (a.name === 'charge') {
+    if (Math.random() < dt * 40) { const ang = rand(0, Math.PI * 2), r = rand(1.2, 1.8); const s = shards[shardIdx++ % SH]; s.visible = true; s.position.set(P.x + Math.cos(ang) * r, rand(.2, 1.8), P.z + Math.sin(ang) * r); s.scale.setScalar(rand(.8, 1.4)); s.userData.v.set(-Math.cos(ang) * 2.2, rand(-.2, .6), -Math.sin(ang) * 2.2); s.userData.life = 0; s.userData.max = .55; }
+    if (crossed(.85)) { CB.charged = true; groundRing(P, 2.6, .6, [1.2, 2.2, 2.6]); burst(new THREE.Vector3(P.x, 1.2, P.z), 12, 1.6, 2); }
+  } else if (a.name === 'awaken') {
+    if (crossed(.55)) {
+      CB.awakenT = 12; CB.charged = false; for (const id in CB.cd) CB.cd[id] = 0;
+      groundRing(P, 6, 1.0, [1.6, 2.4, 3]); groundRing(P, 3.5, .8, [2, 2.4, 2.6]); burst(new THREE.Vector3(P.x, 1.4, P.z), 40, 4, 4, 1.4);
+      for (const d of aliveDummies()) if (Math.hypot(d.g.position.x - P.x, d.g.position.z - P.z) < 5) hit(d, 300, { slow: 4, big: true });
+    }
+  }
+  if (a.t >= def.dur) {
+    player.act = null;
+    if (a.name.startsWith('atk')) { CB.comboT = .55; if (CB.queued === 'atk') { CB.queued = null; attack(); } }
+  }
+}
+
+/* ---------- 氷の爪（訓練場では手に出す） ---------- */
+const claws = [];
+{
+  const m = crystalMat(); m.emissiveIntensity = 1.4;
+  for (const side of ['left', 'right']) {
+    const g = new THREE.Group(); g.visible = false; scene.add(g);
+    for (let i = 0; i < 3; i++) { const b = new THREE.Mesh(new THREE.ConeGeometry(.022, .34, 4), m); b.position.set((i - 1) * .045, .2 - Math.abs(i - 1) * .03, 0); b.rotation.z = (i - 1) * -.12; g.add(b); }
+    claws.push({ side, g, m });
+  }
+}
+const _ca = new THREE.Vector3(), _cb = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
+function updateClaws(show) {
+  for (const c of claws) {
+    c.m.opacity = damp(c.m.opacity, show ? .9 : 0, 6, 1 / 60);
+    c.g.visible = c.m.opacity > .02;
+    if (!c.g.visible || !vrm) continue;
+    const lo = vrm.humanoid.getRawBoneNode(c.side + 'LowerArm'), hd = vrm.humanoid.getRawBoneNode(c.side + 'Hand');
+    lo.getWorldPosition(_ca); hd.getWorldPosition(_cb);
+    const dir = _cb.clone().sub(_ca).normalize();
+    c.g.position.copy(_cb).addScaledVector(dir, .06);
+    c.g.quaternion.setFromUnitVectors(_up, dir);
+  }
+}
+
+/* ---------- 覚醒中のオーラ・守りの膜 ---------- */
+const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: new THREE.Color(1.2, 2, 2.6), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+aura.scale.set(2.2, 3.2, 1); scene.add(aura);
+const guardM = new THREE.Mesh(new THREE.IcosahedronGeometry(.95, 2), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.3, 1.9), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, wireframe: true }));
+scene.add(guardM);
+
+/* ---------- 毎フレーム ---------- */
+let wasCombat = false;
+function combatTick(dt, t) {
+  const P = player.pos;
+  CB.on = P.z > TRAIN.z0 - .4;
+  if (CB.on !== wasCombat) {
+    wasCombat = CB.on; document.body.classList.toggle('combat', CB.on);
+    if (CB.on && !combatTick.seen) { combatTick.seen = true; showTitle('ARCRAVE UNIT 09', '第9隊 訓練場', '── しのの技を試せます ──'); setTimeout(() => say('訓練場……。ちょっと、体を動かそっか。'), 900); }
+  }
+  // 冷却
+  for (const id in CB.cd) CB.cd[id] = Math.max(0, CB.cd[id] - dt);
+  CB.comboT = Math.max(0, CB.comboT - dt); if (CB.comboT <= 0 && !player.act) CB.combo = 0;
+  if (CB.awakenT > 0) { CB.awakenT -= dt; if (CB.awakenT <= 0) { CB.awakenT = 0; showSkillName('覚醒 終了'); } }
+  actTick(dt);
+  // 霜道の上は速く走れる
+  const fast = onRoad(P.x, P.z);
+  if (fast) CB.speedT = .6; else CB.speedT = Math.max(0, CB.speedT - dt);
+  speedMul = CB.speedT > 0 ? 1.6 : 1;
+  // 氷壁のそばは守られる
+  CB.guard = walls.some(w => w.t < w.life && w.panels.some(p => Math.hypot(p.position.x - P.x, p.position.z - P.z) < 3.2));
+  guardM.material.opacity = damp(guardM.material.opacity, CB.guard ? .07 + Math.sin(t * 3) * .02 : 0, 6, dt);
+  guardM.position.set(P.x, .95, P.z); guardM.rotation.y += dt * .6; guardM.visible = guardM.material.opacity > .01;
+  // 覚醒のオーラ
+  aura.material.opacity = damp(aura.material.opacity, CB.awakenT > 0 ? .3 + Math.sin(t * 6) * .06 : CB.charged ? .16 : 0, 5, dt);
+  aura.position.set(P.x, 1.1, P.z);
+  if (CB.awakenT > 0 && Math.random() < dt * 14) { const s = shards[shardIdx++ % SH]; s.visible = true; s.position.set(P.x + rand(-.6, .6), rand(.1, .6), P.z + rand(-.6, .6)); s.scale.setScalar(rand(.6, 1.1)); s.userData.v.set(rand(-.3, .3), rand(1.2, 2.2), rand(-.3, .3)); s.userData.life = 0; s.userData.max = rand(.8, 1.2); }
+  updateClaws(CB.on || !!player.act);
+  // 人形
+  for (const d of dummies) {
+    if (d.deadT > 0) {
+      d.deadT -= dt; d.body.rotation.x = Math.min(1.45, d.body.rotation.x + dt * 5); d.bar.visible = false;
+      if (d.deadT <= 0) { d.hp = d.max; d.slowT = d.freezeT = 0; d.body.rotation.x = 0; d.bar.visible = true; drawHp(d); burst(new THREE.Vector3(d.g.position.x, 1, d.g.position.z), 10, 1.5, 2); }
+      continue;
+    }
+    const sl = d.slowT > 0, fr = d.freezeT > 0;
+    d.slowT = Math.max(0, d.slowT - dt);
+    if (fr) { d.freezeT -= dt; if (d.freezeT <= 0) { d.freezeT = 0; d.block.visible = false; burst(new THREE.Vector3(d.g.position.x, 1.2, d.g.position.z), 16, 2.5, 2.5); drawHp(d); } }
+    if (sl !== (d.slowT > 0)) drawHp(d);
+    const mul = fr ? 0 : d.slowT > 0 ? .3 : 1;
+    d.ph += dt * d.speed * mul / d.range * 1.6;
+    d.g.position.x = d.x0 + Math.sin(d.ph) * d.range; d.col.x = d.g.position.x; d.col.z = d.g.position.z;
+    d.hitT = Math.max(0, d.hitT - dt);
+    d.body.rotation.z = Math.sin(d.hitT * 40) * d.hitT * .5;
+    const tint = d.slowT > 0 || fr ? 1 : 0;
+    d.mats[0].color.setRGB(lerp(.78, .55, tint), lerp(.63, .75, tint), lerp(.38, .95, tint));
+    d.mats[0].emissive.setRGB(d.hitT * 2, d.hitT * 2.4, d.hitT * 2.8);
+    d.frost.material.opacity = d.slowT > 0 ? .35 + Math.sin(t * 5) * .1 : 0;
+  }
+  // 氷壁：せり上がって、時間が来たら溶ける
+  for (let i = walls.length - 1; i >= 0; i--) {
+    const w = walls[i]; w.t += dt;
+    for (const p of w.panels) {
+      const h = p.userData.h, k = THREE.MathUtils.clamp((w.t - p.userData.delay) / .22, 0, 1);
+      const melt = THREE.MathUtils.clamp((w.t - (w.life - .8)) / .8, 0, 1);
+      p.position.y = -h / 2 + h * (1 - Math.pow(1 - k, 3)) - melt * h * .6;
+      p.material.opacity = .82 * (1 - melt);
+    }
+    if (w.t >= w.life) {
+      for (const p of w.panels) { scene.remove(p); p.geometry.dispose(); p.material.dispose(); }
+      for (const c of w.cols) { const j = colliders.indexOf(c); if (j >= 0) colliders.splice(j, 1); }
+      walls.splice(i, 1);
+    }
+  }
+  // 霜道
+  for (let i = roads.length - 1; i >= 0; i--) { const r = roads[i]; r.t += dt; r.m.material.opacity = Math.min(1, (r.life - r.t) / 1.2) * (.8 + Math.sin(t * 4 + r.x) * .2); if (r.t >= r.life) { scene.remove(r.m); r.m.material.dispose(); r.m.geometry.dispose(); roads.splice(i, 1); } }
+  // 効果
+  for (let i = fx.length - 1; i >= 0; i--) { const f = fx[i]; f.t += dt; const k = Math.min(1, f.t / f.life); f.update(f.obj, k); if (k >= 1) { f.parent.remove(f.obj); f.obj.traverse(o => { if (o.isMesh) o.material.dispose(); }); fx.splice(i, 1); } }
+  for (const s of shards) if (s.visible) { const u = s.userData; u.life += dt; u.v.y -= 6 * dt; s.position.addScaledVector(u.v, dt); s.rotation.x += dt * 8; s.rotation.y += dt * 6; s.material.opacity = Math.max(0, 1 - u.life / u.max); if (u.life >= u.max || s.position.y < 0) s.visible = false; }
+  for (let i = dmgEls.length - 1; i >= 0; i--) {
+    const d = dmgEls[i]; d.t += dt;
+    _np.set(d.p.x, d.p.y + d.t * .9, d.p.z).project(camera);
+    d.el.style.transform = `translate(${(_np.x * .5 + .5) * innerWidth}px,${(-_np.y * .5 + .5) * innerHeight}px) translate(-50%,-50%) scale(${d.t < .12 ? 1.4 - d.t * 3 : 1})`;
+    d.el.style.opacity = d.t < .6 ? 1 : 1 - (d.t - .6) / .4;
+    if (d.t > 1 || _np.z > 1) { d.el.remove(); dmgEls.splice(i, 1); }
+  }
+  updateSkillHud();
+}
+
+/* ---------- 技のボタン ---------- */
+function updateSkillHud() {
+  if (!CB.on) return;
+  for (const id of ['s1', 's2', 's3', 'charge']) {
+    const el = $('sk_' + id), cd = CB.cd[id], full = SK[id].cd * (CB.awakenT > 0 ? .5 : 1);
+    el.style.setProperty('--cd', cd > 0 ? (cd / full * 360) + 'deg' : '0deg');
+    el.querySelector('.n').textContent = cd > 0 ? Math.ceil(cd) : '';
+    el.classList.toggle('ready', cd <= 0);
+    el.classList.toggle('enh', id !== 'charge' && enhanced());
+  }
+  const aw = $('sk_awaken'), k = CB.gauge / CB.GAUGE_MAX;
+  aw.style.setProperty('--g', (CB.awakenT > 0 ? CB.awakenT / 12 : k) * 360 + 'deg');
+  aw.classList.toggle('full', k >= 1 && CB.awakenT <= 0); aw.classList.toggle('active', CB.awakenT > 0);
+  aw.querySelector('.n').textContent = CB.awakenT > 0 ? Math.ceil(CB.awakenT) : Math.floor(k * 100) + '%';
+  // 状態アイコン
+  const buffs = [];
+  if (CB.awakenT > 0) buffs.push(['awk', `覚醒 ${CB.awakenT.toFixed(1)}s`]);
+  if (CB.charged && CB.awakenT <= 0) buffs.push(['chg', 'チャージ：次のスキル強化']);
+  if (CB.speedT > 0) buffs.push(['spd', '霜道：移動速度アップ']);
+  if (CB.guard) buffs.push(['grd', '白霜障壁：守られている']);
+  const key = JSON.stringify(buffs);
+  if (key !== updateSkillHud.k) { updateSkillHud.k = key; const b = $('buffs'); b.innerHTML = ''; for (const [c, txt] of buffs) { const s = document.createElement('span'); s.className = c; s.textContent = txt; b.appendChild(s); } }
+}
+const press = (id, fn) => { const el = $(id); el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); fn(); el.classList.add('push'); setTimeout(() => el.classList.remove('push'), 120); }); el.addEventListener('click', e => e.stopPropagation()); };
+press('sk_atk', attack); press('sk_s1', () => useSkill('s1')); press('sk_s2', () => useSkill('s2')); press('sk_s3', () => useSkill('s3')); press('sk_charge', () => useSkill('charge')); press('sk_awaken', () => useSkill('awaken'));
+addEventListener('keydown', e => {
+  if (!CB.on || e.repeat || shopOpen) return;
+  const map = { KeyJ: attack, Digit1: () => useSkill('s1'), Digit2: () => useSkill('s2'), Digit3: () => useSkill('s3'), KeyF: () => useSkill('charge'), KeyR: () => useSkill('awaken') };
+  if (map[e.code]) { e.preventDefault(); map[e.code](); }
+});
+
+/* =====================================================================
    ループ
    ===================================================================== */
 const clock = new THREE.Clock();
@@ -1500,6 +2098,7 @@ function tick(dt) {
     updateCamera(dt);
     vrm.humanoid.getRawBoneNode('head').getWorldPosition(headPos);
     netTick(dt, t);
+    combatTick(dt, t);
   }
   // 雪（プレイヤーの周りで降り続ける）
   for (let i = 0; i < SNOW; i++) {
@@ -1524,7 +2123,7 @@ function tick(dt) {
   composer.render(dt);
 }
 loop();
-window.__walk = { player, keys, wallet, chests, interact: () => interact(), near: () => near?.label, openShop, closeShop, SHOPS, step: s => { for (let i = 0; i < s * 60; i++) tick(1 / 60); }, cam: () => ({ camYaw, camPitch }), setCam: (y, p, d) => { camYaw = y; camPitch = p; camDist = d; camInit = false; }, lockCam: v => { camLock = v; }, net: NET, remotes, fakePeers: list => { NET.status = { available: true, connected: true }; NET.peers = list; syncRemotes(); updateNetUI(); }, vrm: () => vrm };
+window.__walk = { player, keys, wallet, chests, interact: () => interact(), near: () => near?.label, openShop, closeShop, SHOPS, step: s => { for (let i = 0; i < s * 60; i++) tick(1 / 60); }, cam: () => ({ camYaw, camPitch }), setCam: (y, p, d) => { camYaw = y; camPitch = p; camDist = d; camInit = false; }, lockCam: v => { camLock = v; }, CB, dummies, attack, useSkill, net: NET, remotes, fakePeers: list => { NET.status = { available: true, connected: true }; NET.peers = list; syncRemotes(); updateNetUI(); }, vrm: () => vrm };
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); sizeBulbs(); });
 </script>
 </body>
