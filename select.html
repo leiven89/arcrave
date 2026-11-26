@@ -130,11 +130,20 @@
   #loading .bar i{position:absolute;inset:0 auto 0 0;background:var(--cy);box-shadow:0 0 8px var(--cy)}
   #loading .m{font-family:var(--en);font-size:12px;letter-spacing:.3em;color:rgba(200,250,255,.6)}
 
+  /* カレン選択中は桃色・紫の配色 */
+  body.karen{--cy:#ff6ad8;--cy2:#b04cff;--line:rgba(255,106,216,.45)}
+  body.karen #decide{background:linear-gradient(120deg,rgba(176,76,255,.95),rgba(255,106,216,.95));color:#1c0220}
+  body.karen #info h1{text-shadow:0 0 18px rgba(255,106,216,.45);font-size:31px}
+  .ic.ka{background:linear-gradient(160deg,#c2409a,#2a0b3a)}
+  .ic.wait .ld{position:absolute;left:0;right:0;top:40%;text-align:center;font-family:var(--en);font-weight:700;font-size:13px;letter-spacing:.1em;color:#ffb8ec}
+  #mute{height:40px;padding:0 14px;font-family:var(--en);font-weight:700;letter-spacing:.14em;font-size:13px;display:none}
+  body.karen #mute{display:block}
   @media (max-aspect-ratio:1/1){
     #info{left:12px;right:12px;width:auto;top:auto;bottom:150px;transform:none;gap:6px}
     #info.hidden{transform:translateY(20px)}
     #info .card:not(.main){display:none}
     #info h1{font-size:26px}
+    body.karen #info h1{font-size:23px}
     .stat{display:none}
     #decide{height:64px}
     #roster{left:8px;right:8px;bottom:8px;overflow-x:auto;gap:8px}
@@ -185,6 +194,7 @@
   <div id="head">
     <button id="back" class="panel tap">◀ LOBBY</button>
     <div id="title"><b>キャラクター選択</b><small>CHARACTER SELECT</small></div>
+    <button id="mute" class="panel tap" aria-label="音楽のオン・オフ">♪ ON</button>
   </div>
 
   <div id="info" class="hidden">
@@ -207,7 +217,7 @@
   </div>
 
   <div id="roster" class="panel">
-    <div class="cap">ROSTER  1 / 8</div>
+    <div class="cap">ROSTER  2 / 8</div>
   </div>
 </div>
 
@@ -524,7 +534,7 @@ const snow = new THREE.Points(snowGeo, new THREE.PointsMaterial({ size: .03, map
 scene.add(snow);
 
 // ライト
-scene.add(new THREE.HemisphereLight(0x8aa0ff, 0x10142a, 0.5));
+const hemi = new THREE.HemisphereLight(0x8aa0ff, 0x10142a, 0.5); scene.add(hemi);
 // MToonはスポットライトの影と相性が悪いので、平行光源で影を落とす
 const key = new THREE.DirectionalLight(0xe6f0ff, 1.2);
 key.position.set(1.5, 6, 4); key.castShadow = true; key.shadow.mapSize.set(MOBILE ? 1024 : 2048, MOBILE ? 1024 : 2048); key.shadow.bias = -0.0004; key.shadow.normalBias = .02;
@@ -605,7 +615,7 @@ loader.load('./shino_lite.vrm', gltf => {
   });
   scene.add(vrm.scene);
   const box = new THREE.Box3().setFromObject(vrm.scene);
-  charH = box.max.y - box.min.y;
+  charH = shinoH = box.max.y - box.min.y;
   vrm.scene.position.y = 0.121 - box.min.y;
   baseHipsY = bone('hips').position.y;
   if (vrm.lookAt) vrm.lookAt.target = lookTarget;
@@ -614,6 +624,7 @@ loader.load('./shino_lite.vrm', gltf => {
   makeIcon();
   vrm.scene.visible = false;
   buildRoster();
+  loadKaren();
   pbar.style.width = '100%'; lmsg.textContent = 'READY';
   setTimeout(() => document.getElementById('loading').classList.add('hide'), 300);
 }, e => { if (e.total) { const p = Math.round(e.loaded / e.total * 100); pbar.style.width = p + '%'; lmsg.textContent = `CHARACTER DATA … ${p}%`; } },
@@ -822,7 +833,7 @@ function say(text, hold = 1.6) {
   speech.hold = hold;
 }
 let mouthBusy = 0;
-function updateFace(dt) {
+function updateFace(dt, model = vrm) {
   const vis = { aa: 0, ih: 0, ou: 0, ee: 0, oh: 0 };
   let busy = 0;
   if (speech) {
@@ -841,15 +852,15 @@ function updateFace(dt) {
   }
   if (shout > 0) { shout -= dt; vis.aa = Math.max(vis.aa, .9); busy = 1; }
   mouthBusy += (busy - mouthBusy) * (1 - Math.exp(-dt * 10));
-  const em = vrm.expressionManager;
+  const em = model.expressionManager;
   const set = (n, v, r) => { const c = exW[n] ?? 0; exW[n] = c + (v - c) * (1 - Math.exp(-dt * r)); if (em.getExpression(n)) em.setValue(n, exW[n]); return exW[n]; };
   for (const n in vis) set(n, vis[n], 30);
   let closed = 0;
-  for (const n of ['happy_eye', 'relaxed_eye', 'angry_eye', 'surprised_eye', 'sad_eye', 'brow_happy', 'brow_angry', 'brow_relaxed', 'brow_surprised', 'brow_sad', 'happy_mouth', 'angry_mouth', 'relaxed_mouth', 'surprised_mouth']) {
+  for (const n of ['happy_eye', 'relaxed_eye', 'angry_eye', 'surprised_eye', 'sad_eye', 'brow_happy', 'brow_angry', 'brow_relaxed', 'brow_surprised', 'brow_sad', 'happy_mouth', 'angry_mouth', 'relaxed_mouth', 'surprised_mouth', 'happy', 'relaxed', 'surprised', 'angry', 'sad', 'blink_smile', 'blink_smile_L', 'blink_smile_R']) {
     let v = exTarget[n] ?? 0;
     if (n.endsWith('_mouth')) v *= (1 - mouthBusy);
     const w = set(n, v, 10);
-    if (n === 'happy_eye' || n === 'relaxed_eye') closed = Math.max(closed, w);
+    if (n === 'happy_eye' || n === 'relaxed_eye' || n === 'happy' || n === 'relaxed' || n.startsWith('blink_smile')) closed = Math.max(closed, w);
   }
   blinkT -= dt;
   if (blinkT < 0) { blinkV += dt * 14; if (blinkV > 2) { blinkV = 0; blinkT = rand(1.5, 4.5); } }
@@ -876,7 +887,7 @@ function updateCamera(t, dt) {
   } else if (shot === 'release') {    // 解放：低い位置から広く
     frameH = charH * 1.85; tgt.set(0, charH * .48, 0); yaw = .78 - shotT * .04; lift = -charH * .35; off = 0;
   } else {                            // 通常：全身、キャラは左寄り
-    frameH = charH * 1.42; tgt.set(0, charH * .44, 0); yaw = .32 + Math.sin(t * .15) * .05; lift = -charH * .06; off = portrait ? 0 : .16;
+    frameH = charH * (active === 'karen' ? (portrait ? 2.3 : 1.75) : 1.42) * (1 + camWide); tgt.set(focus.x, charH * .44 + focus.y, focus.z); yaw = .32 + Math.sin(t * .15) * .05; lift = -charH * .06; off = portrait ? 0 : .16;
   }
   let dist = frameH / (2 * Math.tan(vFov / 2));
   if (shot === 'charge') dist *= 1 - Math.min(shotT, 1.2) * .12;      // 押し込み
@@ -898,25 +909,32 @@ function updateCamera(t, dt) {
    ===================================================================== */
 const ROSTER = [
   { id: 'shino', name: '雪代しの', el: '❄', stars: 5, own: true },
-  { name: '？？？', el: '🔥', stars: 5 }, { name: '？？？', el: '⚡', stars: 4 }, { name: '？？？', el: '🌿', stars: 4 },
+  { id: 'karen', name: 'カレン', el: '♪', stars: 5, own: true }, { name: '？？？', el: '⚡', stars: 4 }, { name: '？？？', el: '🌿', stars: 4 },
   { name: '？？？', el: '✦', stars: 5 }, { name: '？？？', el: '❄', stars: 3 }, { name: '？？？', el: '☾', stars: 4 }, { name: '？？？', el: '🔥', stars: 3 },
 ];
 const rosterEl = document.getElementById('roster');
+function cardHTML(c) {
+  const icon = c.id === 'shino' ? iconURL : c.icon;
+  if (c.own && icon) return `<img src="${icon}" alt=""><span class="st">${'★'.repeat(c.stars)}</span><span class="e">${c.el}</span><span class="nm">${c.name}</span>`;
+  if (c.own) return `<span class="sil">${c.el}</span><span class="st">${'★'.repeat(c.stars)}</span><span class="ld">0%</span><span class="nm">${c.name}</span>`;
+  return `<span class="sil">?</span><span class="st">${'★'.repeat(c.stars)}</span><span class="e">${c.el}</span><span class="lk">🔒</span><span class="nm">未所持</span>`;
+}
 function buildRoster() {
   ROSTER.forEach((c, i) => {
-    const d = document.createElement('div');
-    d.className = 'ic' + (c.own ? ' ur' : ' lock');
-    d.innerHTML = c.own
-      ? `<img src="${iconURL}" alt=""><span class="st">${'★'.repeat(c.stars)}</span><span class="e">${c.el}</span><span class="nm">${c.name}</span>`
-      : `<span class="sil">?</span><span class="st">${'★'.repeat(c.stars)}</span><span class="e">${c.el}</span><span class="lk">🔒</span><span class="nm">未所持</span>`;
-    d.addEventListener('click', () => c.own ? selectShino(d) : toast('未所持のキャラクターです'));
+    const d = document.createElement('div'); c.card = d;
+    const waiting = c.own && c.id !== 'shino' && !c.icon;
+    d.className = 'ic' + (c.own ? (c.id === 'karen' ? ' ka' : ' ur') : ' lock') + (waiting ? ' lock wait' : '');
+    d.innerHTML = cardHTML(c);
+    d.addEventListener('click', () => !c.own ? toast('未所持のキャラクターです') : c.id === 'karen' ? selectKaren(d) : selectShino(d));
     rosterEl.appendChild(d);
   });
 }
 let selected = false, appearT = -1, skill = null;
 const info = document.getElementById('info');
 function selectShino(el) {
-  if (skill) return;
+  if (skill || kFin) return;
+  if (active === 'karen') leaveKaren();
+  active = 'shino'; charH = shinoH; setInfo('shino');
   document.querySelectorAll('.ic').forEach(x => x.classList.remove('sel')); el.classList.add('sel');
   document.getElementById('prompt').classList.add('hide');
   info.classList.remove('hidden');
@@ -958,6 +976,7 @@ function burstShock(size, life) { shock.visible = true; shock.userData = { t: 0,
 let timeScale = 1;
 
 document.getElementById('decide').addEventListener('click', () => {
+  if (active === 'karen') return karenDecide();
   if (!selected || skill) return;
   skill = { t: 0, stage: 0 };
   appearT = -1; pillar.material.opacity = 0;
@@ -1040,14 +1059,628 @@ function updateSkill(dt) {
   }
 }
 
+
+/* =====================================================================
+   カレン・カデンツァ：スポットライトとステップの選択演出
+   ・モデルは KAREN_URL のファイルを読むだけ。表情つきのモデルができたら、同じ名前で置き換えれば差し替わる
+     （表情は VRM 標準の名前 happy / relaxed / surprised / aa ほか を使う。今のモデルに無い表情は何も起きない）
+   ・音楽はその場で合成する（ファイル不要）
+   ===================================================================== */
+const kLerp = (a, b, k) => a + (b - a) * k;
+const KAREN_URL = './karen.vrm';
+let karen = null, karenH = 1.6, karenBaseHipsY = 0, active = null, shinoH = 1.6;
+const focus = new THREE.Vector3();
+const kRoot = new THREE.Group(); kRoot.visible = false; scene.add(kRoot);
+const kb = n => karen.humanoid.getNormalizedBoneNode(n);
+
+function loadKaren() {
+  const c = ROSTER.find(r => r.id === 'karen');
+  loader.load(KAREN_URL, gltf => {
+    karen = gltf.userData.vrm;
+    VRMUtils.removeUnnecessaryVertices(gltf.scene);
+    VRMUtils.combineSkeletons ? VRMUtils.combineSkeletons(gltf.scene) : VRMUtils.removeUnnecessaryJoints?.(gltf.scene);
+    VRMUtils.rotateVRM0(karen);
+    karen.scene.traverse(o => {
+      if (!o.isMesh) return;
+      o.castShadow = true; o.frustumCulled = false;
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
+        if (m.isMToonMaterial && m.parametricRimColorFactor) { m.parametricRimColorFactor.setRGB(.5, .12, .4); m.parametricRimFresnelPowerFactor = 4; m.parametricRimLiftFactor = .04; m.rimLightingMixFactor = .6; }
+      });
+    });
+    kRoot.add(karen.scene);
+    const box = new THREE.Box3().setFromObject(karen.scene);
+    karenH = box.max.y - box.min.y;
+    karen.scene.position.y = 0.121 - box.min.y;
+    karenBaseHipsY = kb('hips').position.y;
+    if (karen.lookAt) karen.lookAt.target = lookTarget;
+    kApply(KP.open); karen.update(0);
+    c.icon = karenIcon();
+    if (c.card) { c.card.classList.remove('lock', 'wait'); c.card.innerHTML = cardHTML(c); }
+  }, e => { if (e.total && c.card) { const l = c.card.querySelector('.ld'); if (l) l.textContent = Math.round(e.loaded / e.total * 100) + '%'; } },
+  err => { console.error(err); if (c.card) { const l = c.card.querySelector('.ld'); if (l) l.textContent = 'ERROR'; } });
+}
+// 顔アイコン（ほかのものを隠して、顔だけ撮る）
+function karenIcon() {
+  const hp = new THREE.Vector3(); karen.humanoid.getRawBoneNode('head').getWorldPosition(hp);
+  const em = karen.expressionManager; em?.setValue('happy_mouth', .8); em?.setValue('brow_happy', .5); karen.update(0);
+  const cam = new THREE.PerspectiveCamera(20, renderer.domElement.width / renderer.domElement.height, .05, 50);
+  cam.position.set(hp.x + .25, hp.y + .02, hp.z + 1.3); cam.lookAt(hp.x, hp.y - .02, hp.z);
+  const vis = [env, snow, magic, spotG, vrm?.scene].filter(Boolean).map(o => [o, o.visible]);
+  vis.forEach(([o]) => o.visible = false); deco.forEach(d => d.visible = false); kRoot.visible = true;
+  const bg = scene.background, fog = scene.fog; scene.background = null; scene.fog = null;
+  renderer.setClearColor(0x000000, 0); renderer.render(scene, cam);
+  const src = renderer.domElement, H = src.height, W = src.width, cv = document.createElement('canvas'); cv.width = cv.height = 320;
+  const side = H * .9; cv.getContext('2d').drawImage(src, (W - side) / 2, (H - side) / 2, side, side, 0, 0, 320, 320);
+  scene.background = bg; scene.fog = fog; vis.forEach(([o, v]) => o.visible = v); deco.forEach(d => d.visible = true); kRoot.visible = active === 'karen';
+  em?.setValue('happy_mouth', 0); em?.setValue('brow_happy', 0);
+  return cv.toDataURL('image/png');
+}
+
+/* ---------- ステップ（正規化ボーンの角度。しののポーズと同じ向きの約束） ---------- */
+const K_BASE = {
+  hips: [0, 0, 0], spine: [0, 0, 0], chest: [0, 0, 0], upperChest: [0, 0, 0], neck: [0, 0, 0], head: [0, 0, 0],
+  leftUpperArm: [0, 0, -1.15], rightUpperArm: [0, 0, 1.15], leftLowerArm: [0, -.2, 0], rightLowerArm: [0, .2, 0], leftHand: [0, 0, 0], rightHand: [0, 0, 0],
+  leftUpperLeg: [0, 0, 0], rightUpperLeg: [0, 0, 0], leftLowerLeg: [0, 0, 0], rightLowerLeg: [0, 0, 0], leftFoot: [0, 0, 0], rightFoot: [0, 0, 0], _y: [0, 0, 0],
+};
+const kPose = o => { const p = {}; for (const k in K_BASE) p[k] = [...K_BASE[k]]; return Object.assign(p, o); };
+const KP = {
+  // 登場前：背中を向けて、腕を頭の上で交差
+  back: kPose({ leftUpperArm: [0, -.3, 1.1], leftLowerArm: [0, -.9, 0], rightUpperArm: [0, .3, -1.1], rightLowerArm: [0, .9, 0], head: [-.1, 0, 0], rightUpperLeg: [-.1, 0, -.05], rightLowerLeg: [.3, 0, 0], rightFoot: [.4, 0, 0] }),
+  open: kPose({ leftUpperArm: [0, -.25, -.4], rightUpperArm: [0, .25, .4], leftLowerArm: [0, -.3, 0], rightLowerArm: [0, .3, 0], chest: [-.05, 0, 0], head: [-.05, 0, 0] }),
+  wide: kPose({ leftUpperLeg: [0, 0, .17], rightUpperLeg: [0, 0, -.17], leftFoot: [0, 0, -.17], rightFoot: [0, 0, .17], _y: [-.03, 0, 0],
+    leftUpperArm: [0, -.3, -.5], leftLowerArm: [0, -.6, 0], rightUpperArm: [0, .3, .5], rightLowerArm: [0, .6, 0] }),
+  together: kPose({ leftUpperLeg: [-.15, 0, 0], rightUpperLeg: [-.15, 0, 0], leftLowerLeg: [.3, 0, 0], rightLowerLeg: [.3, 0, 0], leftFoot: [-.12, 0, 0], rightFoot: [-.12, 0, 0], _y: [-.05, 0, 0],
+    leftUpperArm: [0, -.45, -.8], rightUpperArm: [0, .45, .8], leftLowerArm: [0, -1.0, 0], rightLowerArm: [0, 1.0, 0], chest: [.05, 0, 0] }),
+  // 右脚を横へ伸ばしてつま先を立てる。右手は斜め上、左手は腰
+  lunge: kPose({ rightUpperLeg: [0, 0, -.5], rightLowerLeg: [0, 0, 0], rightFoot: [.6, 0, 0], leftUpperLeg: [-.25, 0, .05], leftLowerLeg: [.55, 0, 0], leftFoot: [-.25, 0, 0], _y: [-.09, 0, 0],
+    hips: [0, 0, -.08], spine: [0, 0, .12], chest: [0, .15, .05], rightUpperArm: [0, .1, -.55], rightLowerArm: [0, .05, 0], rightHand: [0, 0, -.3],
+    leftUpperArm: [0, -.6, -1.0], leftLowerArm: [0, -1.6, 0], head: [0, -.35, -.1] }),
+  // 片脚を膝に添えて回る（腕は頭上で輪）
+  passe: kPose({ leftUpperArm: [0, -.2, 1.15], leftLowerArm: [0, -.6, 0], rightUpperArm: [0, .2, -1.15], rightLowerArm: [0, .6, 0],
+    rightUpperLeg: [-.9, 0, -.35], rightLowerLeg: [1.7, 0, 0], rightFoot: [.5, 0, 0], leftFoot: [.25, 0, 0], _y: [.02, 0, 0], head: [-.1, 0, 0], chest: [-.05, 0, 0] }),
+  // 腰を突き出してジャズハンズ
+  hip: kPose({ hips: [0, 0, .15], spine: [0, 0, -.12], chest: [0, 0, -.06], leftUpperLeg: [0, 0, .05], rightUpperLeg: [-.15, 0, -.05], rightLowerLeg: [.45, 0, 0], rightFoot: [.2, 0, 0], _y: [-.03, 0, 0],
+    leftUpperArm: [0, -.5, -.45], leftLowerArm: [0, -.9, 0], leftHand: [0, 0, .4], rightUpperArm: [0, .5, .45], rightLowerArm: [0, .9, 0], rightHand: [0, 0, -.4], head: [0, 0, .15] }),
+  kick: kPose({ rightUpperLeg: [-1.2, 0, 0], rightLowerLeg: [.1, 0, 0], rightFoot: [.6, 0, 0], leftLowerLeg: [.15, 0, 0], spine: [-.1, 0, 0],
+    leftUpperArm: [0, -.9, -.35], leftLowerArm: [0, -.2, 0], rightUpperArm: [0, -.6, .75], head: [.05, 0, 0] }),
+  // 決定のフィナーレ：両腕を V に上げて片脚を伸ばす
+  finale: kPose({ leftUpperArm: [0, -.1, .75], rightUpperArm: [0, .1, -.75], leftLowerArm: [0, -.1, 0], rightLowerArm: [0, .1, 0], leftHand: [0, 0, .3], rightHand: [0, 0, -.3],
+    leftUpperLeg: [-.05, 0, .08], rightUpperLeg: [0, 0, -.35], rightFoot: [.5, 0, 0], chest: [-.12, 0, 0], head: [-.22, 0, 0], _y: [-.02, 0, 0] }),
+};
+// 左右反転（名前を入れ替え、y・z を反転）
+function kMirror(p) { const o = {}; for (const k in p) { const n = k.startsWith('left') ? 'right' + k.slice(4) : k.startsWith('right') ? 'left' + k.slice(5) : k; o[n] = k === '_y' ? [...p[k]] : [p[k][0], -p[k][1], -p[k][2]]; } return o; }
+for (const n of ['lunge', 'passe', 'hip', 'kick']) KP[n + 'L'] = kMirror(KP[n]);
+const kss = k => k * k * (3 - 2 * k);
+function kBlend(a, b, k) { const o = {}; for (const n in a) { const x = a[n], y = b[n] || x; o[n] = [x[0] + (y[0] - x[0]) * k, x[1] + (y[1] - x[1]) * k, x[2] + (y[2] - x[2]) * k]; } return o; }
+function kApply(P) {
+  for (const n in P) { if (n[0] === '_') continue; const b = kb(n); if (b) b.rotation.set(P[n][0], P[n][1], P[n][2]); }
+  kb('hips').position.y = karenBaseHipsY + (P._y ? P._y[0] : 0);
+}
+
+
+let camWide = 0;
+/* ---------- 指先で音符をあやつって、花火にするパフォーマンス（32拍で一巡）
+   ① くるくる：指を回すと音符が集まって回り、はじくと空で花火になる
+   ② 指揮：床から出た音符が指先を追いかけ、指パッチンで連なってはじける
+   ③ ハート：指で空中にハートを描き、両手で押し上げて大きな花火に
+   腕は「指先を目標の点へ向ける」計算で動かす（目標が音符の位置） ---------- */
+const NOTE_COL = [0xff7a1a, 0xff3a2a, 0xffa030];
+const glowMats = NOTE_COL.map(c => new THREE.MeshStandardMaterial({ color: c, roughness: .35, metalness: .1, emissive: c, emissiveIntensity: 1.4 }));
+// 八分音符（玉が原点。r = 玉の半径）
+function eighthNote(r, mat) {
+  const g = new THREE.Group();
+  const head = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 12), mat); head.scale.set(1.3, .95, 1); head.rotation.z = .35; g.add(head);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(r * .16, r * .16, r * 3.6, 8), mat); stem.position.set(r * 1.12, r * 1.8, 0); g.add(stem);
+  const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(r * 1.12, r * 3.55, 0), new THREE.Vector3(r * 1.9, r * 2.9, 0), new THREE.Vector3(r * 2.2, r * 2.1, 0), new THREE.Vector3(r * 1.9, r * 1.5, 0)]);
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 12, r * .16, 6), mat));
+  return g;
+}
+const NOTES = Array.from({ length: 24 }, (_, i) => { const n = eighthNote(.045, glowMats[i % 3]); n.visible = false; scene.add(n); return n; });
+function showNote(i, p, s = 1, spin = 0) { const n = NOTES[i]; n.visible = s > .01; n.position.copy(p); n.lookAt(camera.position); n.rotateZ(Math.sin(spin) * .35); n.scale.setScalar(Math.max(.001, s)); }
+
+// 飛び散る ♪ ♫ ♥
+const symTex = ch => canvasTex(64, 64, (g, w) => { g.font = 'bold 50px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.fillText(ch, w / 2, 35); });
+const TEX = { note: symTex('♪'), note2: symTex('♫'), heart: symTex('♥') };
+const FXP = Array.from({ length: 90 }, () => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.note, transparent: true, depthWrite: false, toneMapped: false })); s.visible = false; s.userData = { v: new THREE.Vector3(), life: 0, max: 1, g: 2, sz: .1 }; scene.add(s); return s; });
+let fxpI = 0;
+const WARM = [[2.4, .8, .2], [2.4, .3, .25], [2.4, 1.4, .3]];
+function puff(p, n, { tex = 'note', cols = WARM, spd = 1.4, up = 1.6, size = .11, grav = 2.2, life = .9 } = {}) {
+  for (let i = 0; i < n; i++) {
+    const s = FXP[fxpI++ % FXP.length], u = s.userData; s.visible = true; s.position.copy(p);
+    s.material.map = TEX[tex === 'mix' ? pick(['note', 'note2']) : tex]; s.material.color.setRGB(...pick(cols)); s.material.opacity = 1;
+    u.v.set(rand(-1, 1) * spd, rand(-.4, 1) * up, rand(-1, 1) * spd); u.life = 0; u.max = life * rand(.7, 1.2); u.g = grav; u.sz = size * rand(.7, 1.3);
+  }
+}
+
+// 花火の火花（点の集まり。色を暗くして消す）
+const FW = 1800, fwPos = new Float32Array(FW * 3), fwCol = new Float32Array(FW * 3), fwD = Array.from({ length: FW }, () => ({ v: new THREE.Vector3(), c: [0, 0, 0], life: 9, max: 1, g: 1, gl: false }));
+const fwPts = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: .14, map: softTex, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+fwPts.geometry.setAttribute('position', new THREE.BufferAttribute(fwPos, 3)); fwPts.geometry.setAttribute('color', new THREE.BufferAttribute(fwCol, 3));
+fwPts.frustumCulled = false; scene.add(fwPts);
+let fwI = 0;
+const fwLight = new THREE.PointLight(0xffa040, 0, 12, 1.5); scene.add(fwLight);
+const FW_COLS = { warm: [[2.6, .9, .25], [2.6, .35, .2], [2.8, 1.8, .5]], party: [[2.8, .5, 1.4], [2.6, .9, .25], [2.6, .3, .25], [2.8, 2, .7], [1.4, .7, 2.6]] };
+function spark(p, v, c, life, g = 1, gl = false) { const i = fwI++ % FW, d = fwD[i]; fwPos.set([p.x, p.y, p.z], i * 3); d.v.copy(v); d.c = c; d.life = 0; d.max = life; d.g = g; d.gl = gl; }
+const _fv = new THREE.Vector3();
+function fwBurst(p, { n = 240, speed = 2.6, cols = FW_COLS.warm, life = 1.6, glitter = false, shape = null, light = 6 } = {}) {
+  for (let i = 0; i < n; i++) {
+    if (shape) shape(_fv, i / n); else _fv.randomDirection();
+    spark(p, _fv.multiplyScalar(speed * rand(.85, 1.05)), pick(cols), life * rand(.75, 1.1), 1.1, glitter);
+  }
+  fwLight.position.copy(p); fwLight.intensity = Math.max(fwLight.intensity, light); fwLight.color.setRGB(...pick(cols).map(v => Math.min(1, v / 2.6)));
+}
+function updatePerfFx(dt) {
+  for (const s of FXP) if (s.visible) { const u = s.userData; u.life += dt; u.v.y -= u.g * dt; s.position.addScaledVector(u.v, dt); const k = u.life / u.max; s.scale.setScalar(u.sz * (k < .15 ? k / .15 : 1)); s.material.opacity = 1 - k * k; if (k >= 1) s.visible = false; }
+  let any = false;
+  for (let i = 0; i < FW; i++) {
+    const d = fwD[i]; if (d.life >= d.max) { if (fwCol[i * 3]) fwCol.fill(0, i * 3, i * 3 + 3); continue; }
+    any = true; d.life += dt; d.v.y -= d.g * dt; d.v.multiplyScalar(1 - dt * 1.4);
+    fwPos[i * 3] += d.v.x * dt; fwPos[i * 3 + 1] += d.v.y * dt; fwPos[i * 3 + 2] += d.v.z * dt;
+    let k = Math.pow(Math.max(0, 1 - d.life / d.max), 1.4);
+    if (d.gl && d.life / d.max > .45) k *= Math.random() < .5 ? 1.6 : 0;          // 終わりぎわにチカチカ
+    fwCol[i * 3] = d.c[0] * k; fwCol[i * 3 + 1] = d.c[1] * k; fwCol[i * 3 + 2] = d.c[2] * k;
+  }
+  if (any) { fwPts.geometry.attributes.position.needsUpdate = true; fwPts.geometry.attributes.color.needsUpdate = true; }
+  fwLight.intensity *= Math.exp(-dt * 5);
+}
+function kPropsHide() { NOTES.forEach(n => n.visible = false); }
+function kFxClear() { kPropsHide(); FXP.forEach(p => p.visible = false); fwD.forEach(d => d.life = d.max = 9); fwCol.fill(0); fwPts.geometry.attributes.color.needsUpdate = true; fwLight.intensity = 0; }
+
+// 効果音
+const live = () => SND.ac && M.on;
+const SFX = {
+  ting: (m = 84) => { if (!live()) return; DR.bell(SND.ac.currentTime, m); },
+  launch: (len = 1.4) => { if (!live()) return; const t = SND.ac.currentTime, o = tone('sine', 500, t, len, .12, SND.out, .05); o.frequency.exponentialRampToValueAtTime(2200, t + len); hiss(t, len, .08, 'bandpass', 3000, 3); },
+  boom: (big = 1) => { if (!live()) return; const t = SND.ac.currentTime; hiss(t, 1.3 * big, .9, 'lowpass', 380, .7); const o = tone('sine', 90, t, .6, .7 * big); o.frequency.exponentialRampToValueAtTime(38, t + .5);
+    for (let i = 0; i < 26 * big; i++) hiss(t + .35 + Math.random() * 1.1 * big, .025, rand(.08, .22), 'highpass', 4500, .6); },   // パチパチ
+  pop: () => { if (!live()) return; const t = SND.ac.currentTime; hiss(t, .06, .5, 'bandpass', 1600, 1.2); const o = tone('square', 700, t, .05, .06); o.frequency.exponentialRampToValueAtTime(1600, t + .04); },
+  snap: () => { if (!live()) return; const t = SND.ac.currentTime; hiss(t, .03, .9, 'highpass', 2400, .8); tone('triangle', 1900, t, .02, .1); },
+};
+
+// 指の形：idx = 人差し指の曲げ、oth = ほかの指、th = 親指（しのと同じ向きの約束）
+function kHand(side, idx, oth, th) {
+  const sg = side === 'left' ? -1 : 1;
+  for (const f of ['Index', 'Middle', 'Ring', 'Little']) { const c = f === 'Index' ? idx : oth; ['Proximal', 'Intermediate', 'Distal'].forEach((s, i) => { const b = kb(side + f + s); if (b) b.rotation.set(0, 0, sg * c * [1, 1.15, .8][i]); }); }
+  const t = kb(side + 'ThumbProximal'); if (t) t.rotation.set(0, sg * -th * .4, 0);
+}
+// 腕をのばして、手を goal へ向ける（w：0=ポーズのまま 1=完全に向ける）
+const _aq = new THREE.Quaternion();
+function kAim(side, goal, w) {
+  if (w <= .001) return;
+  const up = kb(side + 'UpperArm'), lo = kb(side + 'LowerArm'), hand = kb(side + 'Hand');
+  lo.rotation.y = kLerp(lo.rotation.y, side === 'left' ? -.12 : .12, w); lo.rotation.x = kLerp(lo.rotation.x, 0, w); lo.rotation.z = kLerp(lo.rotation.z, 0, w);
+  hand.rotation.set(kLerp(hand.rotation.x, 0, w), kLerp(hand.rotation.y, 0, w), kLerp(hand.rotation.z, 0, w));
+  karen.scene.updateMatrixWorld(true);
+  _aq.copy(up.quaternion); aimJoint(up, hand, goal);
+  if (w < .999) up.quaternion.slerpQuaternions(_aq, up.quaternion.clone(), w);
+}
+
+// 演技のポーズ
+Object.assign(KP, {
+  point: kPose({ leftUpperArm: [0, -.6, -1.0], leftLowerArm: [0, -1.6, 0], hips: [0, 0, .06], spine: [0, -.08, -.03], head: [-.1, -.15, .05], rightUpperLeg: [-.08, 0, -.04], rightLowerLeg: [.2, 0, 0], rightFoot: [.25, 0, 0] }),
+  conduct: kPose({ leftUpperArm: [0, -.75, -.5], leftLowerArm: [0, -.8, 0], spine: [.04, 0, 0], head: [-.05, 0, 0], leftUpperLeg: [-.05, 0, .06], rightUpperLeg: [0, 0, -.06] }),
+  watch: kPose({ leftUpperArm: [0, -.6, -1.0], leftLowerArm: [0, -1.6, 0], spine: [-.12, 0, 0], chest: [-.06, 0, 0], head: [-.35, -.1, 0] }),
+  push: kPose({ spine: [-.08, 0, 0], head: [-.2, 0, 0], leftUpperLeg: [-.25, 0, .08], leftLowerLeg: [.4, 0, 0], rightUpperLeg: [.2, 0, -.06], rightFoot: [.3, 0, 0] }),
+  tada: kPose({ leftUpperArm: [0, -.2, -.25], leftLowerArm: [0, -.15, 0], hips: [0, 0, -.07], spine: [0, 0, .06], head: [-.1, .1, -.12], leftUpperLeg: [-.05, 0, .05], rightUpperLeg: [0, 0, -.3], rightFoot: [.5, 0, 0], _y: [-.015, 0, 0] }),
+});
+
+const PLOOP = 32, YAW0 = .22, _UP = new THREE.Vector3(0, 1, 0);
+const L = (x, y, z) => new THREE.Vector3(x, y, z).applyAxisAngle(_UP, YAW0);       // カレンから見た位置（右手は -x 側）
+const heartPt = (t, s) => new THREE.Vector3(16 * Math.pow(Math.sin(t), 3) * s, (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * s, 0).applyAxisAngle(_UP, YAW0);
+let perfPrev = -1, perfAct = -1;
+function kPerform(beat, dt) {
+  const b = ((beat % PLOOP) + PLOOP) % PLOOP;
+  const prev = perfPrev > b ? -1 : perfPrev; perfPrev = b;
+  const at = v => prev < v && b >= v;
+  const seg = (a, c) => Math.min(1, Math.max(0, (b - a) / (c - a)));
+  const act = b < 10 ? 0 : b < 20 ? 1 : 2;
+  if (act !== perfAct) {
+    perfAct = act; kPropsHide();
+    kSmile(.5);
+    say(['指先、くるくる……音符さん、集まって♪', 'さあ、カレンの指揮についてきて！', 'とっておき、描いちゃうね。'][act], 1.4);
+  }
+  let pose = KP.open, cam = 0;
+  const aims = [];                                         // [手, 目標, 重み]
+  let hands = { right: [0, 1.3, .9], left: [.3, .3, .3] };   // 人差し指だけ伸ばす
+  if (act === 0) {                                         // ① くるくる → 打ち上げ
+    const T = L(-.45, 1.42, .45), S = L(-.7, 2.9, -1.2), N = 8;
+    const ang = Math.PI * 2 * (b - 1);
+    const pen = T.clone().add(L(Math.cos(ang) * .13, Math.sin(ang) * .13, 0));
+    pose = kBlend(KP.open, KP.point, seg(0, .8));
+    if (b < 5) aims.push(['right', pen, seg(.3, 1)]);
+    else if (b < 6) aims.push(['right', T.clone().add(new THREE.Vector3(0, -.25, 0)), 1]);
+    else if (b < 8.2) aims.push(['right', S, 1]);
+    else { pose = kBlend(KP.point, KP.watch, seg(8.2, 9)); aims.push(['right', S, 1 - seg(8.2, 9)]); }
+    const lift = seg(6, 7.5), up = 1 - Math.pow(1 - lift, 2);
+    const C = T.clone().lerp(S, up);
+    for (let i = 0; i < N; i++) {
+      const born = 1 + i * .5; if (b < born || b >= 7.5) { NOTES[i].visible = false; continue; }
+      if (at(born)) { SFX.ting(76 + [0, 3, 7, 10, 12, 15, 19, 22][i]); puff(pen, 2, { spd: .3, up: .4, grav: .3, size: .07 }); }
+      const r = b < 5 ? .2 + .06 * Math.sin(b * 3 + i) : b < 6 ? kLerp(.2, .07, seg(5, 6)) : .07 * (1 - lift * .5);
+      const a = (b - 1) * Math.PI * 1.6 + i * Math.PI * 2 / N;
+      const p = (b < 6 ? T : C).clone().add(L(Math.cos(a) * r, .12 + Math.sin(a * 2) * .05 + (b >= 5 && b < 6 ? seg(5, 6) * .1 : 0), Math.sin(a) * r));
+      showNote(i, b - born < .2 ? pen.clone().lerp(p, (b - born) / .2) : p, Math.min(1, (b - born) * 5), a);
+    }
+    if (at(6)) { SFX.snap(); SFX.launch(.75); }
+    if (b >= 6 && b < 7.5 && Math.random() < dt * 60) spark(C, new THREE.Vector3(rand(-.3, .3), rand(-1, -.2), rand(-.3, .3)), pick(FW_COLS.warm), .5, .5);
+    if (at(7.5)) { fwBurst(S, { n: 380, speed: 3.2, life: 1.8 }); puff(S, 18, { tex: 'mix', spd: 2, up: 1.2, grav: .5, life: 1.6, size: .16 }); SFX.boom(); flash(.12, .4); kSmile(1); say('たーまやー♪', 1.2); }
+    if (at(8.1)) { for (let i = 0; i < 4; i++) fwBurst(S.clone().add(new THREE.Vector3(rand(-1, 1), rand(-.5, .4), rand(-.3, .3))), { n: 50, speed: .9, cols: [[2.8, 2, .6]], life: 1, glitter: true, light: 2 }); }
+    cam = b >= 6 && b < 9.6 ? 1 : 0;
+  } else if (act === 1) {                                  // ② 指揮：音符が指先を追いかける → 指パッチン
+    const C2 = L(-.05, 1.35, .6), N = 12;
+    const penAt = bb => { const th = Math.PI * Math.max(0, bb - 11) * .9; return C2.clone().add(L(.4 * Math.sin(th), .17 * Math.sin(2 * th), .05 * Math.cos(th))); };
+    const pen = penAt(Math.min(b, 17));
+    pose = kBlend(KP.open, KP.conduct, seg(10, 10.8));
+    if (b >= 11 && b < 17) {                               // 左手も拍に合わせて振る
+      const sw = Math.sin(Math.PI * (b - 11));
+      pose = { ...pose, leftUpperArm: [0, -.75 + sw * .15, -.5 + Math.abs(sw) * .25], leftLowerArm: [0, -.8 - sw * .3, 0], hips: [0, 0, sw * .04] };
+    }
+    if (b < 17) aims.push(['right', pen, seg(10.5, 11.2)]);
+    else { aims.push(['right', L(-.6, 2.2, .3), seg(17, 17.4)]); hands.right = b < 17.5 ? [.2, .6, .9] : [.2, .9, .2]; }   // 指パッチン
+    for (let i = 0; i < N; i++) {
+      const pop = 17.7 + (N - 1 - i) * .11;
+      if (b >= pop) { NOTES[i].visible = false; if (at(pop)) { const q = NOTES[i].position.clone(); fwBurst(q, { n: i === 0 ? 160 : 45, speed: i === 0 ? 1.8 : 1, life: .8, cols: FW_COLS.party, light: i === 0 ? 5 : 1.5 }); puff(q, 2, { tex: 'mix', spd: .6, up: .6, size: .08 }); SFX.pop(); if (i === 0) SFX.boom(.5); } continue; }
+      const a = i / N * Math.PI * 2, ring = L(Math.cos(a) * .9, kLerp(0, 1.1, seg(10, 10.8)), Math.sin(a) * .9 + .1);
+      const snake = penAt(Math.min(b, 17) - .14 * (i + 1));
+      const k = kss(seg(11, 11.8 + i * .06));
+      showNote(i, ring.lerp(snake, k), Math.min(1, (b - 10) * 3), b * 4 + i);
+    }
+    if (b >= 11 && b < 17 && Math.floor(b) !== Math.floor(prev)) SFX.ting(72 + [0, 4, 7, 12, 7, 4][Math.floor(b) % 6]);
+    if (b >= 11 && b < 17 && Math.random() < dt * 20) spark(pen, new THREE.Vector3(rand(-.2, .2), rand(-.4, .1), rand(-.2, .2)), pick(FW_COLS.warm), .4, .3);
+    if (at(17.5)) { SFX.snap(); say('ブラボー♪', 1); kSmile(.9); }
+    if (b > 19) pose = kBlend(KP.conduct, KP.open, seg(19, 19.8));
+  } else {                                                 // ③ 空中にハートを描いて、大花火
+    const H = L(-.6, 1.3, .65), s = .019, N = 16, sky = L(-.5, 2.9, -1.0);
+    const t = Math.PI * 2 * seg(21, 25);
+    const rise = kss(seg(26, 27.5)), off = sky.clone().sub(H).multiplyScalar(rise);
+    pose = kBlend(KP.open, KP.point, seg(20, 20.8));
+    if (b < 25) aims.push(['right', H.clone().add(heartPt(t, s)), seg(20.3, 21)]);
+    else if (b < 27.6) {                                   // 両手で押し上げる
+      pose = kBlend(KP.point, KP.push, seg(25, 25.5)); hands = { right: [0, .2, .3], left: [0, .2, .3] };
+      const g = H.clone().add(off);
+      aims.push(['right', g.clone().add(L(-.15, 0, 0)), seg(25, 25.5)], ['left', g.clone().add(L(.15, 0, 0)), seg(25, 25.5)]);
+    } else {                                               // じゃーん
+      pose = kBlend(KP.push, KP.tada, seg(27.6, 28.3)); hands = { right: [0, .1, .2], left: [0, .2, .3] };
+      aims.push(['right', L(-.9, 3.2, .3), 1 - seg(30.5, 31.8)]);
+      if (b > 30.5) pose = kBlend(KP.tada, KP.open, seg(30.5, 31.8));
+    }
+    for (let i = 0; i < N; i++) {
+      const ti = i / N * Math.PI * 2, born = 21 + i / N * 4;
+      if (b < born || b >= 27.5) { NOTES[i].visible = false; continue; }
+      if (at(born)) { SFX.ting(72 + i * 2); puff(H.clone().add(heartPt(ti, s)), 1, { tex: 'heart', cols: [[2.6, .5, 1.2]], spd: .2, up: .3, grav: -.2, size: .07 }); }
+      const glowK = b >= 25 ? 1 + .25 * Math.sin(b * 12 + i) : 1;
+      showNote(i, H.clone().add(heartPt(ti, s * (1 + rise * .4))).add(off), Math.min(1, (b - born) * 5) * glowK, ti + b * 2);
+    }
+    if (at(26)) SFX.launch(.75);
+    if (b >= 26 && b < 27.5 && Math.random() < dt * 50) spark(H.clone().add(off), new THREE.Vector3(rand(-.4, .4), rand(-1.2, -.3), rand(-.4, .4)), pick(FW_COLS.party), .5, .5);
+    if (at(27.5)) {
+      const P = sky.clone();
+      fwBurst(P, { n: 520, speed: 3.6, cols: FW_COLS.party, life: 1.9, light: 9 });
+      fwBurst(P, { n: 200, speed: 2.2, cols: [[2.8, .5, 1.3], [2.8, .9, 1.6]], life: 1.7, shape: (v, k) => v.copy(heartPt(k * Math.PI * 2, 1 / 17)) });   // ハート形の火花
+      puff(P, 26, { tex: 'heart', cols: [[2.6, .5, 1.2], [2.6, .9, .4]], spd: 2.2, up: 1.4, grav: .5, life: 1.8, size: .17 });
+      SFX.boom(1.5); flash(.2, .5); shake = .4;
+      kSmile(1); say('ハートの花火、あなたに届いた？', 1.8);
+    }
+    if (at(28.4)) for (let i = 0; i < 6; i++) fwBurst(sky.clone().add(new THREE.Vector3(rand(-1.6, 1.6), rand(-.8, .6), rand(-.4, .4))), { n: 60, speed: 1, cols: [[2.8, 2, .6], [2.8, 2.4, 1.6]], life: 1.2, glitter: true, light: 2 });
+    cam = b >= 25.5 && b < 31 ? 1 : 0;
+  }
+  return { pose, aims, hands, cam };
+}
+
+
+/* ---------- 待機（立ち絵のポーズ）：左手は腰、右手は手のひらを上にして差し出す。呼吸・揺れ・ときどきウインク ---------- */
+// 表情：表情つきモデルの細かい表情（口・眉・目）を使う
+function kSmile(x, wink = false) { setFace({ happy_mouth: Math.min(1, x * 1.1), brow_happy: x * .8, happy_eye: x > .95 ? .55 : 0, blink_smile_L: wink ? 1 : 0 }); }
+KP.idle = kPose({
+  leftUpperArm: [0, -.6, -1.0], leftLowerArm: [0, -1.6, 0], leftHand: [0, 0, .25],
+  rightUpperArm: [0, .5, .42], rightLowerArm: [-1.2, .2, 0], rightHand: [0, 0, -.15],
+  hips: [0, -.12, .04], spine: [.02, .08, -.03], chest: [-.04, .05, 0], neck: [0, .03, 0], head: [-.04, .1, .1],
+  leftUpperLeg: [-.06, 0, .07], leftLowerLeg: [.14, 0, 0], leftFoot: [-.05, -.1, 0], rightUpperLeg: [0, 0, -.06], rightFoot: [0, .12, 0],
+});
+const IDLE_B = 12, CYCLE = IDLE_B + PLOOP;
+let idleOn = false, winkOn = false;
+function kIdle(beat, t, c) {
+  const I = KP.idle, br = Math.sin(t * 1.7), sw = Math.sin(t * .8), lk = Math.sin(t * .37);
+  const w = c >= 6 && c < 7.4 ? Math.sin(Math.PI * (c - 6) / 1.4) : 0;          // ウインクと首かしげ
+  if (w > .2 && !winkOn) { winkOn = true; kSmile(.9, true); if (!speech) say(pick(['ふふっ、次はどれを見せようかな♪', 'ねえ、ちゃんと見ててね？', 'カレンのステージ、まだまだ続くよ！']), 1.4); }
+  if (w <= .2 && winkOn) { winkOn = false; kSmile(.8); }
+  const p = {};
+  for (const k in I) p[k] = [...I[k]];
+  p.spine[0] += br * .015; p.spine[1] += sw * .03; p.chest[0] += br * .02;
+  p.hips[1] += sw * .05; p.hips[2] += sw * .025;
+  p.rightUpperArm[1] += Math.sin(t * 1.3) * .05; p.rightUpperArm[2] += Math.sin(t * 1.1) * .04 - w * .2;
+  p.rightHand[2] += Math.sin(t * 2.1) * .08;
+  p.head[0] += lk * .04 - w * .05; p.head[1] += lk * .18; p.head[2] += Math.sin(t * .6) * .05 + w * .15;
+  p._y = [-.01 * Math.pow(Math.abs(Math.cos(Math.PI * beat)), 6), 0, 0];
+  const f = .12 + .08 * Math.sin(t * 2.4);
+  return { pose: p, aims: [], hands: { right: [f, f + .1, .05], left: [.35, .4, .3] }, cam: 0 };
+}
+// 待機 → パフォーマンス → 待機 … をくり返す
+function kShowLoop(beat, dt, t) {
+  const c = ((beat % CYCLE) + CYCLE) % CYCLE;
+  if (c < IDLE_B) {
+    if (!idleOn) { idleOn = true; perfAct = perfPrev = -1; kPropsHide(); kSmile(.8); }
+    return kIdle(beat, t, c);
+  }
+  idleOn = false;
+  return kPerform(c - IDLE_B, dt);
+}
+
+/* ---------- スポットライト ---------- */
+const spotG = new THREE.Group(); spotG.visible = false; scene.add(spotG);
+const coneTex = canvasTex(4, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.15, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,.25)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+coneTex.colorSpace = THREE.NoColorSpace;
+const coneGeo = new THREE.CylinderGeometry(.03, .3, 1, 40, 1, true).translate(0, -.5, 0);
+const SPOTS = [
+  { from: [0.6, 6.6, 3.2], col: [1, .95, .85], main: true },
+  { from: [-3.6, 6.4, -1.2], col: [1, .25, .8] },
+  { from: [3.6, 6.4, -1.2], col: [1, .75, .2] },
+  { from: [0, 6.8, -4.2], col: [.55, .35, 1] },
+].map((s, i) => {
+  const cone = new THREE.Mesh(coneGeo, new THREE.MeshBasicMaterial({ map: coneTex, color: new THREE.Color(...s.col).multiplyScalar(.13), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false }));
+  const pool = new THREE.Mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshBasicMaterial({ map: softTex, color: new THREE.Color(...s.col).multiplyScalar(.9), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  pool.rotation.x = -Math.PI / 2; pool.position.y = .126;
+  const lamp = new THREE.Mesh(new THREE.CylinderGeometry(.16, .22, .35, 16), new THREE.MeshStandardMaterial({ color: 0x15182a, metalness: .8, roughness: .35, emissive: new THREE.Color(...s.col), emissiveIntensity: 0 }));
+  const light = new THREE.SpotLight(new THREE.Color(...s.col), 0, 14, s.main ? .2 : .26, .55, 1);
+  light.position.set(...s.from); lamp.position.set(...s.from);
+  spotG.add(cone, pool, lamp, light, light.target);
+  return { ...s, i, cone, pool, lamp, light, on: 0, want: 0, aim: new THREE.Vector3(0, 0, 0) };
+});
+const _sd = new THREE.Vector3(), _down = new THREE.Vector3(0, -1, 0);
+function updateSpots(t) {
+  for (const s of SPOTS) {
+    s.on += (s.want - s.on) * .2;
+    const A = s.light.position; _sd.copy(s.aim).sub(A); const len = _sd.length(); _sd.normalize();
+    s.cone.position.copy(A); s.cone.quaternion.setFromUnitVectors(_down, _sd); s.cone.scale.set(len * (s.main ? .75 : .95), len, len * (s.main ? .75 : .95));
+    s.cone.material.opacity = s.on; s.cone.visible = s.on > .01;
+    s.pool.position.set(s.aim.x, .126 + s.i * .001, s.aim.z); s.pool.scale.setScalar(s.main ? 1.05 : 1.25); s.pool.material.opacity = s.on * (s.main ? .55 : .4); s.pool.visible = s.on > .01;
+    s.light.target.position.copy(s.aim); s.light.intensity = s.on * (s.main ? 5 : 2.6);
+    s.lamp.lookAt(s.aim); s.lamp.rotateX(Math.PI / 2); s.lamp.material.emissiveIntensity = s.on * 3;
+  }
+}
+
+/* ---------- 音（その場で合成する、ちょっと変なタンゴ） ---------- */
+const SND = { ac: null, out: null, noise: null, on: true };
+function audio() {
+  if (!SND.ac) {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+    const ac = SND.ac = new AC();
+    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; comp.connect(ac.destination);
+    SND.out = ac.createGain(); SND.out.gain.value = SND.on ? .5 : 0; SND.out.connect(comp);
+    const nb = SND.noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  if (SND.ac.state === 'suspended') SND.ac.resume().catch(() => {});
+  return SND.ac;
+}
+const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+function envG(t, a, peak, dec) { const g = SND.ac.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + dec); return g; }
+function tone(type, f, t, dec, peak, dest = SND.out, a = .004) { const ac = SND.ac, o = ac.createOscillator(), g = envG(t, a, peak, dec); o.type = type; o.frequency.setValueAtTime(f, t); o.connect(g); g.connect(dest); o.start(t); o.stop(t + a + dec + .05); return o; }
+function hiss(t, dec, peak, type, freq, q = 1) { const ac = SND.ac, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = envG(t, .002, peak, dec); s.buffer = SND.noise; f.type = type; f.frequency.value = freq; f.Q.value = q; s.connect(f); f.connect(g); g.connect(SND.out); s.start(t, Math.random() * .5); s.stop(t + dec + .05); }
+const DR = {
+  kick: t => { const o = tone('sine', 160, t, .26, .9); o.frequency.exponentialRampToValueAtTime(42, t + .2); },
+  clap: t => { for (const d of [0, .012, .024]) hiss(t + d, .05, .35, 'bandpass', 1500, 2); hiss(t + .03, .14, .25, 'bandpass', 1300, 1.5); },
+  cast: (t, v = 1) => { hiss(t, .03, .45 * v, 'highpass', 2600, .8); tone('square', 3100, t, .02, .05 * v); },
+  hat: (t, open) => hiss(t, open ? .16 : .035, open ? .16 : .2, 'highpass', 8000, .7),
+  bass: (t, m, len) => { const ac = SND.ac, f = ac.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 6; f.frequency.setValueAtTime(1400, t); f.frequency.exponentialRampToValueAtTime(220, t + .18); f.connect(SND.out); tone('sawtooth', mf(m), t, len, .38, f); tone('square', mf(m - 12), t, len * .8, .12, f); },
+  // カズーのような鼻にかかったリード（しゃくり上げとビブラート）
+  lead: (t, m, len, from) => {
+    const ac = SND.ac, f1 = ac.createBiquadFilter(), f2 = ac.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 1050; f1.Q.value = 3; f2.type = 'peaking'; f2.frequency.value = 2400; f2.gain.value = 9; f1.connect(f2); f2.connect(SND.out);
+    const o = tone('sawtooth', mf(from ?? m - 1), t, len, .32, f1, .02); o.frequency.exponentialRampToValueAtTime(mf(m), t + .07);
+    const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 6.2; lg.gain.value = mf(m) * .012; lfo.connect(lg); lg.connect(o.frequency); lfo.start(t + .1); lfo.stop(t + len + .1);
+  },
+  bell: (t, m) => { tone('sine', mf(m), t, .35, .09); tone('sine', mf(m) * 3.01, t, .12, .03); },
+  stab: (t, ms) => { const f = SND.ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 2200; f.connect(SND.out); for (const m of ms) { tone('square', mf(m) * 1.003, t, .1, .045, f); tone('square', mf(m) * .997, t, .1, .045, f); } },
+  whistle: (t, f0, f1, len) => { const o = tone('sine', f0, t, len, .14, SND.out, .03); o.frequency.exponentialRampToValueAtTime(f1, t + len); },
+  crash: t => { hiss(t, 1.4, .3, 'highpass', 5000, .5); hiss(t, .5, .25, 'bandpass', 9000, .8); },
+};
+const BPM = 120, BEAT = 60 / BPM, STEP = BEAT / 4;
+const PROG = [[57, [0, 3, 7]], [57, [0, 3, 7]], [52, [0, 4, 7, 10]], [57, [0, 3, 7]], [50, [0, 3, 7]], [57, [0, 3, 7]], [59, [0, 4, 6, 10]], [52, [0, 4, 7, 10]]];
+const MOT = [
+  [[0, 7, 2], [2, 8, 1], [3, 7, 1], [4, 3, 2], [6, 0, 2], [8, 12, 3], [11, 11, 1], [12, 7, 4]],
+  [[0, 15, 1], [1, 14, 1], [2, 12, 2], [4, 10, 1], [5, 11, 1], [6, 12, 2], [8, 7, 2], [10, 6, 1], [11, 7, 1], [12, 0, 3]],
+];
+const M = { on: false, timer: 0, next: 0, step: 0, t0: 0 };
+function playStep(n, t) {
+  const bar = Math.floor(n / 16), s = n % 16, [root, ch] = PROG[bar % 8], song = bar % 16;
+  if (s === 0 || s === 8 || (s === 6 && bar % 2)) DR.kick(t);
+  if (s === 4 || s === 12) DR.clap(t);
+  if (s % 4 === 2) DR.hat(t, s === 14);
+  if ([0, 3, 4, 6, 8, 11, 12, 14].includes(s)) DR.cast(t, s % 4 ? .7 : 1);
+  if (s === 15 && bar % 4 === 3) { DR.cast(t, .8); DR.cast(t + STEP / 3, .6); DR.cast(t + STEP * 2 / 3, .8); }
+  const B = { 0: 0, 6: 7, 8: 12, 12: ch[1] }; if (s in B) DR.bass(t, root - 24 + B[s], s === 6 ? .12 : .2);
+  if (s === 3 || s === 11) DR.stab(t, ch.map(c => root + c));
+  if (s % 4 === 1) DR.bell(t, root + 24 + ch[(s >> 2) % ch.length]);
+  if (song >= 4) for (const [st, sm, len] of MOT[bar % 2]) if (st === s) DR.lead(t, root + 12 + sm, len * STEP * .95, (bar % 8 === 6 && st === 0) ? root + 5 : undefined);
+  if (bar % 8 === 7 && s === 12) DR.whistle(t, 500, 1800, .45);
+  if (bar % 8 === 3 && s === 14) DR.whistle(t, 1600, 450, .3);
+}
+function schedule() {
+  const ac = SND.ac; if (!ac || !M.on) return;
+  if (ac.currentTime > M.next + .3) { const skip = Math.ceil((ac.currentTime - M.next) / STEP); M.step += skip; M.next += skip * STEP; }  // 裏に回っていた分は飛ばす
+  while (M.next < ac.currentTime + .15) { playStep(M.step, M.next); M.step++; M.next += STEP; }
+}
+function musicStart() { const ac = audio(); if (!ac) return; M.on = true; M.step = 0; M.t0 = M.next = ac.currentTime + .06; clearInterval(M.timer); M.timer = setInterval(schedule, 25); schedule(); }
+function musicStop() { M.on = false; clearInterval(M.timer); }
+const muteBtn = document.getElementById('mute');
+function setMute(off) { SND.on = !off; muteBtn.textContent = SND.on ? '♪ ON' : '♪ OFF'; if (SND.out) SND.out.gain.setTargetAtTime(SND.on ? .5 : 0, SND.ac.currentTime, .05); }
+muteBtn.addEventListener('click', () => setMute(SND.on));
+
+/* ---------- 舞台の切り替え（しの：氷の舞台／カレン：暗転してスポットライト） ---------- */
+const nameTexOf = (text, col) => canvasTex(1024, 256, (g, w, h) => { g.font = '700 220px "Rajdhani", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.strokeStyle = col; g.lineWidth = 3; g.strokeText(text, w / 2, h / 2 + 10); });
+const NAME_TEX = { shino: env.userData.nameMesh.material.map, karen: nameTexOf('KAREN', 'rgba(255,90,216,.6)') };
+const ringTexKaren = canvasTex(512, 512, g => {
+  g.translate(256, 256); g.strokeStyle = '#fff'; g.lineWidth = 6; g.beginPath(); g.arc(0, 0, 240, 0, Math.PI * 2); g.stroke();
+  g.lineWidth = 2; for (const r of [214, 150, 110]) { g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.stroke(); }
+  for (let i = 0; i < 16; i++) { g.save(); g.rotate(i / 16 * Math.PI * 2); g.fillStyle = '#fff'; g.fillRect(-3, -214, 6, i % 2 ? 26 : 50); g.restore(); }
+  g.font = 'bold 18px sans-serif'; g.fillStyle = '#fff'; g.textAlign = 'center'; const txt = 'CADENZA // STEP IN // ON BEAT // ENCORE // ';
+  for (let i = 0; i < txt.length; i++) { g.save(); g.rotate(i / txt.length * Math.PI * 2); g.fillText(txt[i], 0, -222); g.restore(); }
+});
+const ringTexShino = ringMat.map;
+const LIGHT = { k: 0, want: 0 };              // 0：しのの舞台 1：カレンの暗い舞台
+function updateTheme(dt) {
+  LIGHT.k += (LIGHT.want - LIGHT.k) * (1 - Math.exp(-dt * 6));
+  const k = LIGHT.k;
+  hemi.intensity = .5 - .38 * k; key.intensity = 1.2 - .95 * k; rimC.intensity = .8 * (1 - k); rimM.intensity = .45 + .4 * k;
+  scene.environmentIntensity = .35 - .2 * k;
+  snow.visible = k < .5; deco.forEach(d => d.visible = k < .5);
+}
+
+/* ---------- 選んだとき：暗転 → カチッとスポット → 振り向いて踊りだす ---------- */
+let kSm = null, kShow = null, kFin = null, kClock = 0, kLineT = 0;
+function selectKaren(el) {
+  if (skill || kFin) return;
+  if (!karen) { toast('カレンを読み込み中です…'); return; }
+  document.querySelectorAll('.ic').forEach(x => x.classList.remove('sel')); el.classList.add('sel');
+  document.getElementById('prompt').classList.add('hide');
+  setInfo('karen');
+  info.classList.remove('hidden');
+  document.querySelectorAll('.stat .b i').forEach(i => { i.style.width = '0'; requestAnimationFrame(() => setTimeout(() => i.style.width = i.dataset.w + '%', 60)); });
+  document.getElementById('toLobby').classList.remove('show');
+  appearT = -1; pillar.material.opacity = 0; palmK = 0; palmFlake.visible = false;
+  if (vrm) vrm.scene.visible = false;
+  active = 'karen'; document.body.classList.add('karen');
+  charH = karenH; kRoot.visible = true; kRoot.position.set(0, 0, 0); kRoot.rotation.y = Math.PI;
+  spotG.visible = true; SPOTS.forEach(s => { s.want = 0; s.on = 0; s.aim.set(0, 0, 0); });
+  LIGHT.want = 1; LIGHT.k = .85;
+  env.userData.nameMesh.material.map = NAME_TEX.karen; env.userData.nameMesh.material.opacity = 0;
+  ringMat.map = ringTexKaren; ringMat.color.copy(glow(2.2, .5, 1.6)); ringMat.opacity = .25;
+  setShot('normal'); setFace({});
+  kApply(KP.back); kSm = null; idleOn = winkOn = false; kShow = { t: 0, stage: 0 }; kClock = -99; kPropsHide(); perfAct = perfPrev = -1;
+  musicStop(); const ac = audio();
+  if (ac) { const t = ac.currentTime + .02; for (let i = 0; i < 22; i++) DR.cast(t + i * .05, .25 + i / 22 * .7); }   // ドラムロール
+  selected = true;
+}
+function leaveKaren() {
+  kFxClear(); camWide = 0; focus.y = 0; kHand('right', 0, 0, 0); kHand('left', 0, 0, 0);
+  musicStop(); kShow = kFin = null; active = null;
+  document.body.classList.remove('karen', 'skill');
+  kRoot.visible = false; spotG.visible = false; LIGHT.want = 0;
+  env.userData.nameMesh.material.map = NAME_TEX.shino;
+  ringMat.map = ringTexShino; ringMat.color.copy(glow(.4, 1.6, 2.2)); ringMat.opacity = .55;
+  charH = shinoH; focus.set(0, 0, 0); setFace({});
+}
+function karenDecide() {
+  if (kFin || kShow) return;
+  kFin = { t: 0, stage: 0 }; kPropsHide(); perfAct = perfPrev = -1;
+  document.body.classList.add('skill');
+  kSmile(.6); say('フィナーレ、いっくよー♪', 1);
+  const ac = audio();
+  if (ac) { const t = ac.currentTime + .02; for (let i = 0; i < 30; i++) DR.cast(t + i * .05, .3 + i / 30 * .7); DR.whistle(t, 400, 2200, 1.5); }
+}
+// 紙吹雪
+const CF = 260, cfPos = new Float32Array(CF * 3), cfCol = new Float32Array(CF * 3), cfV = [];
+const confetti = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ size: .05, vertexColors: true, transparent: true, depthWrite: false, toneMapped: false }));
+confetti.geometry.setAttribute('position', new THREE.BufferAttribute(cfPos, 3)); confetti.geometry.setAttribute('color', new THREE.BufferAttribute(cfCol, 3));
+for (let i = 0; i < CF; i++) { const c = pick([[2, .4, 1.5], [2, 1.6, .4], [.7, .5, 2], [1.8, 1.8, 1.8]]); cfCol.set(c, i * 3); cfV.push(new THREE.Vector3()); }
+confetti.visible = false; scene.add(confetti);
+function popConfetti() {
+  confetti.visible = true; confetti.material.opacity = 1;
+  for (let i = 0; i < CF; i++) { cfPos.set([kRoot.position.x + rand(-.3, .3), rand(1.2, 2.2), rand(-.3, .3)], i * 3); cfV[i].set(rand(-3, 3), rand(2.5, 6), rand(-2.5, 2.5)); }
+}
+
+function karenTick(dt, rdt, t) {
+
+  // 踊りの時計：音があれば音に合わせ、無ければ経過時間で進む
+  if (kClock > -50) {
+    kClock += dt;
+    if (M.on && SND.ac && SND.ac.state === 'running') { const at = SND.ac.currentTime - M.t0; if (Math.abs(at - kClock) > .25) kClock = at; else kClock += (at - kClock) * .1; }
+  }
+  const beat = kClock / BEAT;
+  let P, x = 0, yaw = 0, z = 0, y = 0, perf = false, perfD = null;
+  const main = SPOTS[0], cols = SPOTS.slice(1);
+  if (kShow) {                                              // 登場
+    const s = kShow; s.t += rdt;
+    P = KP.back; yaw = Math.PI;
+    if (s.stage === 0 && s.t > 1.15) {                      // カチッ：上からスポット
+      s.stage = 1; main.want = 1; main.on = 1; flash(.25, .25);
+      const ac = SND.ac; if (ac) { DR.cast(ac.currentTime, 1); tone('square', 90, ac.currentTime, .08, .3); DR.crash(ac.currentTime + .02); }
+    }
+    if (s.stage >= 1) { const k = kss(Math.min(1, (s.t - 1.45) / .45)); yaw = Math.PI * (1 - Math.max(0, k)); P = kBlend(KP.back, KP.open, Math.max(0, k)); }
+    if (s.stage === 1 && s.t > 1.5) { s.stage = 2; kSmile(.7); say('お待たせ♪ カレン・カデンツァ、華麗にステップ・イン！', 2.2); }
+    if (s.stage === 2 && s.t > 2.0) { kShow = null; musicStart(); kClock = 0; cols.forEach(c => c.want = 1); env.userData.nameMesh.material.opacity = .9; kLineT = 12; }
+  } else if (kFin) {                                        // 決定：三回転して決めポーズ
+    const f = kFin; f.t += rdt;
+    const k = Math.min(1, f.t / 1.5);
+    x = kRoot.position.x * (1 - k * .2);
+    if (f.t < 1.5) { P = kBlend(KP.open, KP.passe, Math.min(1, f.t / .25)); yaw = kss(k) * Math.PI * 6; }
+    else P = kBlend(KP.passe, KP.finale, Math.min(1, (f.t - 1.5) / .15));
+    SPOTS.forEach(s => s.want = 1);
+    if (f.stage === 0 && f.t > 1.5) {
+      f.stage = 1; popConfetti(); fwBurst(L(-.5, 2.9, -1.0), { n: 400, speed: 3.4, cols: FW_COLS.party, life: 1.8, light: 8 }); SFX.boom(1.2); flash(.6, .5); shake = .6; burstShock(4, .7);
+      kSmile(1, true); say('フィナーレは、あなたと一緒に。よろしくね♪', 2.4);
+      const ac = SND.ac; if (ac) { const t0 = ac.currentTime; DR.crash(t0); DR.kick(t0); DR.stab(t0, [57, 61, 64, 69]); DR.stab(t0 + .25, [57, 61, 64, 69, 73]); DR.lead(t0 + .25, 81, .9, 76); }
+    }
+    if (f.t > 3.6) {
+      kFin = null; document.body.classList.remove('skill');
+      document.getElementById('toLobby').classList.add('show');
+      toast('カレン・カデンツァ をパートナーに決定しました');
+      try { localStorage.setItem('partner', 'karen'); } catch (e) {}
+    }
+  } else if (kClock > -50) {                                // 音符で遊ぶ
+    perfD = kShowLoop(beat, rdt, t); P = perfD.pose; yaw = YAW0; perf = true;
+  } else P = KP.back;
+  // 拍ごとに小さく沈む・頭でリズム
+  const bounce = kShow || kFin || perf ? 0 : -.025 * Math.pow(Math.abs(Math.cos(Math.PI * beat)), 6);
+  const PP = { ...P, _y: [(P._y ? P._y[0] : 0) + bounce, 0, 0], head: [P.head[0] + (kShow || kFin ? 0 : Math.sin(Math.PI * 2 * beat) * .04), P.head[1], P.head[2]] };
+  if (perf) { kRoot.position.set(x, y, z); kRoot.rotation.y = yaw; }
+  else { kRoot.position.x += (x - kRoot.position.x) * (kShow ? 1 : 1 - Math.exp(-rdt * 14)); kRoot.position.y *= .8; kRoot.position.z *= .8; kRoot.rotation.y = yaw + (kShow ? 0 : .22); }
+  kSm = kSm ? kBlend(kSm, PP, 1 - Math.exp(-rdt * 14)) : PP;     // ポーズの切り替わりをなめらかに
+  kApply(kSm);
+  // 指の形と、目標へ向ける腕
+  const hd = perfD ? perfD.hands : { right: [.15, .2, .15], left: [.15, .2, .15] };
+  kHand('right', ...hd.right); kHand('left', ...hd.left);
+  if (perfD) for (const [side, goal, w] of perfD.aims) kAim(side, goal, w);
+  // 花火のときはカメラを少し上へ・広く
+  const camT = perfD ? perfD.cam : kFin ? .7 : 0;
+  camWide += (camT * .4 - camWide) * (1 - Math.exp(-rdt * 2.5)); focus.y += (camT * .75 - focus.y) * (1 - Math.exp(-rdt * 2.5));
+  focus.x += (kRoot.position.x * (camera.aspect < 1 ? .85 : .55) - focus.x) * (1 - Math.exp(-rdt * 3));
+  focus.z += (kRoot.position.z * .5 - focus.z) * (1 - Math.exp(-rdt * 3));
+  // スポット：メインはカレンを追う。色つきは拍に合わせて舞台を掃き、4拍目でカレンに集まる
+  main.aim.set(kRoot.position.x, 0, 0);
+  cols.forEach((c, i) => {
+    const ph = beat * Math.PI / 2 + i * 2.1, gather = kFin || Math.floor(beat) % 4 === 3 ? 1 : 0;
+    c.g = (c.g ?? 0) + (gather - (c.g ?? 0)) * (1 - Math.exp(-rdt * 8));
+    c.aim.set(kLerp(Math.sin(ph) * 2.6, kRoot.position.x, c.g), 0, kLerp(Math.cos(ph * .7) * 1.6 - .4, 0, c.g));
+  });
+  updateSpots(t);
+  updatePerfFx(rdt);
+  // 紙吹雪
+  if (confetti.visible) {
+    for (let i = 0; i < CF; i++) { const v = cfV[i]; v.y -= 4 * rdt; v.multiplyScalar(1 - rdt * 1.8); cfPos[i * 3] += v.x * rdt + Math.sin(t * 6 + i) * .004; cfPos[i * 3 + 1] = Math.max(.13, cfPos[i * 3 + 1] + v.y * rdt); cfPos[i * 3 + 2] += v.z * rdt; }
+    confetti.geometry.attributes.position.needsUpdate = true;
+    confetti.material.opacity -= rdt * .18; if (confetti.material.opacity <= 0) confetti.visible = false;
+  }
+  karen.humanoid.getRawBoneNode('head').getWorldPosition(headPos);
+  (karen.humanoid.getRawBoneNode('upperChest') || karen.humanoid.getRawBoneNode('chest')).getWorldPosition(chestPos);
+  updateCamera(t, rdt);
+  updateFace(rdt, karen);
+  karen.update(rdt);
+}
+
+/* ---------- 右パネルの中身 ---------- */
+const CHARS = {
+  shino: { rar: 'UR', stars: 5, el: '❄', role: '氷属性 ／ アタッカー', name: '雪代 <span>しの</span>', ep: '凍晶のオペレーター ── SHINO YUKISHIRO',
+    stats: [['HP', 72, '8,640'], ['ATK', 94, '3,912'], ['DEF', 58, '1,705'], ['SPD', 81, '142']],
+    skill: '氷華・零式', skillEn: 'HYOKA ZERO', skillTxt: '足元から氷晶の華を咲かせ、周囲の敵すべてに氷属性の大ダメージ。3ターンのあいだ敵の行動速度を下げる。' },
+  karen: { rar: 'UR', stars: 5, el: '♪', role: '音属性 ／ ダンサー', name: 'カレン・<span>カデンツァ</span>', ep: 'ステップで舞う踊り子 ── KAREN CADENZA',
+    stats: [['HP', 64, '7,920'], ['ATK', 78, '3,240'], ['DEF', 50, '1,480'], ['SPD', 98, '171']],
+    skill: '終幕舞踏・カデンツァ', skillEn: 'FINAL CADENZA', skillTxt: '華麗なステップで舞台を支配し、スポットライトの当たった敵すべてに音属性の連続ダメージ。2ターンのあいだ味方全体の行動速度を上げる。' },
+};
+function setInfo(id) {
+  const c = CHARS[id];
+  info.querySelector('.card.main').innerHTML = `<div class="rar"><b>${c.rar}</b><span>${'★'.repeat(c.stars)}</span><div class="el"><i>${c.el}</i>${c.role}</div></div><h1>${c.name}</h1><div class="ep">${c.ep}</div>`
+    + c.stats.map(([l, w, v]) => `<div class="stat"><span class="l">${l}</span><span class="b"><i data-w="${w}"></i></span><span class="v">${v}</span></div>`).join('');
+  info.querySelector('.card.skill').innerHTML = `<div class="lab"><b>SKILL</b>必殺技</div><h3>${c.skill}<small>${c.skillEn}</small></h3><p>${c.skillTxt}</p>`;
+}
+
 /* =====================================================================
    その他UI
    ===================================================================== */
 const toastEl = document.getElementById('toast'); let toastT;
 function toast(m) { toastEl.textContent = m; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1700); }
-document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261126193602');
-document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261126193602');
-window.__sel = { pose: n => setPose(n, 10), shot: setShot, select: () => selectShino(document.querySelector('.ic.ur')), step: (sec) => { for (let i = 0; i < sec * 60; i++) tick(1 / 60); }, state: () => ({ skill, conv: conv.visible, glow: handGlow.scale.x, shot }), POSES, bone: n => bone(n), THREE, ear: EAR_OFFSET, hint: ELBOW_HINT, dbg: () => { const f = n => bone(n).getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)); const t = EAR_OFFSET.clone(); bone('head').localToWorld(t); return { head: f('head'), hand: f('leftHand'), elbow: f('leftLowerArm'), sh: f('leftUpperArm'), target: t.toArray().map(v => +v.toFixed(3)), rawHand: vrm.humanoid.getRawBoneNode('leftHand').getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)) }; }, show: () => { vrm.scene.visible = true; document.getElementById('loading').classList.add('hide'); setShot('normal'); } };
+document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261126203352');
+document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261126203352');
+window.__sel = { karen: () => ({ karen, kRoot, kShow, kFin, kClock, SPOTS, M, select: () => selectKaren(ROSTER.find(r => r.id === 'karen').card), decide: karenDecide, KP, kApply, clock: v => { musicStop(); kClock = v; }, icon: karenIcon }), pose: n => setPose(n, 10), shot: setShot, select: () => selectShino(document.querySelector('.ic.ur')), step: (sec) => { for (let i = 0; i < sec * 60; i++) tick(1 / 60); }, state: () => ({ skill, conv: conv.visible, glow: handGlow.scale.x, shot }), POSES, bone: n => bone(n), THREE, ear: EAR_OFFSET, hint: ELBOW_HINT, dbg: () => { const f = n => bone(n).getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)); const t = EAR_OFFSET.clone(); bone('head').localToWorld(t); return { head: f('head'), hand: f('leftHand'), elbow: f('leftLowerArm'), sh: f('leftUpperArm'), target: t.toArray().map(v => +v.toFixed(3)), rawHand: vrm.humanoid.getRawBoneNode('leftHand').getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)) }; }, show: () => { vrm.scene.visible = true; document.getElementById('loading').classList.add('hide'); setShot('normal'); } };
 
 /* =====================================================================
    ループ
@@ -1076,11 +1709,13 @@ function tick(rdt) {
       updatePalmFlake(dt, simT, poseName === 'kime' && !skill);
       updateFace(dt);
       vrm.update(dt);
-    } else {
+    } else if (active === 'karen' && karen) karenTick(dt, rdt, simT);
+    else {
       if (shot !== 'normal') setShot('normal');
       updateCamera(simT, rdt);
     }
   }
+  updateTheme(rdt);
   // 衝撃波
   if (shock.visible) { const u = shock.userData; u.t += dt; const k = u.t / u.life; shock.scale.setScalar(.2 + ease(k) * u.size); shock.material.opacity = 1 - k; if (k >= 1) shock.visible = false; }
   if (shock2.visible) { const u = shock2.userData; u.t += dt; const k = u.t / .6; shock2.position.copy(handPos); shock2.lookAt(camera.position); shock2.scale.setScalar(.1 + ease(k) * 2.2); shock2.material.opacity = 1 - k; if (k >= 1) shock2.visible = false; }
