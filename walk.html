@@ -187,6 +187,24 @@
   .pname.guest::after{content:none}
   .pname.guest .nm::after{content:" ゲスト";font-size:10px;color:#ffd27a}
   .dmg.me{color:#ff7a90;font-size:24px}
+  html.dungeon #net,html.dungeon #title #tSp:empty{display:none}
+  #bossHud{position:fixed;left:50%;top:58px;transform:translateX(-50%);width:min(520px,72vw);z-index:12;text-align:center;opacity:0;pointer-events:none;transition:opacity .5s}
+  #bossHud.on{opacity:1}
+  #bossHud small{display:block;font:700 10px var(--en);letter-spacing:.4em;color:#ff9aa8}
+  #bossHud b{display:block;font:800 15px var(--min);letter-spacing:.12em;color:#fff;text-shadow:0 0 10px rgba(255,90,110,.8);margin:2px 0 4px}
+  #bossHud .bb{height:10px;background:rgba(6,10,26,.85);box-shadow:inset 0 0 0 1px rgba(255,180,190,.6);border-radius:2px;overflow:hidden}
+  #bossHud .bb i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff4a6a,#ffb0a0);transition:width .2s}
+  #bossHud span{font:700 11px var(--en);color:#ffd6dc}
+  #dres{position:fixed;inset:0;z-index:30;display:none;place-items:center;background:rgba(4,8,22,.6)}
+  #dres.on{display:grid}
+  #dres .box{min-width:min(360px,88vw);padding:22px 26px;background:rgba(10,18,44,.94);box-shadow:inset 0 0 0 1px rgba(160,230,255,.5),0 0 40px rgba(80,180,255,.35);text-align:center}
+  #dres small{display:block;font:700 12px var(--en);letter-spacing:.5em;color:var(--cy)}
+  #dres b{display:block;font:800 24px var(--min);letter-spacing:.1em;color:#fff;margin:6px 0 14px}
+  #dres dl{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;margin:0 0 16px;text-align:left;font-size:14px}
+  #dres dt{color:#9fb8e0} #dres dd{margin:0;font:700 16px var(--en);color:#fff}
+  #dres .btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  #dres .btns a,#dres .btns button{font:700 13px var(--jp);padding:9px 14px;color:#03101c;background:linear-gradient(120deg,#8fe9ff,var(--cy));border:0;text-decoration:none;cursor:pointer}
+  #dres .btns button{background:rgba(160,230,255,.2);color:#e8f6ff}
   .dmg.kc{color:#ffb070;text-shadow:0 0 6px rgba(0,0,0,.9),0 0 10px rgba(255,120,60,.7)} .dmg.ktag{font:900 13px var(--jp);color:#ffd9a0;letter-spacing:.1em}
   .sk .q{position:absolute;left:-3px;top:-3px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#ff9a4a;color:#2a0a00;font:700 11px/18px var(--en);text-align:center;box-shadow:0 0 8px rgba(255,150,80,.8)}
   html.karen .sk i{text-shadow:0 0 10px rgba(255,150,90,.95)}
@@ -262,6 +280,8 @@
 <div id="wallet"><div class="w panel" id="wCoin"><span class="ic">円</span><span id="coinV">0</span></div><div class="w panel pt" id="wPt"><span class="ic">Y</span><span id="ptV">0</span></div></div>
 <div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
+<div id="bossHud"><small>BOSS</small><b>氷殻の守護者グラキエス</b><div class="bb"><i id="bossBar"></i></div><span id="bossNum"></span></div>
+<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261126233022">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261126233022">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
   <header><div class="logo" id="shopLogo">夜</div><div class="nm"><b id="shopName">ヨルマート</b><small id="shopEn">YORU MART</small></div><button class="close tap" id="shopClose">✕ 店を出る</button></header>
@@ -300,6 +320,9 @@ import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 /* ---------- パートナー：キャラ選択画面で選んだキャラ（shino / karen）を使う ---------- */
 const PARTNER = (() => { try { return localStorage.getItem('partner') === 'karen' ? 'karen' : 'shino'; } catch (e) { return 'shino'; } })();
 document.documentElement.classList.toggle('karen', PARTNER === 'karen');
+// ダンジョン：walk.html?area=dungeon で開くと、街の代わりに地下迷宮になる
+const DUNGEON = new URLSearchParams(location.search).get('area') === 'dungeon';
+document.documentElement.classList.toggle('dungeon', DUNGEON);
 /*MODEL_FETCH*/
 // モデルを ArrayBuffer で読む（公開版では、この部分が Base64 テキストの分割読み込みに置き換わる）
 const MODEL_URL = { shino: './shino_lite.vrm', karen: './karen.vrm' };
@@ -475,6 +498,7 @@ const boxes = [];       // 回転した四角の当たり判定 {x, z, hw, hd, r
 const colliders = [];   // {x, z, r} の円で当たり判定
 const twinkles = [];
 
+const CITY_FROM = scene.children.length;     // ここから訓練場までが街（ダンジョンでは隠す）
 // 空
 const skyMat = new THREE.ShaderMaterial({
   side: THREE.BackSide, depthWrite: false, fog: false, uniforms: { time: { value: 0 } },
@@ -1151,7 +1175,8 @@ loadPartner(loader, gltf => {
   vrm.springBoneManager?.setInitState?.();
   syncRemotes();
   $('pbar').style.width = '100%'; $('lmsg').textContent = 'READY';
-  setTimeout(() => { $('loading').classList.add('hide'); $('title').classList.add('on'); setTimeout(() => $('title').classList.remove('on'), 3200); setTimeout(() => say('ここがノエルベルク……。雪、きれいやね。ちょっと歩こっか。'), 3800); setTimeout(() => { if (!speech && talking <= 0 && !shopOpen) say('うしろに訓練場があるけん、技の練習も、ほかの人との手合わせもできるよ。'); }, 9500); }, 400);
+  if (DUNGEON) setTimeout(() => { $('loading').classList.add('hide'); dIntro(); }, 400);
+  else setTimeout(() => { $('loading').classList.add('hide'); $('title').classList.add('on'); setTimeout(() => $('title').classList.remove('on'), 3200); setTimeout(() => say('ここがノエルベルク……。雪、きれいやね。ちょっと歩こっか。'), 3800); setTimeout(() => { if (!speech && talking <= 0 && !shopOpen) say('うしろに訓練場があるけん、技の練習も、ほかの人との手合わせもできるよ。'); }, 9500); }, 400);
 }, e => { if (e.total) { const p = Math.round(e.loaded / e.total * 100); $('pbar').style.width = p + '%'; $('lmsg').textContent = `LOADING … ${p}%`; } },
 err => { console.error(err); $('lmsg').textContent = 'LOAD ERROR: ' + err.message; });
 
@@ -1332,7 +1357,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261126230324');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261126233022');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -1340,6 +1365,7 @@ $('prompt').addEventListener('click', interact);
    ===================================================================== */
 const WALK = 1.7, RUN = 4.0;
 function inside(x, z, skip) {
+  if (DUNGEON) return dInside(x, z, skip);
   if (z > TRAIN.z1 || z < Z_END) return false;
   if (z > Z_START) { if (Math.abs(x) > (z < TRAIN.z0 ? STREET_HALF - .35 : TRAIN.x)) return false; }   // 訓練場
   else { const inPlaza = Math.hypot(x - PLAZA.x, z - PLAZA.z) < PLAZA.r - .4; if (!inPlaza && Math.abs(x) > STREET_HALF - .35) return false; }
@@ -1440,7 +1466,7 @@ function updateCamera(dt) {
   let dist = camDist;
   const dir = new THREE.Vector3(Math.sin(camYaw) * Math.cos(camPitch), Math.sin(camPitch), Math.cos(camYaw) * Math.cos(camPitch));
   // 建物の中に入りそうなら距離を縮める
-  for (let d = dist; d > 1.2; d -= .2) { const p = camTarget.clone().addScaledVector(dir, d); if (inside(p.x, p.z) || p.y > 7.5) { dist = d; break; } dist = d - .2; }
+  for (let d = dist; d > 1.2; d -= .2) { const p = camTarget.clone().addScaledVector(dir, d); if ((inside(p.x, p.z) && !(DUNGEON && dGateBetween(camTarget.z, p.z, p.x))) || p.y > 7.5) { dist = d; break; } dist = d - .2; }
   const want = camTarget.clone().addScaledVector(dir, Math.max(1.2, dist));
   camPos.copy(camInit ? camPos.lerp(want, 1 - Math.exp(-dt * 12)) : want); camInit = true;
   camera.position.copy(camPos); camera.lookAt(camTarget);
@@ -1455,6 +1481,7 @@ function updateCamera(dt) {
    ===================================================================== */
 const mapc = $('mapc'), mg = mapc.getContext('2d');
 function drawMap() {
+  if (DUNGEON) return drawDungeonMap();
   const W = mapc.width, S = 6.5;    // 1m = 6.5px
   mg.clearRect(0, 0, W, W);
   mg.save(); mg.translate(W / 2, W / 2); mg.rotate(camYaw); mg.translate(-player.pos.x * S, -player.pos.z * S);
@@ -1556,6 +1583,7 @@ function showTitle(sm, b, sp) {
   $('title').classList.add('on'); clearTimeout(titleT); titleT = setTimeout(() => $('title').classList.remove('on'), 3200);
 }
 function updateArea() {
+  if (DUNGEON) return;
   const inP = Math.hypot(player.pos.x - PLAZA.x, player.pos.z - PLAZA.z) < PLAZA.r;
   if (inP === inPlazaNow) return;
   inPlazaNow = inP; $('areaName').textContent = inP ? 'ノエルベルク中央広場' : 'ノエルベルク';
@@ -1606,6 +1634,7 @@ const peerName = p => (typeof p.name === 'string' && p.name.trim()) ? p.name.tri
 /* ---- ほかのプレイヤーのしの ---- */
 function getVrmBuf(ch) { return getModelBuf(ch === 'karen' ? 'karen' : 'shino'); }
 function syncRemotes() {
+  if (DUNGEON) return;            // ダンジョンはひとりで
   if (!vrm) return;            // 自分のモデルを読み終えてから
   const seen = new Set();
   for (const p of NET.peers) {
@@ -1690,7 +1719,7 @@ function placeTag(el, pos, y) {
 function netTick(dt, t) {
   // 自分の状態を送る（変わった時だけ・1秒に10回まで）
   netSendT -= dt;
-  if (IN_FRAME && NET.status.available && netSendT <= 0) {
+  if (IN_FRAME && NET.status.available && netSendT <= 0 && !DUNGEON) {
     netSendT = .1;
     const r2 = v => Math.round(v * 100) / 100;
     const patch = { area: 'noelberg', ch: PARTNER, st: [r2(player.pos.x), r2(player.pos.z), r2(Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw))), r2(player.speed)], say: mySay.n ? mySay : null, act: myAct.n ? myAct : null, pv: [Math.round(PV.hp), PV.koN, (PV.freezeT > 0 ? 1 : 0) | (PV.invT > 0 ? 2 : 0)] };
@@ -1846,46 +1875,54 @@ function makeDummy(x0, z0, range, speed) {
   colliders.push(d.col); drawHp(d); dummies.push(d); return d;
 }
 makeDummy(-2.6, 14.5, 2.2, .9); makeDummy(2.6, 14.5, 2.2, 1.1); makeDummy(0, 18.5, 3.2, .7);
+const CITY_TO = scene.children.length;
 
 /* ---------- 敵：石骸ゴーレム（訓練場の奥。近づくと追ってきて、殴る・叩きつける） ----------
    当たり判定は訓練人形と同じ仕組み（dummies に入る）なので、すべての技が当たる。
    敵は各プレイヤーの画面ごとに一体ずつ（ほかの人とは共有しない）。 */
 const GOLEM_HOME = { x: 0, z: TRAIN.z1 - 2.2 };
 const _gq = new THREE.Quaternion(), _ge = new THREE.Euler();
-function makeGolem() {
-  const g = new THREE.Group(); g.position.set(GOLEM_HOME.x, 0, GOLEM_HOME.z); scene.add(g);
+let golemSrcP = null;             // モデルは一度だけ読み、敵ごとに複製する
+function golemSrc() { return golemSrcP ||= new Promise((res, rej) => new GLTFLoader().load('./golem.glb', g => res(g.scene), undefined, rej)); }
+// o: home・scale・hp・name・pow（攻撃の強さ）・spd・aggro（気づく距離）・bounds（動ける範囲）・respawn・quiet（倒してもしゃべらない）・boss・tint・emi・rise（地面からせり上がって登場）
+function makeGolem(o = {}) {
+  const home = o.home || GOLEM_HOME, sc = o.scale || 1.9, k = sc / 1.9;
+  const g = new THREE.Group(); g.position.set(home.x, 0, home.z); scene.add(g);
   const body = new THREE.Group(); g.add(body);
-  const block = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.3, 1.3), iceMat); block.position.y = 1.15; block.visible = false; g.add(block);
-  const frost = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: 0x6ad8ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); frost.position.y = 1.2; frost.scale.setScalar(3); g.add(frost);
+  const block = new THREE.Mesh(new THREE.BoxGeometry(1.8 * k, 2.3 * k, 1.3 * k), iceMat); block.position.y = 1.15 * k; block.visible = false; g.add(block);
+  const frost = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: 0x6ad8ff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); frost.position.y = 1.2 * k; frost.scale.setScalar(3 * k); g.add(frost);
   const tex = hpTex();
-  const bar = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })); bar.position.y = 2.45; bar.scale.set(1.5, .22, 1); bar.renderOrder = 5; g.add(bar);
+  const bar = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })); bar.position.y = 2.45 * k + .05; bar.scale.set(1.5 * Math.min(k, 1.3), .22, 1); bar.renderOrder = 5; g.add(bar);
   // 攻撃の予告（地面の赤い円）
   const warnM = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, .25, .2), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
   const warn = new THREE.Group(); warn.add(new THREE.Mesh(new THREE.CircleGeometry(1, 40), warnM)); warn.add(new THREE.Mesh(new THREE.RingGeometry(.94, 1, 48), warnM));
   warn.rotation.x = -Math.PI / 2; warn.visible = false; scene.add(warn);
-  const d = { golem: true, enemy: true, name: '石骸ゴーレム', g, body, mats: [], block, frost, bar, hpTex: tex, warn, warnM,
-    hp: 5000, max: 5000, slowT: 0, freezeT: 0, hitT: 0, deadT: 0, col: { x: g.position.x, z: g.position.z, r: .62 },
-    yaw: Math.PI, state: 'idle', st: 0, atkCD: 1.2, walkW: 0, ph: 0, bones: {}, ready: false, seen: false, hitDone: false };
+  const d = { golem: true, enemy: true, name: o.name || '石骸ゴーレム', k, g, body, mats: [], block, frost, bar, hpTex: tex, warn, warnM,
+    hp: o.hp || 5000, max: o.hp || 5000, slowT: 0, freezeT: 0, hitT: 0, deadT: 0, col: { x: g.position.x, z: g.position.z, r: .62 * k },
+    yaw: o.homeYaw ?? Math.PI, homeYaw: o.homeYaw ?? Math.PI, state: o.rise ? 'rise' : 'idle', st: 0, atkCD: 1.2, walkW: 0, ph: 0, bones: {}, ready: false, seen: !!o.quiet, hitDone: false,
+    home, bounds: o.bounds || { x0: -TRAIN.x + .8, x1: TRAIN.x - .8, z0: TRAIN.z0 + 1.2, z1: TRAIN.z1 - .8 }, aggro: o.aggro || 10, pow: o.pow || 1, spd: o.spd || 1,
+    respawn: o.respawn !== false, quiet: !!o.quiet, boss: !!o.boss, tint: o.tint || [1, 1, 1], emi: o.emi || [.22, .24, .3], spCD: 4 };
+  if (o.rise) { body.position.y = -2.4 * k; groundRing(g.position, 2.6 * k, 1, [.8, 1.6, 2.4]); }
   g.rotation.y = d.yaw;
   colliders.push(d.col); drawHp(d); dummies.push(d);
-  new GLTFLoader().load('./golem.glb', gltf => {
-    const m = gltf.scene;
+  golemSrc().then(src => {
+    const m = SkeletonUtils.clone(src);
     m.updateMatrixWorld(true);
     const inv = m.quaternion.clone().invert();
-    m.traverse(o => {
-      if (o.isBone) { const w = o.getWorldQuaternion(new THREE.Quaternion()).premultiply(inv); d.bones[o.name] = { b: o, rest: o.quaternion.clone(), w, wi: w.clone().invert() }; }
-      if (o.isMesh) {
-        o.castShadow = true; o.frustumCulled = false;
-        const mt = o.material; mt.roughness = .85; mt.metalness = 0;
-        mt.emissiveMap = mt.map; mt.emissive = new THREE.Color(.22, .24, .3);   // 夜でも姿がわかるように、少しだけ自分で光る
+    m.traverse(o2 => {
+      if (o2.isBone) { const w = o2.getWorldQuaternion(new THREE.Quaternion()).premultiply(inv); d.bones[o2.name] = { b: o2, rest: o2.quaternion.clone(), w, wi: w.clone().invert() }; }
+      if (o2.isMesh) {
+        o2.castShadow = true; o2.frustumCulled = false;
+        const mt = o2.material = o2.material.clone(); mt.roughness = .85; mt.metalness = 0;
+        mt.emissiveMap = mt.map; mt.emissive = new THREE.Color(...d.emi);   // 夜でも姿がわかるように、少しだけ自分で光る
         d.mats.push(mt);
       }
     });
-    m.scale.setScalar(1.9); body.add(m); d.ready = true;
-  }, undefined, e => console.warn('golem', e));
+    m.scale.setScalar(sc); body.add(m); d.ready = true;
+  }).catch(e => console.warn('golem', e));
   return d;
 }
-const golem = makeGolem();
+const golem = DUNGEON ? null : makeGolem();
 // 骨を「モデルの向き」を基準に回す：x=前後に倒す（＋で前／下を向いた手足は後ろへ）、y=ひねり、z=左右
 function golemPose(d, R) {
   for (const n in d.bones) {
@@ -1899,7 +1936,7 @@ function golemHurtPlayer(d, base, opt, test) {
   const P = player.pos;
   for (const c of kClones) if (c.A === player && !c.dead && test(c.pos)) kCloneHurt(c, d);
   if (PV.hp <= 0 || PV.invT > 0 || PV.downT > 0 || !inArena(P.x, P.z) || !test(P)) return false;
-  hurtMe(d, pvDmg(base, false, guardedBy(player, P)), opt);
+  hurtMe(d, pvDmg(base * (d.pow || 1), false, guardedBy(player, P)), opt);
   return true;
 }
 function golemTick(d, dt, t) {
@@ -1909,32 +1946,34 @@ function golemTick(d, dt, t) {
   d.hitT = Math.max(0, d.hitT - dt);
   // 倒れた
   if (d.deadT > 0 && d.state !== 'dead') {
-    d.state = 'dead'; d.st = 0; d.deadT = 9; d.warn.visible = false; d.block.visible = false; d.freezeT = d.slowT = 0;
+    d.state = 'dead'; d.st = 0; d.deadT = d.respawn ? 9 : 4.5; d.warn.visible = false; d.block.visible = false; d.freezeT = d.slowT = 0;
     netToast(`${d.name}を倒しました！`); showSkillName('撃破！');
-    say(pick(['……かたかった。でも、うちの勝ち。', 'ふう……おとなしゅうしとって。', '石でも、凍らせれば割れるけん。']), { relaxed_eye: .3, brow_relaxed: .3, happy_mouth: .3 });
+    if (!d.quiet) say(pick(['……かたかった。でも、うちの勝ち。', 'ふう……おとなしゅうしとって。', '石でも、凍らせれば割れるけん。']), { relaxed_eye: .3, brow_relaxed: .3, happy_mouth: .3 });
   }
   if (d.state === 'dead') {
     d.st += dt; d.deadT -= dt; d.bar.visible = false;
     const k = Math.min(1, d.st / .9);
     d.body.rotation.x = -1.35 * ss(k);                       // あおむけに倒れる
-    d.body.position.y = d.st > 3 ? -Math.min(2.4, (d.st - 3) * .8) : 0;   // 地面へ沈む
+    d.body.position.y = d.st > 3 ? -Math.min(2.4 * d.k, (d.st - 3) * .8 * d.k) : 0;   // 地面へ沈む
     if (d.st > 3 && Math.random() < dt * 12) burst(new THREE.Vector3(g.position.x + rand(-.6, .6), .2, g.position.z + rand(-.6, .6)), 2, 1.2, 1.5);
     golemPose(d, { spine_03: [-.3, 0, 0], upperarm_l: [-.6, 0, .4], upperarm_r: [-.6, 0, -.4], head: [-.3, 0, 0] });
+    if (d.deadT <= 0 && !d.respawn) { d.gone = true; g.visible = false; return; }      // ダンジョンの敵はよみがえらない
     if (d.deadT <= 0) {                                        // 奥でよみがえる
       d.state = 'rise'; d.st = 0; d.hp = d.max; d.seen = false; drawHp(d); d.bar.visible = true;
-      g.position.set(GOLEM_HOME.x, 0, GOLEM_HOME.z); d.yaw = Math.PI; d.body.rotation.x = 0; d.body.position.y = -2.2;
+      g.position.set(d.home.x, 0, d.home.z); d.yaw = d.homeYaw; d.body.rotation.x = 0; d.body.position.y = -2.2;
       groundRing(g.position, 2.6, 1, [2.2, .6, .4]);
     }
     d.col.x = g.position.x; d.col.z = g.position.z;
     return;
   }
-  if (d.state === 'rise') { d.st += dt; d.body.position.y = Math.min(0, -2.2 + d.st * 1.6); if (Math.random() < dt * 20) burst(new THREE.Vector3(g.position.x + rand(-.5, .5), .1, g.position.z + rand(-.5, .5)), 2, 1.4, 2); if (d.body.position.y >= 0) { d.state = 'idle'; d.atkCD = 1; } }
+  if (d.state === 'rise') { d.st += dt; d.body.position.y = Math.min(0, -2.2 * d.k + d.st * 1.6 * d.k); if (Math.random() < dt * 20) burst(new THREE.Vector3(g.position.x + rand(-.5, .5), .1, g.position.z + rand(-.5, .5)), 2, 1.4, 2); if (d.body.position.y >= 0) { d.state = 'idle'; d.atkCD = 1; } }
   // 凍結・鈍足
   d.slowT = Math.max(0, d.slowT - dt);
   if (fr) { d.freezeT -= dt; if (d.freezeT <= 0) { d.freezeT = 0; d.block.visible = false; burst(new THREE.Vector3(g.position.x, 1.2, g.position.z), 18, 2.5, 2.5); drawHp(d); } }
   d.frost.material.opacity = d.slowT > 0 ? .35 + Math.sin(t * 5) * .1 : 0;
   const tint = d.slowT > 0 || fr ? 1 : 0;
-  for (const m of d.mats) { m.color.setRGB(lerp(1, .7, tint), lerp(1, .88, tint), 1); m.emissive.setRGB(.22 + d.hitT * 3, .24 + d.hitT * 3, .3 + d.hitT * 3.4); }
+  const tc = d.tint, ec = d.emi;
+  for (const m of d.mats) { m.color.setRGB(lerp(1, .7, tint) * tc[0], lerp(1, .88, tint) * tc[1], tc[2]); m.emissive.setRGB(ec[0] + d.hitT * 3, ec[1] + d.hitT * 3, ec[2] + d.hitT * 3.4); }
   // 考える
   const decoy = kDecoy(g.position), T = decoy || P;              // カレンの分身があれば、そっちをねらう
   const dx = T.x - g.position.x, dz = T.z - g.position.z, dist = Math.hypot(dx, dz);
@@ -1942,15 +1981,17 @@ function golemTick(d, dt, t) {
   d.atkCD = Math.max(0, d.atkCD - dt * mul);
   let move = 0, face = null;
   if (d.state === 'idle' || d.state === 'chase') {
-    if (foe && dist < 10) {
+    if (foe && dist < d.aggro) {
       if (!d.seen) { d.seen = true; say(pick(['……動いた？ 気をつけて、来るよ。', 'あの石の……こっち見とる。']), { brow_relaxed: .1 }); }
       d.state = 'chase'; face = Math.atan2(dx, dz);
-      if (dist > 1.8) move = 1.7;
-      if (dist < 2.3 && d.atkCD <= 0) { d.state = Math.random() < .62 ? 'punch' : 'slam'; d.st = 0; d.hitDone = false; }
+      if (dist > 1.8 * d.k) move = 1.7 * d.spd;
+      d.spCD -= dt * mul;
+      if (d.boss && dist > 3.5 && d.spCD <= 0 && d.atkCD <= 0) { d.state = 'spikes'; d.st = 0; d.hitDone = false; }      // ボス：離れていると氷柱の雨
+      else if (dist < 2.3 * d.k && d.atkCD <= 0) { d.state = Math.random() < .62 ? 'punch' : 'slam'; d.st = 0; d.hitDone = false; }
     } else {
       d.state = 'idle';
-      const hx = GOLEM_HOME.x - g.position.x, hz = GOLEM_HOME.z - g.position.z;
-      if (Math.hypot(hx, hz) > .4) { face = Math.atan2(hx, hz); move = 1.2; } else face = Math.PI;
+      const hx = d.home.x - g.position.x, hz = d.home.z - g.position.z;
+      if (Math.hypot(hx, hz) > .4) { face = Math.atan2(hx, hz); move = 1.2; } else face = d.homeYaw;
     }
   }
   if (face !== null && mul > 0) { let a = face - d.yaw; a = Math.atan2(Math.sin(a), Math.cos(a)); d.yaw += THREE.MathUtils.clamp(a, -3.2 * dt * mul, 3.2 * dt * mul); }
@@ -1963,8 +2004,8 @@ function golemTick(d, dt, t) {
       const ex = nx - c.x, ez = nz - c.z, e = Math.hypot(ex, ez), mn = c.r + d.col.r - .1;
       if (e < mn && e > 1e-4 && Math.abs(c.z - nz) < 4) { nx = c.x + ex / e * mn; nz = c.z + ez / e * mn; }
     }
-    const pe = Math.hypot(nx - P.x, nz - P.z); if (pe < 1.15 && pe > 1e-4) { nx = P.x + (nx - P.x) / pe * 1.15; nz = P.z + (nz - P.z) / pe * 1.15; }
-    g.position.x = THREE.MathUtils.clamp(nx, -TRAIN.x + .8, TRAIN.x - .8); g.position.z = THREE.MathUtils.clamp(nz, TRAIN.z0 + 1.2, TRAIN.z1 - .8);
+    const pr = .55 + d.col.r, pe = Math.hypot(nx - P.x, nz - P.z); if (pe < pr && pe > 1e-4) { nx = P.x + (nx - P.x) / pe * pr; nz = P.z + (nz - P.z) / pe * pr; }
+    const B = d.bounds; g.position.x = THREE.MathUtils.clamp(nx, B.x0, B.x1); g.position.z = THREE.MathUtils.clamp(nz, B.z0, B.z1);
   }
   d.walkW = damp(d.walkW, move && mul > 0 ? 1 : 0, 6, dt); d.ph += dt * mul * (move ? 5.2 : 2);
   g.rotation.y = d.yaw; d.col.x = g.position.x; d.col.z = g.position.z;
@@ -1990,8 +2031,8 @@ function golemTick(d, dt, t) {
     if (!d.hitDone && k >= .5) {
       d.hitDone = true;
       const Y = d.yaw, X = g.position;
-      slash({ at: X, yaw: Y, roll: -.4, dir: -1, radius: 1.4, width: .6, fwd: .3, y: 1.2, color: [2.4, .7, .4] });
-      golemHurtPlayer(d, 150, {}, q => coneAt(q, 2.2, 110, X, Y));
+      slash({ at: X, yaw: Y, roll: -.4, dir: -1, radius: 1.4 * d.k, width: .6 * d.k, fwd: .3 * d.k, y: 1.2 * d.k, color: [2.4, .7, .4] });
+      golemHurtPlayer(d, 150, {}, q => coneAt(q, 2.2 * d.k, 110, X, Y));
     }
     if (k >= 1) { d.state = 'chase'; d.atkCD = 1.4; }
   } else if (d.state === 'slam') {
@@ -2003,19 +2044,29 @@ function golemTick(d, dt, t) {
     R.lowerarm_l = R.lowerarm_r = [-.5 - a * .4, 0, 0];
     R.thigh_l = [-.5 * b, 0, .12 * b]; R.thigh_r = [-.5 * b, 0, -.12 * b]; R.calf_l = R.calf_r = [.95 * b, 0, 0];
     d.body.position.y = -.28 * b;
-    const cx = g.position.x + Math.sin(d.yaw) * 1.1, cz = g.position.z + Math.cos(d.yaw) * 1.1;
-    d.warn.visible = k < .55; d.warn.position.set(cx, .04, cz); d.warn.scale.setScalar(2.7 * (.4 + .6 * Math.min(1, k / .45)));
+    const cx = g.position.x + Math.sin(d.yaw) * 1.1 * d.k, cz = g.position.z + Math.cos(d.yaw) * 1.1 * d.k;
+    d.warn.visible = k < .55; d.warn.position.set(cx, .04, cz); d.warn.scale.setScalar(2.7 * d.k * (.4 + .6 * Math.min(1, k / .45)));
     d.warnM.opacity = .18 + .14 * Math.sin(d.st * 22);
     if (!d.hitDone && k >= .5) {
       d.hitDone = true; d.warn.visible = false;
       const C = new THREE.Vector3(cx, 0, cz);
-      groundRing(C, 3.4, .7, [2.4, .8, .5]); groundRing(C, 2, .5, [2.6, 1.6, 1]); burst(new THREE.Vector3(cx, .3, cz), 26, 3.5, 4, 1.3);
-      if (golemHurtPlayer(d, 280, { slow: 3, big: true }, q => Math.hypot(q.x - cx, q.z - cz) < 2.8)) {
+      groundRing(C, 3.4 * d.k, .7, [2.4, .8, .5]); groundRing(C, 2 * d.k, .5, [2.6, 1.6, 1]); burst(new THREE.Vector3(cx, .3, cz), 26, 3.5, 4, 1.3);
+      if (golemHurtPlayer(d, 280, { slow: 3, big: true }, q => Math.hypot(q.x - cx, q.z - cz) < 2.8 * d.k)) {
         const kx = P.x - cx, kz = P.z - cz, kl = Math.hypot(kx, kz) || 1;  // はじき飛ばす
         for (let i = 0; i < 6; i++) moveBy(kx / kl * .22, kz / kl * .22);
       }
     }
     if (k >= 1) { d.state = 'chase'; d.atkCD = 2.2; }
+  } else if (d.state === 'spikes') {             // ボス：両腕を掲げて、足元に氷柱を呼ぶ
+    d.st += dt * mul; const k = d.st / 1.7, up = ss(THREE.MathUtils.clamp(k / .35, 0, 1)), back = ss(THREE.MathUtils.clamp((k - .7) / .3, 0, 1)), a = up * (1 - back);
+    R.upperarm_l = [-a * 2.6, 0, .3 * a]; R.upperarm_r = [-a * 2.6, 0, -.3 * a]; R.spine_03 = [.08 - a * .25, 0, 0]; R.head = [-.1 - a * .25, 0, 0];
+    if (!d.hitDone && k >= .3) {
+      d.hitDone = true;
+      const tq = kDecoy(g.position) || P, pts = [{ x: tq.x, z: tq.z }];
+      for (let i = 0; i < 3; i++) { const an = rand(0, Math.PI * 2), r = rand(2, 3.5); pts.push({ x: tq.x + Math.cos(an) * r, z: tq.z + Math.sin(an) * r }); }
+      dSpikes(d, pts);
+    }
+    if (k >= 1) { d.state = 'chase'; d.atkCD = 1.6; d.spCD = rand(6, 8); }
   } else d.warn.visible = false;
   if (d.hitT > 0) { const f = Math.sin(d.hitT * 40) * d.hitT; R.spine_03 = [R.spine_03[0] - f * .8, R.spine_03[1], R.spine_03[2] + f * .4]; }
   if (d.ready && !fr) golemPose(d, R);                    // 凍っている間は、その姿勢のまま止まる
@@ -2397,7 +2448,7 @@ function foeAhead(A) {
   if (A === player) { for (const r of remotes.values()) if (r.vrm && r.pvH > 0 && near(r.pos)) return true; return false; }
   return PV.hp > 0 && near(player.pos);
 }
-const inArena = (x, z) => z > TRAIN.z0 + .1 && z < TRAIN.z1 && Math.abs(x) < TRAIN.x;
+const inArena = (x, z) => DUNGEON || (z > TRAIN.z0 + .1 && z < TRAIN.z1 && Math.abs(x) < TRAIN.x);   // ダンジョンの中はどこでも戦える
 const guardedBy = (who, q) => walls.some(w => w.owner === who && w.t < w.life && w.panels.some(p => Math.hypot(p.position.x - q.x, p.position.z - q.z) < 3.2));
 const pvDmg = (base, aw, guarded) => Math.round(base * (aw === true ? 1.3 : aw || 1) * (guarded ? .6 : 1));
 function pvp(A, test, base, opt = {}) {
@@ -2486,7 +2537,7 @@ function pvTick(dt) {
     PV.downT -= dt;
     if (PV.downT <= 0) {                 // 入口で起き上がる
       PV.downT = 0; PV.hp = PV.MAX; PV.invT = 2.5; player.act = null;
-      P.set(0, 0, TRAIN.z0 + 1.2); player.yaw = 0; player.speed = 0;
+      if (DUNGEON) { P.set(DG.checkpoint.x, 0, DG.checkpoint.z); player.yaw = DG.checkpoint.yaw; } else { P.set(0, 0, TRAIN.z0 + 1.2); player.yaw = 0; } player.speed = 0;
       groundRing(P, 2, .6); burst(new THREE.Vector3(P.x, 1, P.z), 14, 2, 2.5);
     }
   } else if (!arena) PV.hp = Math.min(PV.MAX, PV.hp + 800 * dt);      // 訓練場の外ではすぐ回復
@@ -2965,7 +3016,7 @@ function combatTick(dt, t) {
   const P = player.pos;
   CB.on = true;                                   // 技は街のどこでも使える
   document.body.classList.toggle('combat', !shopOpen);
-  const inTrain = P.z > TRAIN.z0 - .4;
+  const inTrain = !DUNGEON && P.z > TRAIN.z0 - .4;
   if (inTrain !== wasCombat) {
     wasCombat = inTrain;
     if (inTrain && !combatTick.seen) { combatTick.seen = true; showTitle('ARCRAVE UNIT 09', '第9隊 訓練場', '── 中では、ほかのプレイヤーと対戦できます ──'); setTimeout(() => say('訓練場……。ここでは、ほかのしのとも手合わせできるけん。'), 900); }
@@ -2989,10 +3040,11 @@ function combatTick(dt, t) {
   aura.material.opacity = damp(aura.material.opacity, CB.awakenT > 0 ? .3 + Math.sin(t * 6) * .06 : CB.charged ? .16 : 0, 5, dt);
   aura.position.set(P.x, 1.1, P.z);
   if (CB.awakenT > 0 && PARTNER !== 'karen' && Math.random() < dt * 14) { const s = shards[shardIdx++ % SH]; s.visible = true; s.position.set(P.x + rand(-.6, .6), rand(.1, .6), P.z + rand(-.6, .6)); s.scale.setScalar(rand(.6, 1.1)); s.userData.v.set(rand(-.3, .3), rand(1.2, 2.2), rand(-.3, .3)); s.userData.life = 0; s.userData.max = rand(.8, 1.2); }
-  updateClaws((P.z > TRAIN.z0 - .4 || !!player.act) && PARTNER !== 'karen');
+  updateClaws((DUNGEON || P.z > TRAIN.z0 - .4 || !!player.act) && PARTNER !== 'karen');
   // 人形
   for (const d of dummies) {
     if (d.golem) { golemTick(d, dt, t); continue; }
+    if (d.wisp) { wispTick(d, dt, t); continue; }
     if (d.deadT > 0) {
       d.deadT -= dt; d.body.rotation.x = Math.min(1.45, d.body.rotation.x + dt * 5); d.bar.visible = false;
       if (d.deadT <= 0) { d.hp = d.max; d.slowT = d.freezeT = 0; d.body.rotation.x = 0; d.bar.visible = true; drawHp(d); burst(new THREE.Vector3(d.g.position.x, 1, d.g.position.z), 10, 1.5, 2); }
@@ -3085,6 +3137,370 @@ addEventListener('keydown', e => {
 /* =====================================================================
    ループ
    ===================================================================== */
+
+/* =====================================================================
+   ダンジョン《氷晶の地下迷宮》（walk.html?area=dungeon）
+   入口の広間 → 戦闘の部屋1 → 戦闘の部屋2 → 宝物庫（宝箱・回復の泉）→ ボスの間
+   戦闘の部屋に入ると扉が閉まり、敵を全部倒すと開く。ボスを倒すとクリア。
+   街とは離れた場所（x = DX）に作り、街の建物は隠す。
+   ===================================================================== */
+const DX = 200;
+const DG = {
+  regions: [            // 歩ける四角（ローカル座標 [x0, x1, z0, z1]）。通路は部屋に1mずつ食い込ませてつなぐ
+    [-5, 5, -10, 0], [-1.8, 1.8, -19, -9], [-9, 9, -36, -18], [-1.8, 1.8, -45, -35], [-10, 10, -64, -44],
+    [-1.8, 1.8, -73, -63], [-6, 6, -84, -72], [-1.8, 1.8, -93, -83], [-13, 13, -120, -92]],
+  gates: [], rooms: [], eShots: [], startT: 0, cleared: false, boss: null, checkpoint: { x: DX, z: -3, yaw: Math.PI }, summoned: false,
+};
+function dInside(x, z, skip) {
+  const lx = x - DX, m = .35;
+  if (!DG.regions.some(r => lx > r[0] + m && lx < r[1] - m && z > r[2] + m && z < r[3] - m)) return false;
+  for (const g of DG.gates) if (g.closed && Math.abs(z - g.z) < .7 && Math.abs(lx) < 2.2) return false;
+  for (const c of colliders) if (!(skip && skip.has(c)) && (x - c.x) ** 2 + (z - c.z) ** 2 < (c.r + .25) ** 2) return false;
+  return true;
+}
+function dInit() {
+  // 街を隠す（光源は残す）。訓練場の人形も片付ける
+  for (let i = CITY_FROM; i < CITY_TO; i++) { const o = scene.children[i]; if (o && !o.isLight && o.visible && o !== lookTarget) o.visible = false; }
+  for (const d of [...dummies]) { d.g.visible = false; }
+  dummies.length = 0; colliders.length = 0; boxes.length = 0; interactables.length = 0;
+  scene.fog = new THREE.Fog(0x070b1a, 9, 40); scene.background = new THREE.Color(0x04060e);
+  document.querySelector('#area small').textContent = 'AREA 02 // UNDERGROUND'; $('areaName').textContent = '氷晶の地下迷宮';
+  document.querySelector('#loading .s').textContent = '氷晶の地下迷宮'; document.title = '氷晶の地下迷宮';
+  player.pos.set(DX, 0, -3); player.yaw = Math.PI; camYaw = 0;
+  dBuild();
+}
+
+/* ---------- 地形 ---------- */
+const dFloorTex = canvasTex(256, 256, (c, w, h) => {
+  c.fillStyle = '#1b2440'; c.fillRect(0, 0, w, h);
+  for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+    const v = 30 + Math.random() * 18; c.fillStyle = `rgb(${v * .8},${v},${v * 1.7})`; c.fillRect(x * 64 + 2, y * 64 + 2, 60, 60);
+    c.strokeStyle = 'rgba(140,210,255,.10)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x * 64 + rand(4, 60), y * 64 + 4); c.lineTo(x * 64 + rand(4, 60), y * 64 + 60); c.stroke();
+  }
+});
+dFloorTex.wrapS = dFloorTex.wrapT = THREE.RepeatWrapping;
+const dWallTex = canvasTex(256, 256, (c, w, h) => {
+  c.fillStyle = '#141b33'; c.fillRect(0, 0, w, h);
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 4; x++) { const v = 22 + Math.random() * 14; c.fillStyle = `rgb(${v * .8},${v},${v * 1.6})`; c.fillRect(x * 64 + (y % 2) * 32 + 2, y * 32 + 2, 60, 28); }
+  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(120,200,255,.18)'); g.addColorStop(.3, 'rgba(0,0,0,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h);
+});
+dWallTex.wrapS = dWallTex.wrapT = THREE.RepeatWrapping;
+const dCrystalMat = new THREE.MeshStandardMaterial({ color: 0xbfefff, emissive: 0x2aa0ff, emissiveIntensity: 1.1, roughness: .15, metalness: .1, flatShading: true, transparent: true, opacity: .9 });
+function dFloor(x0, x1, z0, z1) {
+  const w = x1 - x0, h = z1 - z0, t = dFloorTex.clone(); t.needsUpdate = true; t.repeat.set(w / 4, h / 4);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: t, roughness: .55, metalness: .1 }));
+  m.rotation.x = -Math.PI / 2; m.position.set(DX + (x0 + x1) / 2, 0, (z0 + z1) / 2); m.receiveShadow = true; scene.add(m);
+}
+function dWall(x0, z0, x1, z1, H = 6) {        // 壁（線分）
+  const len = Math.hypot(x1 - x0, z1 - z0); if (len < .05) return;
+  const t = dWallTex.clone(); t.needsUpdate = true; t.repeat.set(len / 4, H / 4);
+  const m = new THREE.Mesh(new THREE.BoxGeometry(len, H, .6), new THREE.MeshStandardMaterial({ map: t, roughness: .8, emissive: 0x0a1430, emissiveIntensity: .6 }));
+  m.position.set(DX + (x0 + x1) / 2, H / 2, (z0 + z1) / 2); m.rotation.y = -Math.atan2(z1 - z0, x1 - x0); m.receiveShadow = true; scene.add(m);
+}
+function dCrystals(x, z, n = 4, s = 1) {        // 氷の結晶の群れ（飾り）
+  for (let i = 0; i < n; i++) {
+    const h = rand(.6, 1.8) * s, c = new THREE.Mesh(new THREE.ConeGeometry(rand(.12, .25) * s, h, 5), dCrystalMat);
+    c.position.set(DX + x + rand(-.5, .5) * s, h / 2 - .05, z + rand(-.5, .5) * s); c.rotation.set(rand(-.35, .35), rand(0, 6), rand(-.35, .35)); scene.add(c);
+  }
+}
+function dPillar(x, z) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(.6, .75, 6, 8), new THREE.MeshStandardMaterial({ color: 0x2a3658, roughness: .7, emissive: 0x0a1838, flatShading: true }));
+  m.position.set(DX + x, 3, z); m.castShadow = true; scene.add(m);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.72, .06, 6, 20), dCrystalMat); ring.rotation.x = Math.PI / 2; ring.position.set(DX + x, 1.6, z); scene.add(ring);
+  colliders.push({ x: DX + x, z, r: .75 });
+  dCrystals(x + .9, z + .3, 2, .7);
+}
+// 部屋（四角）を壁で囲む。doors: { n: 北側(z1)に開口, s: 南側(z0)に開口 }
+function dRoom(x0, x1, z0, z1, doors = {}) {
+  dFloor(x0, x1, z0, z1);
+  const g = 1.8;
+  dWall(x0, z0, x0, z1); dWall(x1, z0, x1, z1);
+  if (doors.n) { dWall(x0, z1, -g, z1); dWall(g, z1, x1, z1); } else dWall(x0, z1, x1, z1);
+  if (doors.s) { dWall(x0, z0, -g, z0); dWall(g, z0, x1, z0); } else dWall(x0, z0, x1, z0);
+  for (const [cx, cz] of [[x0 + .8, z0 + .8], [x1 - .8, z0 + .8], [x0 + .8, z1 - .8], [x1 - .8, z1 - .8]]) dCrystals(cx, cz, 5, 1.1);
+}
+function dCorridor(z0, z1) { dFloor(-1.8, 1.8, z0, z1); dWall(-1.8, z0, -1.8, z1); dWall(1.8, z0, 1.8, z1); dCrystals(-1.3, (z0 + z1) / 2, 3, .7); dCrystals(1.3, (z0 + z1) / 2 + 1.5, 3, .7); }
+// 氷の扉（閉じている間は通れない）
+function dGate(z, closed) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(3.8, 3.6, .5), new THREE.MeshStandardMaterial({ color: 0xcff4ff, emissive: 0x2a8ad8, emissiveIntensity: .8, roughness: .1, transparent: true, opacity: .8, flatShading: true }));
+  m.position.set(DX, closed ? 1.8 : -1.9, z); scene.add(m);
+  const g = { z, m, closed, k: closed ? 1 : 0 }; DG.gates.push(g); return g;
+}
+// カメラと自分の間に閉じた扉があるか
+function dGateBetween(z0, z1, x) { return DG.gates.some(g => g.closed && Math.abs(x - DX) < 2.4 && (z0 - g.z) * (z1 - g.z) < 0); }
+function dSetGate(g, closed) { if (g.closed === closed) return; g.closed = closed; burst(new THREE.Vector3(DX, 1, g.z), 16, 2.5, 2.5); }
+// 宝箱（街の宝箱と同じ見た目。開けると円がもらえる）
+function dChest(x, z, coins, id) {
+  const wood = new THREE.MeshLambertMaterial({ color: 0x8a4a2a }), gold = new THREE.MeshLambertMaterial({ color: 0xffc23a, emissive: 0x4a2a00 });
+  const g = new THREE.Group(); g.position.set(DX + x, 0, z); scene.add(g);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(.9, .5, .6), wood); base.position.y = .25; base.castShadow = true; g.add(base);
+  const lid = new THREE.Group(); lid.position.set(0, .5, -.3); g.add(lid);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .9, 16, 1, false, 0, Math.PI), wood); top.rotation.z = Math.PI / 2; top.rotation.y = Math.PI / 2; top.position.z = .3; lid.add(top);
+  const lock = new THREE.Mesh(new THREE.BoxGeometry(.14, .16, .05), gold); lock.position.set(0, .45, .32); g.add(lock);
+  const glowS = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: 0xffd27a, transparent: true, opacity: .6, depthWrite: false, blending: THREE.AdditiveBlending })); glowS.position.y = .6; glowS.scale.setScalar(1.6); g.add(glowS);
+  colliders.push({ x: DX + x, z, r: .55 });
+  const c = { id: 'dg_' + id, x: DX + x, z, coins, g, lid, glowS, inner: { intensity: 0 }, lock, opened: false, anim: 0, playing: false };
+  chests.push(c);
+  interactables.push({ x: c.x, z: c.z, r: 2.3, label: '宝箱を開ける', enabled: () => !c.opened, act() { openChest(c); } });
+  return c;
+}
+function dBuild() {
+  // 入口の広間
+  dRoom(-5, 5, -10, 0, { s: true }); dCrystals(-3.5, -5, 4, 1.3); dCrystals(3.5, -5, 4, 1.3);
+  const portal = new THREE.Mesh(new THREE.RingGeometry(.6, 1.1, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.5, 2.2), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
+  portal.rotation.x = -Math.PI / 2; portal.position.set(DX, .03, -1); scene.add(portal); DG.portalA = portal;
+  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { location.href = 'lobby.html?v=20261126233022'; } });
+  dCorridor(-18, -10);
+  // 戦闘の部屋1
+  dRoom(-9, 9, -36, -18, { n: true, s: true }); for (const [x, z] of [[-5, -23], [5, -23], [-5, -31], [5, -31]]) dPillar(x, z);
+  dCorridor(-44, -36);
+  // 戦闘の部屋2
+  dRoom(-10, 10, -64, -44, { n: true, s: true }); for (const [x, z] of [[-6, -49], [6, -49], [-6, -59], [6, -59]]) dPillar(x, z);
+  dCorridor(-72, -64);
+  // 宝物庫と回復の泉
+  dRoom(-6, 6, -84, -72, { n: true, s: true });
+  dChest(-4, -80, 3000, 'a'); dChest(4, -80, 3000, 'b');
+  const spring = new THREE.Mesh(new THREE.CircleGeometry(1.3, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.4, 1.6, 2.2), transparent: true, opacity: .75, toneMapped: false }));
+  spring.rotation.x = -Math.PI / 2; spring.position.set(DX, .04, -76); scene.add(spring); DG.spring = spring;
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.35, .14, 8, 40), new THREE.MeshStandardMaterial({ color: 0x8aa0c8, roughness: .6 })); rim.rotation.x = Math.PI / 2; rim.position.set(DX, .08, -76); scene.add(rim);
+  interactables.push({ x: DX, z: -76, r: 2.2, label: '回復の泉で休む', act() { PV.hp = PV.MAX; PV.slowT = PV.confT = PV.defT = 0; groundRing(new THREE.Vector3(DX, 0, -76), 2.2, .8); burst(new THREE.Vector3(player.pos.x, 1, player.pos.z), 16, 1.6, 2.5); netToast('HP が全回復した'); say('……冷たくて、気持ちよか。', { relaxed_eye: .5, brow_relaxed: .4, happy_mouth: .5 }); } });
+  dCorridor(-92, -84);
+  // ボスの間
+  dRoom(-13, 13, -120, -92, { n: true }); for (const [x, z] of [[-9, -97], [9, -97], [-9, -115], [9, -115]]) dPillar(x, z);
+  const circle = new THREE.Mesh(new THREE.RingGeometry(5.5, 6, 64), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.2, 2), transparent: true, opacity: .45, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  circle.rotation.x = -Math.PI / 2; circle.position.set(DX, .03, -107); scene.add(circle);
+  // 扉
+  const g1 = dGate(-18, false), g2 = dGate(-36, true), g3 = dGate(-44, false), g4 = dGate(-64, true), g5 = dGate(-92, false);
+  // 灯り：プレイヤーについてくる光と、いま居る部屋の光
+  DG.lightP = new THREE.PointLight(0x9fdcff, 3.2, 14, 1.4); scene.add(DG.lightP);
+  DG.lightR = new THREE.PointLight(0x6fb8ff, 0, 30, 1.2); DG.lightR.position.set(DX, 5, -27); scene.add(DG.lightR);
+  // 舞う氷の粒
+  const N = MOBILE ? 160 : 320, pos = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) { pos[i * 3] = DX + rand(-12, 12); pos[i * 3 + 1] = rand(0, 5); pos[i * 3 + 2] = rand(-12, 0); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  DG.motes = new THREE.Points(geo, new THREE.PointsMaterial({ map: softTex, color: new THREE.Color(.6, 1.2, 1.8), size: .12, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  scene.add(DG.motes);
+  // 部屋
+  const W = (x0, x1, z0, z1) => ({ x0: DX + x0 + 1, x1: DX + x1 - 1, z0: z0 + 1, z1: z1 - 1 });
+  const ice = (x, z, b) => makeGolem({ home: { x: DX + x, z }, scale: 1.25, hp: 1600, name: '氷晶ゴーレム', pow: .55, spd: 1.3, aggro: 18, respawn: false, quiet: true, tint: [.72, .9, 1.2], emi: [.12, .3, .5], bounds: b, rise: true });
+  DG.rooms = [
+    { name: '氷晶の回廊', sm: 'BATTLE 1', rect: [-9, 9, -36, -18], entry: [g1], exit: [g2], at: { x: DX, z: -20, yaw: Math.PI }, light: 0x6fb8ff,
+      spawn() { const b = W(-9, 9, -36, -18); return [ice(-4, -30, b), ice(4, -30, b), ice(0, -33, b)]; },
+      lock: '閉じ込められた……！ 来るよ。' },
+    { name: '霜の礼拝堂', sm: 'BATTLE 2', rect: [-10, 10, -64, -44], entry: [g3], exit: [g4], at: { x: DX, z: -46, yaw: Math.PI }, light: 0x8a9aff,
+      spawn() { const b = W(-10, 10, -64, -44); return [ice(-5, -58, b), ice(5, -58, b), makeWisp(-7, -54, b), makeWisp(7, -54, b), makeWisp(0, -61, b)]; },
+      lock: '今度は数が多か……。背中、任せたけん。' },
+    { name: '宝物庫', sm: 'TREASURE', rect: [-6, 6, -84, -72], safe: true, at: { x: DX, z: -74, yaw: Math.PI }, light: 0xffd08a,
+      lock: '宝物庫みたい……。泉の水で、少し休んでいこ。' },
+    { name: '氷殻の玉座', sm: 'BOSS', rect: [-13, 13, -120, -92], entry: [g5], exit: [], at: { x: DX, z: -95, yaw: Math.PI }, light: 0xff7a8a, boss: true,
+      spawn() {
+        const b = W(-13, 13, -120, -92);
+        DG.boss = makeGolem({ home: { x: DX, z: -109 }, homeYaw: 0, scale: 3.1, hp: 22000, name: '氷殻の守護者グラキエス', pow: 1.15, spd: 1.0, aggro: 40, respawn: false, quiet: true, boss: true, tint: [.62, .82, 1.25], emi: [.16, .34, .62], bounds: b, rise: true });
+        return [DG.boss];
+      },
+      lock: '……でっかい。でも、うちらなら勝てる。' },
+  ];
+}
+
+/* ---------- 敵：氷霊（宙に浮いて、離れたところから氷の矢を撃つ） ---------- */
+function makeWisp(x, z, bounds) {
+  const g = new THREE.Group(); g.position.set(DX + x, 0, z); scene.add(g);
+  const body = new THREE.Group(); body.position.y = 1.6; g.add(body);
+  const coreM = new THREE.MeshStandardMaterial({ color: 0xbff0ff, emissive: 0x3ab8ff, emissiveIntensity: 1.4, roughness: .2, flatShading: true });
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(.34, 0), coreM); core.castShadow = true; body.add(core);
+  const orbit = new THREE.Group(); body.add(orbit);
+  for (let i = 0; i < 3; i++) { const s = new THREE.Mesh(new THREE.OctahedronGeometry(.1, 0), dCrystalMat); s.position.set(Math.cos(i * 2.1) * .62, 0, Math.sin(i * 2.1) * .62); orbit.add(s); }
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: new THREE.Color(.5, 1.3, 2), transparent: true, opacity: .7, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); glow.scale.setScalar(1.7); body.add(glow);
+  const block = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), iceMat); block.position.y = 1.6; block.visible = false; g.add(block);
+  const tex = hpTex(); const bar = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })); bar.position.y = 2.45; bar.scale.set(1, .15, 1); bar.renderOrder = 5; g.add(bar);
+  const d = { wisp: true, enemy: true, name: '氷霊', g, body, core, coreM, orbit, glow, block, bar, hpTex: tex, mats: [], hp: 800, max: 800, slowT: 0, freezeT: 0, hitT: 0, deadT: 0,
+    col: { x: g.position.x, z, r: .45 }, bounds, castT: rand(1.6, 2.6), ph: rand(0, 6), side: Math.random() < .5 ? 1 : -1, rise: 0 };
+  colliders.push(d.col); drawHp(d); dummies.push(d);
+  burst(new THREE.Vector3(g.position.x, 1.6, z), 14, 2, 2);
+  return d;
+}
+function wispTick(d, dt, t) {
+  const g = d.g;
+  d.hitT = Math.max(0, d.hitT - dt); d.slowT = Math.max(0, d.slowT - dt); d.confT = Math.max(0, (d.confT || 0) - dt); d.defT = Math.max(0, (d.defT || 0) - dt);
+  if (d.freezeT > 0) { d.freezeT -= dt; if (d.freezeT <= 0) { d.freezeT = 0; d.block.visible = false; drawHp(d); } }
+  if (d.deadT > 0) {                       // 砕けて消える
+    if (!d.dying) { d.dying = true; d.st = 0; d.bar.visible = false; d.block.visible = false; burst(new THREE.Vector3(g.position.x, 1.6, g.position.z), 24, 3, 3); netToast(`${d.name}を倒しました！`); }
+    d.st += dt; d.body.scale.setScalar(Math.max(.01, 1 - d.st * 2)); if (d.st > .6) { d.gone = true; g.visible = false; }
+    return;
+  }
+  const mul = d.freezeT > 0 || d.confT > 0 ? 0 : d.slowT > 0 ? .5 : 1, P = player.pos;
+  const T = kDecoy(g.position) || P, dx = T.x - g.position.x, dz = T.z - g.position.z, dist = Math.hypot(dx, dz) || 1;
+  // 6m くらいの間合いを保ちながら、横へ回り込む
+  const want = dist > 7.5 ? 1 : dist < 4.5 ? -1 : 0, sp = 2.3 * mul;
+  let vx = dx / dist * want * sp + (-dz / dist) * d.side * sp * .55, vz = dz / dist * want * sp + (dx / dist) * d.side * sp * .55;
+  if (Math.random() < dt * .3) d.side = -d.side;
+  const B = d.bounds;
+  g.position.x = THREE.MathUtils.clamp(g.position.x + vx * dt, B.x0, B.x1); g.position.z = THREE.MathUtils.clamp(g.position.z + vz * dt, B.z0, B.z1);
+  d.col.x = g.position.x; d.col.z = g.position.z;
+  d.body.position.y = 1.6 + Math.sin(t * 2 + d.ph) * .15; d.core.rotation.x += dt * 1.3 * (mul || .1); d.core.rotation.y += dt * 1.8 * (mul || .1); d.orbit.rotation.y += dt * 3 * (mul || .1);
+  // 詠唱 → 氷の矢
+  d.castT -= dt * mul;
+  const charge = d.castT < .8 ? 1 - d.castT / .8 : 0;
+  d.coreM.emissiveIntensity = 1.4 + charge * 3 + d.hitT * 6; d.glow.scale.setScalar(1.7 + charge * 1.2);
+  if (d.castT <= 0) {
+    d.castT = rand(2.3, 3.2);
+    const from = new THREE.Vector3(g.position.x, d.body.position.y, g.position.z), dir = new THREE.Vector3(T.x - from.x, 0, T.z - from.z).normalize();
+    dShot(d, from, dir, 115);
+  }
+}
+// 敵の飛び道具（氷の矢）
+const dBoltGeo = new THREE.ConeGeometry(.09, .7, 6); dBoltGeo.rotateX(Math.PI / 2);
+const dBoltMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.2, 2.2, 3), toneMapped: false });
+function dShot(owner, from, dir, dmg) {
+  const m = new THREE.Mesh(dBoltGeo, dBoltMat); m.position.copy(from); m.lookAt(from.clone().add(dir)); scene.add(m);
+  DG.eShots.push({ owner, m, vel: dir.multiplyScalar(11), dmg, life: 2.6 });
+}
+function dShotsTick(dt) {
+  for (let i = DG.eShots.length - 1; i >= 0; i--) {
+    const S = DG.eShots[i], p = S.m.position; S.life -= dt; p.addScaledVector(S.vel, dt);
+    if (Math.random() < .5) kSpark(p, [.6, 1.4, 2.2], .25, .2);
+    let done = S.life <= 0 || !dInside(p.x, p.z, foeCols());
+    for (const c of kClones) if (!done && c.A === player && !c.dead && Math.hypot(c.pos.x - p.x, c.pos.z - p.z) < .7) { kCloneHurt(c, S.owner); done = true; }
+    const P = player.pos;
+    if (!done && PV.hp > 0 && PV.invT <= 0 && PV.downT <= 0 && Math.hypot(P.x - p.x, P.z - p.z) < .6) { hurtMe(S.owner, pvDmg(S.dmg, false, guardedBy(player, P)), { slow: 2 }); done = true; }
+    if (done) { scene.remove(S.m); burst(p.clone(), 8, 1.8, 1.6); DG.eShots.splice(i, 1); }
+  }
+}
+
+/* ---------- ボスの技：氷柱の雨（足元に予告の円 → 氷柱が突き出す） ---------- */
+function dSpikes(d, targets) {
+  for (const q of targets) {
+    const warn = new THREE.Mesh(new THREE.CircleGeometry(1.7, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, .3, .25), transparent: true, opacity: .3, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+    warn.geometry.userData.kDispose = true; warn.rotation.x = -Math.PI / 2; warn.position.set(q.x, .05, q.z);
+    addFx(warn, 1.0, (o, k) => { o.material.opacity = .18 + .2 * Math.abs(Math.sin(k * 18)); o.scale.setScalar(.4 + .6 * Math.min(1, k * 2)); });
+  }
+  setTimeout(() => {
+    if (d.deadT > 0) return;
+    for (const q of targets) {
+      for (let i = 0; i < 7; i++) {
+        const h = rand(1.2, 2.4), sp = new THREE.Mesh(new THREE.ConeGeometry(rand(.18, .3), h, 5), dCrystalMat);
+        sp.geometry.userData.kDispose = true; const x = q.x + rand(-1.1, 1.1), z = q.z + rand(-1.1, 1.1);
+        addFx(sp, 1.1, (o, k) => { const u = k < .15 ? k / .15 : k > .7 ? 1 - (k - .7) / .3 : 1; o.position.set(x, h / 2 * u - h / 2 + h / 2 * u, z); o.scale.setScalar(Math.max(.01, u)); }, scene);
+      }
+      groundRing(new THREE.Vector3(q.x, 0, q.z), 2, .5); burst(new THREE.Vector3(q.x, .4, q.z), 14, 2.6, 3.5, 1.2);
+    }
+    golemHurtPlayer(d, 210, { slow: 2.5, big: true }, p => targets.some(q => Math.hypot(p.x - q.x, p.z - q.z) < 1.8));
+  }, 1000);
+}
+
+/* ---------- 進行：部屋に入る → 扉が閉まる → 全部倒すと開く ---------- */
+const D_LINES_K = {      // カレンのセリフ（しののセリフ → カレン版）
+  'ここが地下迷宮……。ひんやりしとるね。気をつけて進も。': 'はい、注目ー！ 地下迷宮だって！ ひんやりステージ、いっちゃお！',
+  '奥の扉、閉まっとる……。部屋の敵を倒せば開くみたい。': 'ねえねえ、扉は敵を倒せば開くんだって！ 全員まとめてショーの観客にしちゃお！',
+  '閉じ込められた……！ 来るよ。': 'えっ、閉まった！？ ……いいじゃん、ここが舞台ってことね！',
+  '今度は数が多か……。背中、任せたけん。': 'お客さん多くない！？ 最高のショーにしてあげる！',
+  '宝物庫みたい……。泉の水で、少し休んでいこ。': 'ねえねえ、宝箱あるよ！ 泉で一休みしてこ！',
+  '……冷たくて、気持ちよか。': 'ひゃっ、冷たっ！ でも元気出た！',
+  'この扉の向こう……すごい冷気。覚悟はよか？': 'この先がメインステージってわけね。準備はいい？',
+  '……でっかい。でも、うちらなら勝てる。': 'でっか！ ……ふふん、相手にとって不足なしじゃん！',
+  '氷霊を呼んだ……！ 先に数を減らそ。': 'ちょっと待って、増えた！？ ずるくない！？',
+  'ふう……片付いたね。先へ進も。': 'はい、終演！ 次のステージ行こ！',
+  '勝った……！ おつかれさま。いっしょに帰ろ。': '天才って、こういうこと！ 拍手お願いしまーす！',
+};
+if (typeof KAREN_LINES === 'object') Object.assign(KAREN_LINES, D_LINES_K);
+function dIntro() {
+  showTitle('AREA 02 // UNDERGROUND', '氷晶の地下迷宮', '── 凍てつく聖堂の奥へ ──');
+  setTimeout(() => say('ここが地下迷宮……。ひんやりしとるね。気をつけて進も。', { relaxed_eye: .3, brow_relaxed: .4 }), 3400);
+  setTimeout(() => { if (!speech) say('奥の扉、閉まっとる……。部屋の敵を倒せば開くみたい。', { relaxed_eye: .2, brow_relaxed: .3 }); }, 9000);
+  DG.startT = wallT;
+}
+let dBossDoorSaid = false;
+function dTick(dt, t) {
+  const P = player.pos, lx = P.x - DX;
+  // 灯り
+  DG.lightP.position.set(P.x + Math.sin(camYaw) * 2.5, 4.5, P.z + Math.cos(camYaw) * 2.5);   // カメラ側の上から照らす
+  // 舞う氷の粒をプレイヤーの周りに
+  const a = DG.motes.geometry.attributes.position;
+  for (let i = 0; i < a.count; i++) {
+    let y = a.getY(i) + dt * .15; if (y > 5) y = 0;
+    let x = a.getX(i), z = a.getZ(i);
+    if (Math.abs(x - P.x) > 12) x = P.x + rand(-12, 12); if (Math.abs(z - P.z) > 12) z = P.z + rand(-12, 12);
+    a.setXYZ(i, x + Math.sin(t + i) * .002, y, z);
+  }
+  a.needsUpdate = true;
+  DG.portalA.rotation.z = t * .5; DG.spring.material.opacity = .6 + Math.sin(t * 2) * .12;
+  // 扉の上げ下げ
+  for (const g of DG.gates) { g.k = damp(g.k, g.closed ? 1 : 0, 5, dt); g.m.position.y = -1.9 + g.k * 3.7; g.m.visible = g.k > .02; }
+  // 部屋に入った
+  for (const R of DG.rooms) {
+    const [x0, x1, z0, z1] = R.rect, inR = lx > x0 + 1.5 && lx < x1 - 1.5 && P.z > z0 + 1.5 && P.z < z1 - 2.2;
+    if (inR && !R.started) {
+      R.started = true; DG.checkpoint = R.at; DG.lightR.position.set(DX + (x0 + x1) / 2, 5, (z0 + z1) / 2); DG.lightR.color.set(R.light); DG.lightR.intensity = R.boss ? 18 : 10;
+      showTitle(R.sm, R.name, R.safe ? '── ひと休み ──' : R.boss ? '── 氷殻の守護者 ──' : '── 敵をすべて倒せ ──');
+      if (!R.safe) { for (const g of R.entry) dSetGate(g, true); R.enemies = R.spawn(); }
+      else R.cleared = true;
+      setTimeout(() => say(R.lock, { surprised_eye: .2, brow_relaxed: .2 }), 700);
+      if (R.boss) $('bossHud').classList.add('on');
+    }
+    if (R.started && !R.cleared && R.enemies && R.enemies.every(e => e.deadT > 0 || e.gone)) {
+      R.cleared = true;
+      for (const g of [...(R.entry || []), ...(R.exit || [])]) dSetGate(g, false);
+      if (R.boss) dClear();
+      else { netToast('部屋を制圧した！ 扉が開いた'); showSkillName('CLEAR!'); setTimeout(() => say('ふう……片付いたね。先へ進も。', { happy_eye: .4, brow_happy: .4, happy_mouth: .4 }), 600); }
+    }
+  }
+  if (!dBossDoorSaid && P.z < -85 && P.z > -91) { dBossDoorSaid = true; say('この扉の向こう……すごい冷気。覚悟はよか？', { brow_relaxed: .2 }); }
+  // ボス：HPが半分で氷霊を呼ぶ
+  const B = DG.boss;
+  if (B && !B.gone) {
+    const k = Math.max(0, B.hp / B.max);
+    $('bossBar').style.width = (k * 100) + '%'; $('bossNum').textContent = `${Math.ceil(B.hp)} / ${B.max}`;
+    if (!DG.summoned && k < .5 && B.deadT <= 0) {
+      DG.summoned = true; const R = DG.rooms[3], b = R.enemies[0].bounds;
+      R.enemies.push(makeWisp(-8, -100, b), makeWisp(8, -100, b), makeWisp(0, -116, b));
+      showSkillName('氷霊召喚'); setTimeout(() => say('氷霊を呼んだ……！ 先に数を減らそ。', { surprised_eye: .3 }), 300);
+    }
+    if (B.deadT > 0) $('bossHud').classList.remove('on');
+  }
+  dShotsTick(dt);
+  // 倒した敵を片付ける
+  for (let i = dummies.length - 1; i >= 0; i--) { const d = dummies[i]; if (d.gone) { dummies.splice(i, 1); const j = colliders.indexOf(d.col); if (j >= 0) colliders.splice(j, 1); scene.remove(d.g); if (d.warn) scene.remove(d.warn); } }
+  // クリア後：出口
+  if (DG.portalB) DG.portalB.rotation.z = t * .7;
+}
+function dClear() {
+  DG.cleared = true;
+  const sec = wallT - DG.startT, best = store.get('dungeon_best', 0), nb = !best || sec < best;
+  if (nb) store.set('dungeon_best', sec);
+  const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const reward = 10000; wallet.coins += reward; saveWallet(); refreshWallet('wCoin');
+  showTitle('DUNGEON CLEAR', '氷晶の地下迷宮 踏破', `── タイム ${fmt(sec)} ──`);
+  setTimeout(() => say('勝った……！ おつかれさま。いっしょに帰ろ。', { happy_eye: .6, brow_happy: .6, happy_mouth: .7 }), 1500);
+  // 帰り道のポータル
+  const p = new THREE.Mesh(new THREE.RingGeometry(.8, 1.4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.4, .6), transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
+  p.rotation.x = -Math.PI / 2; p.position.set(DX, .04, -104); scene.add(p); DG.portalB = p;
+  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { location.href = 'lobby.html?v=20261126233022'; } });
+  dChest(0, -112, 5000, 'boss');
+  setTimeout(() => {
+    $('dresTime').textContent = fmt(sec); $('dresBest').textContent = nb ? 'ベスト更新！' : `ベスト ${fmt(best)}`; $('dresCoin').textContent = `+${reward.toLocaleString()}円`;
+    $('dres').classList.add('on');
+  }, 3400);
+}
+
+// ダンジョンのミニマップ
+function drawDungeonMap() {
+  const W = mapc.width, S = 4.2;
+  mg.clearRect(0, 0, W, W);
+  mg.save(); mg.translate(W / 2, W / 2); mg.rotate(camYaw); mg.translate(-player.pos.x * S, -player.pos.z * S);
+  mg.fillStyle = 'rgba(150,200,255,.85)';
+  for (const r of DG.regions) mg.fillRect((DX + r[0]) * S, r[2] * S, (r[1] - r[0]) * S, (r[3] - r[2]) * S);
+  mg.fillStyle = '#5ad8ff'; for (const g of DG.gates) if (g.closed) mg.fillRect((DX - 2) * S, g.z * S - 3, 4 * S, 6);
+  for (const d of dummies) if (d.deadT <= 0 && d.g.visible) { mg.fillStyle = d.boss ? '#ff3a5a' : '#ff8a9a'; mg.beginPath(); mg.arc(d.g.position.x * S, d.g.position.z * S, d.boss ? 9 : 5, 0, Math.PI * 2); mg.fill(); }
+  for (const c of chests) if (c.id.startsWith('dg_')) { mg.fillStyle = c.opened ? 'rgba(160,150,130,.7)' : '#ffd23a'; mg.fillRect(c.x * S - 6, c.z * S - 4, 12, 8); }
+  mg.restore();
+  mg.save(); mg.translate(W / 2, W / 2); mg.rotate(camYaw - player.yaw + Math.PI);
+  mg.fillStyle = '#3ff0ff'; mg.shadowColor = '#3ff0ff'; mg.shadowBlur = 12;
+  mg.beginPath(); mg.moveTo(0, -16); mg.lineTo(11, 12); mg.lineTo(0, 6); mg.lineTo(-11, 12); mg.closePath(); mg.fill();
+  mg.restore();
+}
+if (DUNGEON) dInit();
+$('dresClose').addEventListener('click', () => $('dres').classList.remove('on'));
+
 const clock = new THREE.Clock();
 let wallT = 0;
 function loop() { requestAnimationFrame(loop); tick(Math.min(clock.getDelta(), .05)); }
@@ -3104,6 +3520,7 @@ function tick(dt) {
     vrm.humanoid.getRawBoneNode('head').getWorldPosition(headPos);
     netTick(dt, t);
     combatTick(dt, t);
+    if (DUNGEON) dTick(dt, t);
   }
   // 雪（プレイヤーの周りで降り続ける）
   for (let i = 0; i < SNOW; i++) {
@@ -3128,7 +3545,7 @@ function tick(dt) {
   composer.render(dt);
 }
 loop();
-window.__walk = { player, keys, wallet, chests, interact: () => interact(), near: () => near?.label, openShop, closeShop, SHOPS, step: s => { for (let i = 0; i < s * 60; i++) tick(1 / 60); }, cam: () => ({ camYaw, camPitch }), setCam: (y, p, d) => { camYaw = y; camPitch = p; camDist = d; camInit = false; }, lockCam: v => { camLock = v; }, CB, PV, dummies, golem, attack, useSkill, net: NET, remotes, fakePeers: list => { NET.status = { available: true, connected: true }; NET.peers = list; syncRemotes(); updateNetUI(); }, vrm: () => vrm };
+window.__walk = { player, keys, wallet, chests, interact: () => interact(), near: () => near?.label, openShop, closeShop, SHOPS, step: s => { for (let i = 0; i < s * 60; i++) tick(1 / 60); }, cam: () => ({ camYaw, camPitch }), setCam: (y, p, d) => { camYaw = y; camPitch = p; camDist = d; camInit = false; }, lockCam: v => { camLock = v; }, CB, PV, dummies, golem, attack, useSkill, net: NET, remotes, dg: DG, fakePeers: list => { NET.status = { available: true, connected: true }; NET.peers = list; syncRemotes(); updateNetUI(); }, vrm: () => vrm };
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); sizeBulbs(); });
 </script>
 </body>
