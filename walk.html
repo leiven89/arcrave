@@ -41,6 +41,7 @@
   #sub.show{opacity:1}
   #sub{z-index:30}
   body.shopping #sub{bottom:auto;top:16px}
+  html.karen #sub::before{content:"カレン"}
   #sub::before{content:"しの";display:block;font-family:var(--jp);font-size:11px;color:var(--cy);letter-spacing:.2em;margin-bottom:2px}
 
   #title{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;opacity:0;transition:opacity 1.2s}
@@ -285,6 +286,132 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+
+/* ---------- パートナー：キャラ選択画面で選んだキャラ（shino / karen）を使う ---------- */
+const PARTNER = (() => { try { return localStorage.getItem('partner') === 'karen' ? 'karen' : 'shino'; } catch (e) { return 'shino'; } })();
+document.documentElement.classList.toggle('karen', PARTNER === 'karen');
+/*MODEL_FETCH*/
+// モデルを ArrayBuffer で読む（公開版では、この部分が Base64 テキストの分割読み込みに置き換わる）
+const MODEL_URL = { shino: './shino_lite.vrm', karen: './karen.vrm' };
+function fetchModel(id, onProgress) {
+  return fetch(MODEL_URL[id] || MODEL_URL.shino).then(async r => {
+    if (!r.ok) throw new Error(r.status + ' ' + r.url);
+    const total = Number(r.headers.get('content-length')) || 0;
+    if (!r.body || !total) return r.arrayBuffer();
+    const rd = r.body.getReader(), cs = []; let o = 0;
+    for (;;) { const { done, value } = await rd.read(); if (done) break; cs.push(value); o += value.length; onProgress?.({ loaded: Math.min(o, total), total }); }
+    const buf = new Uint8Array(o); o = 0; for (const c of cs) { buf.set(c, o); o += c.length; }
+    return buf.buffer;
+  });
+}
+/*END_MODEL_FETCH*/
+const modelBufs = {};
+function getModelBuf(id, onProgress) { return modelBufs[id] ||= fetchModel(id, onProgress); }
+// GLTFLoader.load と同じ呼び方で、選んだキャラのモデルを読む
+function loadPartner(loader, onLoad, onProgress, onError) { getModelBuf(PARTNER, onProgress).then(buf => loader.parse(buf, './', onLoad, onError)).catch(onError); }
+// カレンを選んでいる時は、しののセリフをカレン版に差し替える（値が [セリフ, 表情] のものもある）
+function partnerLine(text, emo) {
+  if (PARTNER !== 'karen') return [text, emo];
+  const k = KAREN_LINES[text];
+  return k === undefined ? [text, emo] : Array.isArray(k) ? k : [k, emo];
+}
+// カレン版のセリフ（キー：しののセリフ → 値：カレンのセリフ）
+const KAREN_LINES = {
+  // 到着・広場
+  'ここがノエルベルク……。雪、きれいやね。ちょっと歩こっか。': 'はい、注目ー！ ここがノエルベルク！ 雪の舞台なんて最高じゃん！ さあさあ、歩こ！',
+  'うしろに訓練場があるけん、技の練習も、ほかの人との手合わせもできるよ。': 'ねえねえ、うしろに訓練場があるんだって！ 技の練習も、ほかの人との手合わせもできるよ！',
+  'あれがグラン・ノエル……。おっきかね。': 'えー！？ あれがグラン・ノエル！？ でっか！',
+  'これがグラン・ノエル……。この街の人みんなの、目印なんやって。': 'これがグラン・ノエル！ 街のみんなの目印なんだって。主役の貫禄、あるじゃん！',
+  '星、ちゃんと一番上に乗っとる。……なんか、安心するね。': 'てっぺんの星、いい位置取りだよね。やっぱりセンターって大事！',
+  'お店、ぐるっと六つあるんやね。どこから見よっか。': 'お店がぐるっと六つ！ ねえねえ、どこから攻める？',
+  'きれいやね……。みんなで見られたら、もっとよかったっちゃけど。': 'きれいだね……。リゼットたちも連れてきたかったな。',
+  '寒くない？……うちは平気。氷、得意やけん。': '寒くない？ ……ほら、あたしの手、貸してあげよっか？ にひひ。',
+  'わ、コイン……！ ちょっと得した気分。': 'わっ、コイン！ これはおひねりってやつだね！',
+  '宝箱、ほんとにあるっちゃね。': '宝箱！？ ほんとにあるじゃん！ 開けよ開けよ！',
+  'これで何か買っていこっか。': 'いいねいいね！ これで何か買ってこ！',
+  // ヨルマート
+  'いらっしゃいませー、って言われると、なんか照れるね。': '「いらっしゃいませー」って、なんか登場のコールみたいでいいよね！',
+  '夜のコンビニって、ちょっとわくわくするっちゃん。': '夜のコンビニって、なんかわくわくしない！？',
+  'ノエルベルクでも、ヨルマートはいつも開いとるね。': 'ノエルベルクにもヨルマートあるじゃん！ さすが年中無休！',
+  '……ヨルチキの匂いがする。': 'ねえねえ、ヨルチキの匂いしない！？',
+  'スパイス、ちょっと大人の味……。好きかも。': 'スパイス効いてる！ 大人の味ってやつ？ ふふん、余裕だし！',
+  'あったか……。手、温まるね。': 'あったかーい！ 手がぽかぽかしてきた！',
+  'サンタさんの顔……食べにくかぁ。': 'サンタさんの顔！？ え、どこから食べればいいの！？',
+  'ヨルチキ、揚げたて……。半分こする？': '揚げたてヨルチキ！ 半分こしよ！ ……大きいほうはあたしね！',
+  '焼き鮭か昆布……うちは昆布派。': '焼き鮭か昆布……ううん、両方いっちゃお！',
+  '……しのソーダって、誰が言い出したと？': 'しのソーダ？ じゃあ次は「カレンソーダ」も出してもらわなきゃ！',
+  '残っとった……！ 今日はついとるね。': '残ってた！ 今日のあたし、ツイてるじゃん！',
+  '任務前にはこれ。味は……まあ、うん。': '補給バー……味は、まあ、うん。即興でアレンジしたいかも。',
+  'うちには要らんけど……誰かにあげよっか。': '耐熱手袋かぁ。花火の演出には便利かも！',
+  '……これ、自分で作れるっちゃけどね。': '冷却ジェル！ ステージ終わりのほてった顔に最高なんだよね〜。',
+  'ステッカー、どこに貼ろうかな。': 'ステッカー！ どこに貼ろっかな〜。キミのおでことか？',
+  '……うちのアクスタ？ なんか、恥ずかしかね。': 'しののアクスタ！？ ずるい！ あたしのも作ってよ〜！',
+  'あったかい……。ありがと。': 'わ、あったかい！ ……ありがと。大事にするね。',
+  // パン屋
+  '焼きたての匂い、広場まで届いとったよ。': '焼きたての匂い、広場まで届いてたよ！',
+  '朝早くから開いとるとって。えらかね。': '朝早くから開いてるんだって！ 職人さんって天才だよね。',
+  'パンの匂いって、なんでこんなに落ち着くっちゃろ。': 'パンの匂いって、なんでこんなにテンション上がるんだろ！',
+  '一日ひと切れずつ……クリスマスまで、待つと。': '一日ひと切れずつ？ ……待てるかなあ、あたし。',
+  '角、どっちから食べればいいと……？': 'トナカイの角！ ねえ、どっちから食べる？',
+  '雪だるまなのに、あったかい……。変な感じ。': '雪だるまなのにあったかい！ これ、ちょっとした手品じゃん！',
+  // 革小物
+  '革のいい匂い……。落ち着くね。': '革のいい匂い〜。大人のお店って感じ！',
+  '恋人へのプレゼント、か。……うちには、まだ縁のない話やね。': '恋人へのプレゼント、か。……べ、別に気になってないし！',
+  '旅行鞄……いつか、遠くまで行ってみたいね。': '旅行鞄！ これ持って、世界ツアーとか行っちゃう？',
+  '……ちっちゃくて、かわいかね。何入れよう。': 'ちっちゃくてかわいい！ 何入れよっかな〜。',
+  '雪の結晶……うちのと、同じ形しとる。': '雪の結晶の刺繍……しのが見たら喜びそうだね。',
+  'ペア……？ だ、誰と分けるとか、決めとらんけん。': 'ペア！？ ……だ、誰と分けるかなんて、決めてないし！',
+  // 果物屋
+  '果物がきらきらしとる……。ほんとに宝石箱やね。': '果物がきらきら！ ほんとに宝石箱じゃん！',
+  'いちご、いい香り……。': 'いちごのいい香り〜！',
+  'みかんの匂いって、冬って感じがするね。': 'みかんの匂いって、冬って感じするよね！',
+  '宝石みたい……。食べるの、もったいなか。': '宝石みたい！ 食べるの、もったいなーい！',
+  '贈る人、決まっとる？ ……うちは、まだ考え中。': 'ねえねえ、贈る人決まってる？ ……あたし？ ひ・み・つ！',
+  '星の形のキウイ……。器用な人がおるとね。': '星形のキウイ！ これ切った人、天才じゃん！',
+  // 花屋
+  'お花の匂い……。冬でも、ちゃんと咲いとるね。': 'お花のいい匂い！ 冬でも咲いてるの、えらいよね。',
+  'プロポーズの花束、作ってもらう人もおるっちゃろうね。': 'プロポーズの花束かぁ……。人生最高の見せ場だよね！',
+  '寒いのに、花はえらかね。……うちも、見習わんと。': '寒くても咲いてるなんて、花ってプロだよね。あたしも負けてらんない！',
+  '赤い薔薇……。もらう人、きっと嬉しかろうね。': '赤い薔薇！ ステージに投げてもらえたら最高なんだけどな〜。',
+  '溶けん雪、か。……ちょっと、うらやましい。': '溶けない雪、かぁ。ずっと終わらないショーみたい。……いいな。',
+  'ポインセチア、部屋に置いたら明るくなりそう。': 'ポインセチア！ 部屋が一気に明るくなりそう！',
+  // ケーキ屋
+  '甘い匂い……。行列ができるの、わかるね。': '甘い匂い！ 行列ができるの、わかるわかる！',
+  'ケーキ、どれにしよう……。迷うね。': 'ケーキ、どれにしよ〜！ ……全部って言ったら怒る？',
+  'ここのケーキ、ずっと気になっとったと。': 'ここのケーキ、ずっと気になってたんだよね！',
+  '並んだ甲斐、あったね。……いただきます。': '並んだ甲斐あったね！ いっただっきまーす！',
+  '切り株みたいで、食べるのもったいなかね。': '切り株みたい！ もったいないけど……食べちゃう！',
+  'ツリーのケーキ……！ みんなで食べられたら、よかね。': 'ツリーのケーキ！？ ねえねえ、みんなでパーティーしよ！',
+  // 訓練場・ゴーレム
+  '訓練場……。ここでは、ほかのしのとも手合わせできるけん。': '訓練場だって！ ほかのプレイヤーとも手合わせできるよ。さあさあ、お客さん集まって！',
+  '……動いた？ 気をつけて、来るよ。': 'ちょっと待って！ 今あれ動いた！？ 来るよ！',
+  'あの石の……こっち見とる。': 'おやおや〜？ あの石、こっち見てない？',
+  '……かたかった。でも、うちの勝ち。': 'かったーい！ でも、あたしの勝ち！ 拍手お願いしまーす！',
+  'ふう……おとなしゅうしとって。': 'はい、終演！ お客さん、おとなしく帰ってね〜！',
+  '石でも、凍らせれば割れるけん。': '石だって、叩けばいい音で鳴るんだね。ふふん！',
+  // 技
+  '……凍りついて。': 'フィナーレだと思った？ まだ前奏だよ！',
+  '逃がさんけん。': '右？左？ ざーんねん、上でした！',
+  '……凍って。': 'はいっ、一音目！',
+  'いくよ。': 'さあさあ、いっくよー！',
+  'うちの後ろに。……誰も、通さん。': 'あたしの後ろにいて。……誰も、通さないから。',
+  'うちの後ろに。': 'あたしの後ろに！',
+  '守るけん。': 'ま、あたしに任せときなって！',
+  'ついてきて。……速いけんね。': '読めると思った？ あたしも次に何するか知らないよ！',
+  'ついてきて。': 'はいっ！ こっちこっち！',
+  '滑るよ。': 'テンポ上げてくよ！',
+  '……集めるけん。': 'チューニング完了……ここからが見せ場だよ！',
+  '冷気、集まってきた。': 'いいねいいね、音が集まってきた！',
+  '白夜に咲け……氷の約束。': 'さあ、見逃さないで！ ここからがあたしの独奏！ 《カデンツァ・グランドショー》！！',
+  // 対戦
+  'う……やられた……。': 'あちゃー！ やられた〜！',
+  '……つよかね。次は負けんけん。': 'え、待って待って！ 今のなし！ もう一回！',
+  'いたた……。もう一回、やろ。': '失敗？ 違う違う！ これは演出上のハプニング！',
+  '……勝った。': '天才って、こういうこと！',
+  'ふう……うちの勝ちやね。': '作戦通り？ ううん、即興通り！',
+  'ごめんね、手加減できんかった。': 'はい拍手ー！ 今のは文句なしの満点！',
+};
+const karenFace = f => Object.fromEntries(Object.entries(f).map(([k, v]) => [k.replace('relaxed', 'happy'), v]));   // カレンはいつも楽しそうな顔で
 
 const $ = id => document.getElementById(id);
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -993,10 +1120,11 @@ function stepFX(pos, yaw, run) {
    ===================================================================== */
 let vrm = null, charH = 1.5, baseHipsY = 0, footY = 0;
 const player = { pos: new THREE.Vector3(0, 0, 3), yaw: Math.PI, speed: 0, phase: 0, walkW: 0, runW: 0 };
+player.ch = PARTNER;
 const headPos = new THREE.Vector3();
 const lookTarget = new THREE.Object3D(); scene.add(lookTarget);
 const loader = new GLTFLoader(); loader.register(p => new VRMLoaderPlugin(p));
-loader.load('./shino_lite.vrm', gltf => {
+loadPartner(loader, gltf => {
   vrm = gltf.userData.vrm;
   VRMUtils.removeUnnecessaryVertices(gltf.scene);
   VRMUtils.combineSkeletons ? VRMUtils.combineSkeletons(gltf.scene) : VRMUtils.removeUnnecessaryJoints?.(gltf.scene);
@@ -1129,6 +1257,7 @@ function toMora(text) {
 }
 let speech = null, subT, mouthBusy = 0, blinkT = 2, blinkV = 0;
 function say(text, face = { relaxed_eye: .3, brow_relaxed: .4, happy_mouth: .3 }) {
+  if (PARTNER === 'karen') { text = partnerLine(text)[0]; face = karenFace(face); }
   clearTimeout(subT); speech = { chars: [...text], mora: toMora(text), i: 0, t: 0 };
   mySay = { s: text.slice(0, 120), n: (mySay.n || 0) + 1 };
   $('sub').textContent = ''; $('sub').classList.add('show'); setFace(face);
@@ -1193,7 +1322,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261126204608');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261126222424');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -1463,18 +1592,18 @@ function updateNetUI() {
 const peerName = p => (typeof p.name === 'string' && p.name.trim()) ? p.name.trim().slice(0, 24) : 'プレイヤー';
 
 /* ---- ほかのプレイヤーのしの ---- */
-let vrmBufP = null;
-function getVrmBuf() { return vrmBufP ||= (window.__vrmBuf ? Promise.resolve(window.__vrmBuf) : fetch('./shino_lite.vrm').then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })); }
+function getVrmBuf(ch) { return getModelBuf(ch === 'karen' ? 'karen' : 'shino'); }
 function syncRemotes() {
   if (!vrm) return;            // 自分のモデルを読み終えてから
   const seen = new Set();
   for (const p of NET.peers) {
     seen.add(p.peer);
-    let r = remotes.get(p.peer);
+    let r = remotes.get(p.peer), again = false;
+    if (r && r.ch !== (p.presence.ch === 'karen' ? 'karen' : 'shino')) { removeRemote(p.peer, r); r = null; again = true; }   // 相手のキャラが分かったら、そのモデルに替える
     if (!r) {
       if (remotes.size >= MAX_REMOTE) continue;
       r = makeRemote(p); remotes.set(p.peer, r);
-      netToast(`${peerName(p)} さんが ノエルベルク に来ました`);
+      if (!again) netToast(`${peerName(p)} さんが ノエルベルク に来ました`);
     }
     applyPresence(r, p);
   }
@@ -1490,7 +1619,8 @@ function makeRemote(p) {
   const r = { peer: p.peer, name: peerName(p), vrm: null, pos: new THREE.Vector3(), yaw: 0, tgt: null, speed: 0, phase: 0, walkW: 0, runW: 0, baseHipsY: 0, footY: 0, lastC: 1, sayN: null, sayT: 0, blinkT: rand(1, 4), blinkV: 0, dead: false, act: null, actW: 0, actN: null, pvH: PV.MAX, pvK: null, pvF: 0, hitByMeAt: 0, block: null, awakenT: 0, charged: false, claws: null, aura: null };
   r.label = document.createElement('div'); r.label.className = 'pname' + (p.guest ? ' guest' : ''); r.nameEl = document.createElement('span'); r.nameEl.className = 'nm'; r.nameEl.textContent = r.name; r.hpEl = document.createElement('i'); r.hpEl.className = 'hpb'; r.hpEl.appendChild(document.createElement('u')); r.label.append(r.nameEl, r.hpEl); r.label.style.display = 'none'; document.body.appendChild(r.label);
   r.bubble = document.createElement('div'); r.bubble.className = 'psay'; document.body.appendChild(r.bubble);
-  getVrmBuf().then(buf => loader.parse(buf, './', gltf => {
+  r.ch = p.presence.ch === 'karen' ? 'karen' : 'shino';
+  getVrmBuf(r.ch).then(buf => loader.parse(buf, './', gltf => {
     const v = gltf.userData.vrm;
     if (r.dead) { VRMUtils.deepDispose(v.scene); return; }
     VRMUtils.removeUnnecessaryVertices(gltf.scene);
@@ -1550,7 +1680,7 @@ function netTick(dt, t) {
   if (IN_FRAME && NET.status.available && netSendT <= 0) {
     netSendT = .1;
     const r2 = v => Math.round(v * 100) / 100;
-    const patch = { area: 'noelberg', st: [r2(player.pos.x), r2(player.pos.z), r2(Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw))), r2(player.speed)], say: mySay.n ? mySay : null, act: myAct.n ? myAct : null, pv: [Math.round(PV.hp), PV.koN, (PV.freezeT > 0 ? 1 : 0) | (PV.invT > 0 ? 2 : 0)] };
+    const patch = { area: 'noelberg', ch: PARTNER, st: [r2(player.pos.x), r2(player.pos.z), r2(Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw))), r2(player.speed)], say: mySay.n ? mySay : null, act: myAct.n ? myAct : null, pv: [Math.round(PV.hp), PV.koN, (PV.freezeT > 0 ? 1 : 0) | (PV.invT > 0 ? 2 : 0)] };
     const key = JSON.stringify(patch);
     netKeepT -= .1;
     if (key !== lastSent || netKeepT <= 0) { lastSent = key; netKeepT = 3; netPost({ type: 'net:presence', patch }); }   // 3秒ごとに念のため送り直す
@@ -1604,6 +1734,20 @@ const SK = {
   charge: { name: '特殊《氷気流チャージ》', cd: 10 },
   awaken: { name: '覚醒《白夜氷精》', cd: 0 },
 };
+// カレンの技名（中身の動きは共通）
+const SK_NAMES = {
+  shino: { s1: 'スキル1《氷爪・霜断》', s2: 'スキル2《白霜障壁》', s3: 'スキル3《霜道ステップ》', charge: '特殊《氷気流チャージ》', awaken: '覚醒《白夜氷精》' },
+  karen: { s1: 'スキル1《スタッカート・ショット》', s2: 'スキル2《フォルテ・ウォール》', s3: 'スキル3《アッチェレランド》', charge: '特殊《チューニング・チャージ》', awaken: '覚醒《カデンツァ・グランドショー》' },
+};
+for (const id in SK) SK[id].name = SK_NAMES[PARTNER][id];
+if (PARTNER === 'karen') {
+  $('awk').querySelector('b').textContent = '覚醒《カデンツァ・グランドショー》'; $('awk').querySelector('small').textContent = 'CADENZA  GRAND  SHOW';
+  $('sk_awaken').setAttribute('aria-label', '覚醒 カデンツァ・グランドショー');
+  // ボタンの文字もカレン版に [ボタンid, 字, 下の名前, 読み上げ名]
+  for (const [id, ch, sm, al] of [['sk_atk', '奏', '通常攻撃', '通常攻撃'], ['sk_s1', '弾', 'スタッカート', 'スキル1 スタッカート・ショット'], ['sk_s2', '響', 'フォルテ', 'スキル2 フォルテ・ウォール'], ['sk_s3', '速', 'アッチェレランド', 'スキル3 アッチェレランド'], ['sk_charge', '調', 'チャージ', '特殊 チューニング・チャージ']]) {
+    const e = $(id); e.querySelector('i').textContent = ch; e.querySelector('small').textContent = sm; e.setAttribute('aria-label', al);
+  }
+}
 const CB = {
   on: false, cd: { s1: 0, s2: 0, s3: 0, charge: 0 }, charged: false, awakenT: 0, gauge: 0, GAUGE_MAX: 1800,
   combo: 0, comboT: 0, queued: null, speedT: 0, guard: false,
@@ -2162,7 +2306,7 @@ function actTick(dt, A = player) {
   } else if (a.name === 'awaken') {
     if (crossed(.55)) {
       if (local) { CB.awakenT = 12; CB.charged = false; for (const id in CB.cd) CB.cd[id] = 0; }
-      else { A.awakenT = 12; A.charged = false; netToast(`${A.name} さんが 覚醒《白夜氷精》！`); }
+      else { A.awakenT = 12; A.charged = false; netToast(`${A.name} さんが ${SK_NAMES[A.ch === 'karen' ? 'karen' : 'shino'].awaken}！`); }
       groundRing(P, 6, 1.0, [1.6, 2.4, 3]); groundRing(P, 3.5, .8, [2, 2.4, 2.6]); burst(new THREE.Vector3(P.x, 1.4, P.z), 40, 4, 4, 1.4);
       for (const d of aliveDummies()) if (Math.hypot(d.g.position.x - P.x, d.g.position.z - P.z) < 5) hit(d, 300, { slow: 4, big: true, remote: rm });
       pvp(A, q => Math.hypot(q.x - P.x, q.z - P.z) < 5, 300, { slow: 4, big: true });

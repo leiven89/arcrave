@@ -248,17 +248,17 @@
       <h2>ネオン・ナイトパレード</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261126204608">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261126222424">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261126204608">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261126204608">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261126222424">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261126222424">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261126204608">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261126222424">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -289,6 +289,61 @@ import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+
+/* ---------- パートナー：キャラ選択画面で選んだキャラ（shino / karen）を使う ---------- */
+const PARTNER = (() => { try { return localStorage.getItem('partner') === 'karen' ? 'karen' : 'shino'; } catch (e) { return 'shino'; } })();
+document.documentElement.classList.toggle('karen', PARTNER === 'karen');
+/*MODEL_FETCH*/
+// モデルを ArrayBuffer で読む（公開版では、この部分が Base64 テキストの分割読み込みに置き換わる）
+const MODEL_URL = { shino: './shino_lite.vrm', karen: './karen.vrm' };
+function fetchModel(id, onProgress) {
+  return fetch(MODEL_URL[id] || MODEL_URL.shino).then(async r => {
+    if (!r.ok) throw new Error(r.status + ' ' + r.url);
+    const total = Number(r.headers.get('content-length')) || 0;
+    if (!r.body || !total) return r.arrayBuffer();
+    const rd = r.body.getReader(), cs = []; let o = 0;
+    for (;;) { const { done, value } = await rd.read(); if (done) break; cs.push(value); o += value.length; onProgress?.({ loaded: Math.min(o, total), total }); }
+    const buf = new Uint8Array(o); o = 0; for (const c of cs) { buf.set(c, o); o += c.length; }
+    return buf.buffer;
+  });
+}
+/*END_MODEL_FETCH*/
+const modelBufs = {};
+function getModelBuf(id, onProgress) { return modelBufs[id] ||= fetchModel(id, onProgress); }
+// GLTFLoader.load と同じ呼び方で、選んだキャラのモデルを読む
+function loadPartner(loader, onLoad, onProgress, onError) { getModelBuf(PARTNER, onProgress).then(buf => loader.parse(buf, './', onLoad, onError)).catch(onError); }
+// カレンを選んでいる時は、しののセリフをカレン版に差し替える（値が [セリフ, 表情] のものもある）
+function partnerLine(text, emo) {
+  if (PARTNER !== 'karen') return [text, emo];
+  const k = KAREN_LINES[text];
+  return k === undefined ? [text, emo] : Array.isArray(k) ? k : [k, emo];
+}
+// カレン版のセリフ（キー：しののセリフ → 値：[カレンのセリフ, 表情]）
+const KAREN_LINES = {
+  '……おかえり。今夜も、街がきれいやね。': ['おかえりー！ 今夜も街がキラキラしてるよ！', 'happy'],
+  'わ……っ。急につつかんで。びっくりするけん。': ['ちょっと〜！ 急につつかないでよ！ ……え、もっと驚いてほしかった？', 'surprised'],
+  'イベントの報酬、まだ残っとるみたいよ。': ['ねえねえ！ イベントの報酬、まだ残ってるって！', 'happy'],
+  '……そろそろ、出撃する？ ノエルベルク、雪が降っとるって。': ['そろそろ出撃する？ ノエルベルク、雪の舞台だって！', 'happy'],
+  'あの車、どこまで飛んでいくっちゃろうね。': ['あの車、どこまで飛んでくんだろ？ ついてっちゃう？', 'happy'],
+  '呼んでくれたと？……ん、ちょっと嬉しい。': ['あたしを呼んだ？ ふふん、キミ、分かってるじゃん！', 'happy'],
+  'この前の任務、ちょっと手強かったね……。次は、うちが守るけん。': ['この前の任務、ちょっと手強かったね。……次は、あたしがちゃんと守るから。', 'relaxed'],
+  '屋上の風、けっこう冷たかよ。……うちは平気やけど。': ['屋上の風、つめたっ！ ……キミ、寒くない？', 'surprised'],
+  '……ねえ。ちゃんと、見とる？': ['ねえねえ！ ちゃんと見てる？ 主役はこっちだよ！', 'happy'],
+  'ネオンって、ずっと見とられるね。': ['ネオンって、ずっと見てられるよね〜。', 'relaxed'],
+  '今日は、どこ行こっか。': ['今日はどこ行く？ 退屈なら、あたしが面白くしてあげる！', 'happy'],
+  'ぼーっとしとったら、置いていくけんね。': ['おやおや〜？ ぼーっとしてると、置いてっちゃうよ？', 'happy'],
+  'こんな時間まで起きとると？……無理したらいかんよ。': ['こんな時間まで起きてるの？ ……無理しちゃダメだよ。', 'sad'],
+  '……おはよう。今日も、よろしくね。': ['おはよー！ カレン・カデンツァ、ただいま登場！', 'happy'],
+  '……来てくれたと？ 待っとったよ。': ['やっほー！ 待ってたよ、キミ！', 'happy'],
+  'こんばんは。今夜も、おつかれさま。': ['こんばんは！ 今夜もショータイムの始まりだよ！', 'happy'],
+  '……もう。つつきすぎ。怒るけんね。': ['ちょっと〜！ つつきすぎ！ ……次やったら、くすぐり返すからね？', 'angry'],
+  '……なでてくれると？ ……ん、嫌じゃなか。': ['えっ！？ ちょ、急になでないでよ！ ……べ、別に嬉しくないとは言ってないし！', 'surprised'],
+  '……声、聞こえとる？ よろしくね。': ['あー、あー！ 声、聞こえてる？ よろしくね！', 'happy'],
+};
+if (PARTNER === 'karen') {
+  document.querySelector('#plate h1').innerHTML = 'カレン <span>カデンツァ</span>';
+  document.querySelector('#plate .rn').textContent = 'CAREN CADENZA';
+}
 
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = a => a[Math.floor(Math.random() * a.length)];
@@ -654,7 +709,7 @@ loader.register(p => new VRMLoaderPlugin(p));
 const pbar = document.getElementById('pbar'), lmsg = document.getElementById('lmsg');
 const CHAR_ROT = 0.22;
 
-loader.load('./shino_lite.vrm', gltf => {
+loadPartner(loader, gltf => {
   vrm = gltf.userData.vrm;
   VRMUtils.removeUnnecessaryVertices(gltf.scene);
   VRMUtils.combineSkeletons ? VRMUtils.combineSkeletons(gltf.scene) : VRMUtils.removeUnnecessaryJoints?.(gltf.scene);
@@ -839,6 +894,7 @@ function pickVoice() {
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
 
 function say(text, emo = 'happy') {
+  [text, emo] = partnerLine(text, emo);
   clearTimeout(bubbleTimer);
   if (speech?.utter) speechSynthesis.cancel();
   const chars = [...text];
@@ -849,7 +905,7 @@ function say(text, emo = 'happy') {
   shotT = 0;
   if (voiceOn && jaVoice) {
     const u = new SpeechSynthesisUtterance(text.replace(/[♪〜～]/g, 'ー'));
-    u.voice = jaVoice; u.lang = 'ja-JP'; u.rate = 1.15; u.pitch = 1.45;
+    u.voice = jaVoice; u.lang = 'ja-JP'; u.rate = PARTNER === 'karen' ? 1.25 : 1.15; u.pitch = PARTNER === 'karen' ? 1.7 : 1.45;
     const s = speech; s.utter = u; s.ttsDone = false; s.wait = 1.0;
     u.onstart = () => { s.wait = 0; };
     u.onend = u.onerror = () => { s.ttsDone = true; s.wait = 0; };
