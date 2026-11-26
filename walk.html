@@ -18,7 +18,7 @@
   button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   .panel{position:relative;background:var(--bg);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
     clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);box-shadow:inset 0 0 0 1px var(--line)}
-  .tap{transition:transform .12s, filter .12s} .tap:hover{filter:brightness(1.2)} .tap:active{transform:scale(.95)}
+  .tap{transition:transform .12s, filter .12s} @media (hover:hover){.tap:hover{filter:brightness(1.2)}} .tap:active{transform:scale(.95)}
 
   #fx{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,12,.55) 100%)}
   #top{position:fixed;left:20px;top:18px;display:flex;align-items:center;gap:12px}
@@ -142,6 +142,27 @@
 </script>
 </head>
 <body>
+<script>
+/* タップ補助（iPad・スマホ）：指を離した瞬間に、その場所へクリックを送る */
+(() => {
+  let st = null, lastUp = -1e9;
+  const FORM = 'input,textarea,select,label,option,[contenteditable]';
+  addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && e.isPrimary) st = { x: e.clientX, y: e.clientY, t: performance.now(), el: e.target }; }, true);
+  addEventListener('pointercancel', e => { if (e.pointerType === 'touch') st = null; }, true);
+  addEventListener('pointerup', e => {
+    if (e.pointerType !== 'touch' || !e.isPrimary || !st) return;
+    const s = st; st = null;
+    if (s.el.closest && s.el.closest(FORM)) return;                       // 入力欄はブラウザに任せる
+    lastUp = performance.now();
+    if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 24 || lastUp - s.t > 900) return;   // ドラッグや長押しはタップにしない
+    s.el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY }));
+  }, true);
+  addEventListener('click', e => {
+    if (e.isTrusted && performance.now() - lastUp < 800 && !(e.target.closest && e.target.closest(FORM))) { e.stopImmediatePropagation(); e.preventDefault(); }
+  }, true);
+})();
+</script>
+
 <div id="stage"></div>
 <div id="fx"></div>
 <div id="top">
