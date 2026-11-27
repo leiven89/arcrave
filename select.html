@@ -1724,8 +1724,8 @@ function setInfo(id) {
    ===================================================================== */
 const toastEl = document.getElementById('toast'); let toastT;
 function toast(m) { toastEl.textContent = m; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1700); }
-document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127193334');
-document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261127193334');
+document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127195015');
+document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261127195015');
 window.__sel = { karen: () => ({ karen, kRoot, kShow, kFin, kClock, SPOTS, M, select: () => selectKaren(ROSTER.find(r => r.id === 'karen').card), decide: karenDecide, KP, kApply, clock: v => { musicStop(); kClock = v; }, icon: karenIcon }), pose: n => setPose(n, 10), shot: setShot, select: () => selectShino(document.querySelector('.ic.ur')), step: (sec) => { for (let i = 0; i < sec * 60; i++) tick(1 / 60); }, state: () => ({ skill, conv: conv.visible, glow: handGlow.scale.x, shot }), POSES, bone: n => bone(n), THREE, ear: EAR_OFFSET, hint: ELBOW_HINT, dbg: () => { const f = n => bone(n).getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)); const t = EAR_OFFSET.clone(); bone('head').localToWorld(t); return { head: f('head'), hand: f('leftHand'), elbow: f('leftLowerArm'), sh: f('leftUpperArm'), target: t.toArray().map(v => +v.toFixed(3)), rawHand: vrm.humanoid.getRawBoneNode('leftHand').getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)) }; }, show: () => { vrm.scene.visible = true; document.getElementById('loading').classList.add('hide'); setShot('normal'); } };
 
 /* =====================================================================

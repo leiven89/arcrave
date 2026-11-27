@@ -255,7 +255,7 @@
       <h2>ネオン・ナイトパレード</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261127193334">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261127195015">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
@@ -264,11 +264,11 @@
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261127193334">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261127193334">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127195015">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261127195015">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261127193334">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127195015">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -363,7 +363,7 @@ const SFX = (() => {
     return src;
   }
   function stopVoice() { try { S.vsrc?.stop(); } catch (e) {} S.vsrc = null; S.vtok = (S.vtok || 0) + 1; }
-  return { play, voice, stopVoice, loop, preload: list => { ctx(); list.forEach(load); }, setOn, isOn: () => S.on, _s: S, _ctx: ctx };
+  return { play, voice, stopVoice, loop, preload: list => { ctx(); return Promise.all(list.map(load)); }, setOn, isOn: () => S.on, _s: S, _ctx: ctx };
 })();
 window.__sfx = SFX;
 
@@ -1080,8 +1080,17 @@ const SHINO_VOICE = {
   '……もう。つつきすぎ。怒るけんね。': ['lobby_17', .85, .28],
   '……なでてくれると？ ……ん、嫌じゃなか。': ['lobby_18', 1.53, .39],
   '……声、聞こえとる？ よろしくね。': ['lobby_19', 1.53, .17],
+  // パーティの掛け合い（自分がしの、または仲間のしのが話すとき）
+  '……カレン。うん、よろしく。……あんまり騒がんでね。': ['banter_01', 1.37, .11],
+  '……ふふ。じゃあ、うちは後ろで見とく。危なくなったら、ちゃんと守るけん。': ['banter_02', 1.01, .09],
+  '……え。うちが、もう一人おる……？': ['banter_03', .72, .07],
+  '……鏡、じゃなかよね。……なんか、落ち着かん。': ['banter_04', 2.25, .19],
+  'でも……うちが二人なら、氷の壁も二倍やね。': ['banter_05', 1.14, .23],
+  '……ふふ。うん。いっしょに行こ。': ['banter_06', 1.41, .09],
 };
 if (PARTNER === 'shino') SFX.preload(Object.values(SHINO_VOICE).map(v => 'voice/shino/' + v[0]));
+// 収録ボイスの長さ（秒）。読み込みがまだなら 0
+function shinoVoiceDur(text) { const v = SHINO_VOICE[text], b = v && SFX._s.buf['voice/shino/' + v[0]]; return b ? b.duration - v[2] : 0; }
 function say(text, emo = 'happy') {
   [text, emo] = partnerLine(text, emo);
   clearTimeout(bubbleTimer);
@@ -1706,7 +1715,7 @@ function mateTick(dt, t) {
         const S = M.say; S.t += dt;
         const n = Math.min(S.chars.length, Math.floor(S.t / .11) + 1);
         if (n !== S.shown) { S.shown = n; M.bub.textContent = S.chars.slice(0, n).join(''); }
-        if (n < S.chars.length) mouth = .3 + .5 * Math.abs(Math.sin(S.t * 18));
+        if (n < S.chars.length || S.t < S.vd) mouth = .3 + .5 * Math.abs(Math.sin(S.t * 18));
         if (S.t > S.dur) { M.say = null; M.bub.classList.remove('show'); }
       }
       if (em.getExpression('aa')) em.setValue('aa', mouth);
@@ -1729,9 +1738,12 @@ function placeTagAt(e, p, up, keepIn) {
   e.style.transform = `translate(${x}px,${y}px) translate(-50%,-100%)`;
 }
 function mateSay(M, text, emo) {
-  M.say = { chars: [...text], t: 0, shown: 0, emo, dur: 1.2 + [...text].length * .11 };
+  const rv = M.ch === 'shino' && SHINO_VOICE[text];      // 仲間のしのの収録ボイス
+  const vd = rv ? shinoVoiceDur(text) : 0;              // 声の長さ：そのあいだは口を動かし、セリフ枠も出しておく
+  M.say = { chars: [...text], t: 0, shown: 0, emo, vd, dur: Math.max(1.2 + [...text].length * .11, vd + .6) };
   M.bub.textContent = ''; M.bub.classList.add('show');
-  if (voiceOn && jaVoice) { const u = new SpeechSynthesisUtterance(text.replace(/[♪〜～]/g, 'ー')); u.voice = jaVoice; u.lang = 'ja-JP'; u.rate = M.ch === 'karen' ? 1.25 : 1.15; u.pitch = M.ch === 'karen' ? 1.7 : 1.45; speechSynthesis.speak(u); }
+  if (rv) SFX.voice('voice/shino/' + rv[0], rv[1], rv[2]);
+  else if (voiceOn && jaVoice) { const u = new SpeechSynthesisUtterance(text.replace(/[♪〜～]/g, 'ー')); u.voice = jaVoice; u.lang = 'ja-JP'; u.rate = M.ch === 'karen' ? 1.25 : 1.15; u.pitch = M.ch === 'karen' ? 1.7 : 1.45; speechSynthesis.speak(u); }
 }
 
 /* ---------- 掛け合い：キャラの組み合わせごとの台本（話す役は 0 と 1） ---------- */
@@ -1769,6 +1781,8 @@ function checkBanter() {
   }
 }
 function playBanter(sc, cast) {
+  // しのの声を先に読み込んでから始める（長さが分かると、声が終わってから次のセリフへ進める）。待つのは最大4秒
+  const ready = cast.some(a => a.ch === 'shino') ? Promise.race([SFX.preload(sc.lines.map(L => SHINO_VOICE[L[1]]).filter(Boolean).map(v => 'voice/shino/' + v[0])), new Promise(r => setTimeout(r, 4000))]) : Promise.resolve();
   banterOn = true; if (shot !== 'wide') cutTo('wide');
   let i = 0;
   const next = () => {
@@ -1778,9 +1792,9 @@ function playBanter(sc, cast) {
     for (const M of mates.values()) { M.say = null; M.bub.classList.remove('show'); }       // 話す人のセリフ枠だけ出す
     clearTimeout(bubbleTimer); bubble.classList.remove('show');
     if (who.pid === SOC.pid) say(text, emo); else { const M = mates.get(who.pid); if (!M) { banterOn = false; return; } mateSay(M, text, emo); }
-    banterTimer = setTimeout(next, (1.6 + [...text].length * .115) * 1000);
+    banterTimer = setTimeout(next, Math.max(1.6 + [...text].length * .115, (who.ch === 'shino' ? shinoVoiceDur(text) : 0) + .7) * 1000);      // 声が最後まで聞こえてから次へ
   };
-  setTimeout(next, 900);
+  ready.then(() => setTimeout(next, 900));
 }
 function cancelBanter() { banterOn = false; clearTimeout(banterTimer); }
 setInterval(syncMates, 700);
