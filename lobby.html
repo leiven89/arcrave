@@ -255,7 +255,7 @@
       <h2>ネオン・ナイトパレード</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261127185443">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261127190846">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
@@ -264,11 +264,11 @@
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261127185443">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261127185443">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127190846">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261127190846">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261127185443">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127190846">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -1076,6 +1076,10 @@ const SHINO_VOICE = {
   '……おはよう。今日も、よろしくね。': ['lobby_14', 1.74, .15],
   '……来てくれたと？ 待っとったよ。': ['lobby_15', 1.9, .11],
   'こんばんは。今夜も、おつかれさま。': ['lobby_16', 1.36, .09],
+  // つつきすぎ・頭なで・ボイスON
+  '……もう。つつきすぎ。怒るけんね。': ['lobby_17', .85, .28],
+  '……なでてくれると？ ……ん、嫌じゃなか。': ['lobby_18', 1.53, .39],
+  '……声、聞こえとる？ よろしくね。': ['lobby_19', 1.53, .17],
 };
 if (PARTNER === 'shino') SFX.preload(Object.values(SHINO_VOICE).map(v => 'voice/shino/' + v[0]));
 function say(text, emo = 'happy') {

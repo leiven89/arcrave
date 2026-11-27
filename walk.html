@@ -281,7 +281,7 @@
 <div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
 <div id="bossHud"><small>BOSS</small><b>氷殻の守護者グラキエス</b><div class="bb"><i id="bossBar"></i></div><span id="bossNum"></span></div>
-<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261127185443">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261127185443">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
+<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261127190846">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261127190846">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
   <header><div class="logo" id="shopLogo">夜</div><div class="nm"><b id="shopName">ヨルマート</b><small id="shopEn">YORU MART</small></div><button class="close tap" id="shopClose">✕ 店を出る</button></header>
@@ -424,14 +424,18 @@ const SFX = (() => {
   }
   function setOn(v) { S.on = v; try { localStorage.setItem('arc_sfx', v ? '1' : '0'); } catch (e) {} if (S.master) S.master.gain.value = v ? .7 : 0; }
   // ボイス（voice/…）：前のボイスが鳴っていたら止めて、新しいほうを鳴らす。skip 秒ぶん頭の無音を飛ばす
-  function voice(n, vol = 1, skip = 0) {
-    if (!S.on) return;
-    const c = ctx(); if (!c || c.state !== 'running') return;
-    const b = S.buf[n]; if (!b) { load(n); return; }
-    try { S.vsrc?.stop(); } catch (e) {}
+  // 鳴らせたら音源を返す（終わりを知るため）。画面を開いた直後でも鳴らせるか試し、読み込み中なら待つ
+  async function voice(n, vol = 1, skip = 0) {
+    try { S.vsrc?.stop(); } catch (e) {} S.vsrc = null; const tok = S.vtok = (S.vtok || 0) + 1;
+    if (!S.on) return null;
+    const c = ctx(); if (!c) return null;
+    if (c.state !== 'running') { try { await Promise.race([c.resume(), new Promise(r => setTimeout(r, 300))]); } catch (e) {} if (c.state !== 'running') return null; }
+    const b = S.buf[n] || await load(n);
+    if (!b || tok !== S.vtok) return null;      // 待っているあいだに次の声になった
     const src = c.createBufferSource(), g = c.createGain();
     src.buffer = b; g.gain.value = vol; src.connect(g); g.connect(S.master); src.start(0, Math.min(skip, b.duration * .5));
     S.vsrc = src; src.onended = () => { if (S.vsrc === src) S.vsrc = null; };
+    return src;
   }
   return { play, voice, loop, preload: list => { ctx(); list.forEach(load); }, setOn, isOn: () => S.on, _s: S, _ctx: ctx };
 })();
@@ -483,6 +487,21 @@ const VOICE = {
   awaken: { f: 'voice/shino/call_awaken', vol: 1.8, skip: .2 },
 };
 if (PARTNER === 'shino') SFX.preload(Object.values(VOICE).map(v => v.f));
+// 街のセリフの収録ボイス（セリフ → [ファイル名, 音量, 頭の無音を飛ばす秒]）
+const SHINO_LINE_VOICE = {
+  'ここがノエルベルク……。雪、きれいやね。ちょっと歩こっか。': ['town_01', 1.05, .17],
+  'うしろに訓練場があるけん、技の練習も、ほかの人との手合わせもできるよ。': ['town_02', .98, .08],
+  'あれがグラン・ノエル……。おっきかね。': ['town_03', 1.9, .1],
+  'これがグラン・ノエル……。この街の人みんなの、目印なんやって。': ['town_04', .97, .11],
+  '星、ちゃんと一番上に乗っとる。……なんか、安心するね。': ['town_05', 1.62, .14],
+  'お店、ぐるっと六つあるんやね。どこから見よっか。': ['town_06', 1.26, .11],
+  'きれいやね……。みんなで見られたら、もっとよかったっちゃけど。': ['town_07', 1.49, .21],
+  '寒くない？……うちは平気。氷、得意やけん。': ['town_08', .96, .15],
+  'わ、コイン……！ ちょっと得した気分。': ['town_09', 1.45, .12],
+  '宝箱、ほんとにあるっちゃね。': ['town_10', 1.43, .09],
+  'これで何か買っていこっか。': ['town_11', 1.56, .18],
+};
+if (PARTNER === 'shino') SFX.preload(Object.values(SHINO_LINE_VOICE).map(v => 'voice/shino/' + v[0]));
 function shinoVoice(id) { const v = VOICE[id]; if (v && PARTNER === 'shino') SFX.voice(v.f, v.vol, v.skip); }
 // 位置つきの音：自分から遠いほど小さく
 function sfxAt(n, pos, vol = 1, rate = 1) { const d = Math.hypot(pos.x - player.pos.x, pos.z - player.pos.z); SFX.play(n, vol * Math.max(0, 1 - d / 24), rate); }
@@ -1463,6 +1482,9 @@ let speech = null, subT, mouthBusy = 0, blinkT = 2, blinkV = 0;
 function say(text, face = { relaxed_eye: .3, brow_relaxed: .4, happy_mouth: .3 }) {
   if (PARTNER === 'karen') { text = partnerLine(text)[0]; face = karenFace(face); }
   clearTimeout(subT); speech = { chars: [...text], mora: toMora(text), i: 0, t: 0 };
+  // 収録ボイスがあるセリフはそれを鳴らす（口パクは声が終わるまで続ける）
+  const rv = PARTNER === 'shino' && SHINO_LINE_VOICE[text];
+  if (rv) { const s = speech; SFX.voice('voice/shino/' + rv[0], rv[1], rv[2]).then(src => { if (!src || speech !== s) return; s.vplay = true; src.addEventListener('ended', () => { s.vplay = false; }); }); }
   mySay = { s: text.slice(0, 120), n: (mySay.n || 0) + 1 };
   $('sub').textContent = ''; $('sub').classList.add('show'); setFace(face);
 }
@@ -1475,6 +1497,10 @@ function updateFace(dt) {
       const m = s.mora[Math.min(s.i, s.mora.length - 1)];
       if (s.i < s.mora.length && m.v) { const k = s.t / m.d; vis[V2EX[m.v]] = (m.v === 'a' ? .8 : .6) * Math.min(1, k * 5) * (1 - .3 * k); }
       busy = 1; $('sub').textContent = s.chars.slice(0, (s.i < s.mora.length ? m.ci : s.chars.length - 1) + 1).join('');
+    } else if (s.vplay) {      // 字幕は出しきったが、声がまだ続いている：口だけ動かす
+      s.t += dt; busy = 1; $('sub').textContent = s.chars.join('');
+      const vs = s.mora.filter(m => m.v); const m = vs[Math.floor(s.t / .12) % vs.length];
+      if (m) vis[V2EX[m.v]] = .55 * Math.abs(Math.sin(s.t * Math.PI / .12));
     } else { $('sub').textContent = s.chars.join(''); speech = null; subT = setTimeout(() => { $('sub').classList.remove('show'); setFace({}); }, 2600); }
   }
   mouthBusy += (busy - mouthBusy) * (1 - Math.exp(-dt * 10));
@@ -1526,7 +1552,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127185443');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127190846');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -3792,7 +3818,7 @@ function dBuild() {
   dWall(-1.75, 0, -1.75, 6.6); dWall(1.75, 0, 1.75, 6.6); dWall(-1.8, 6.6, 1.8, 6.6);     // 地上へ続く階段の壁
   const portal = new THREE.Mesh(new THREE.RingGeometry(.6, 1.1, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.5, 2.2), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   portal.rotation.x = -Math.PI / 2; portal.position.set(DX, .03, -1); scene.add(portal); DG.portalA = portal;
-  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127185443', 350); } });
+  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127190846', 350); } });
   dCorridor(-18, -10);
   // 戦闘の部屋1
   dRoom(-9, 9, -36, -18, { n: true, s: true }); for (const [x, z] of [[-5, -23], [5, -23], [-5, -31], [5, -31]]) dPillar(x, z);
@@ -4039,7 +4065,7 @@ function dClear() {
   // 帰り道のポータル
   const p = new THREE.Mesh(new THREE.RingGeometry(.8, 1.4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.4, .6), transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   p.rotation.x = -Math.PI / 2; p.position.set(DX, .04, -104); scene.add(p); DG.portalB = p;
-  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127185443', 350); } });
+  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127190846', 350); } });
   dChest(0, -112, 5000, 'boss');
   setTimeout(() => {
     $('dresTime').textContent = fmt(sec); $('dresBest').textContent = nb ? 'ベスト更新！' : `ベスト ${fmt(best)}`; $('dresCoin').textContent = `+${reward.toLocaleString()}円`;
