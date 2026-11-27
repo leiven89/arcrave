@@ -235,6 +235,7 @@
     <button class="lm panel tap" data-msg="イベント画面（デモ）"><span class="hx">★</span><span><b>イベント</b><small>EVENT</small></span><span class="dot"></span></button>
     <button class="lm panel tap" id="friendBtn"><span class="hx">⚇</span><span><b>フレンド</b><small>FRIEND</small></span></button>
     <button class="lm panel tap" data-msg="お知らせ（デモ）"><span class="hx">!</span><span><b>お知らせ</b><small>NEWS</small></span></button>
+    <button class="lm panel tap" id="sfxBtn"><span class="hx">♪</span><span><b>効果音</b><small>SFX ON</small></span></button>
     <button class="lm panel tap" id="voiceBtn"><span class="hx">🔇</span><span><b>ボイス</b><small>VOICE OFF</small></span></button>
   </nav>
 
@@ -253,7 +254,7 @@
       <h2>ネオン・ナイトパレード</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261127125836">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261127131339">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
@@ -262,11 +263,11 @@
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261127125836">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261127125836">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127131339">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261127131339">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261127125836">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127131339">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -306,6 +307,50 @@ document.documentElement.classList.toggle('karen', PARTNER === 'karen');
    通信はタイトル画面（親フレーム）が受け持つ。ここでは自分の状態 x を presence に載せ、
    ほかの人の x を読む。メッセージ（フレンド申請・パーティ招待など）は x.mb に宛先つきで並べて渡す。
    フレンドはこの端末に保存する（相手の ID と名前）。 */
+
+/* ---------- 効果音（ElevenLabs で作った sfx/*.mp3 を WebAudio で鳴らす） ----------
+   最初に画面に触れた時に音が出せるようになる（ブラウザの決まり）。ロビーの「効果音」ボタンで ON/OFF（この端末に保存）。 */
+const SFX = (() => {
+  const S = { ctx: null, master: null, buf: {}, loading: {}, last: {}, loops: {}, on: true };
+  try { S.on = localStorage.getItem('arc_sfx') !== '0'; } catch (e) {}
+  function ctx() {
+    if (S.ctx) return S.ctx;
+    const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
+    S.ctx = new C(); S.master = S.ctx.createGain(); S.master.gain.value = S.on ? .7 : 0; S.master.connect(S.ctx.destination);
+    return S.ctx;
+  }
+  function unlock() { const c = ctx(); if (c && c.state === 'suspended') c.resume().then(startLoops).catch(() => {}); else startLoops(); }
+  addEventListener('pointerdown', unlock, true); addEventListener('keydown', unlock, true); addEventListener('touchend', unlock, true);
+  function load(n) {
+    if (S.buf[n]) return Promise.resolve(S.buf[n]);
+    if (S.loading[n]) return S.loading[n];
+    const c = ctx(); if (!c) return Promise.resolve(null);
+    return S.loading[n] = fetch('sfx/' + n + '.mp3').then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status))
+      .then(a => new Promise((res, rej) => c.decodeAudioData(a, res, rej))).then(b => (S.buf[n] = b)).catch(() => null);
+  }
+  function play(n, vol = 1, rate = 1) {
+    if (!S.on || vol <= .02) return;
+    const c = ctx(); if (!c || c.state !== 'running') return;
+    const now = performance.now(); if (now - (S.last[n] || 0) < 45) return; S.last[n] = now;      // 同じ音が重なりすぎない
+    const b = S.buf[n]; if (!b) { load(n); return; }
+    const src = c.createBufferSource(), g = c.createGain();
+    src.buffer = b; src.playbackRate.value = rate; g.gain.value = Math.min(1.5, vol);
+    src.connect(g); g.connect(S.master); src.start();
+  }
+  // くり返し鳴らす音（ダンジョンの環境音など）
+  function loop(n, vol = .4) { S.loops[n] = { vol, src: S.loops[n]?.src || null }; startLoops(); }
+  function startLoops() {
+    const c = S.ctx; if (!c || c.state !== 'running') return;
+    for (const n in S.loops) {
+      const L = S.loops[n]; if (L.src) continue;
+      load(n).then(b => { if (!b || L.src) return; const src = c.createBufferSource(), g = c.createGain(); src.buffer = b; src.loop = true; g.gain.value = L.vol; src.connect(g); g.connect(S.master); src.start(); L.src = src; });
+    }
+  }
+  function setOn(v) { S.on = v; try { localStorage.setItem('arc_sfx', v ? '1' : '0'); } catch (e) {} if (S.master) S.master.gain.value = v ? .7 : 0; }
+  return { play, loop, preload: list => { ctx(); list.forEach(load); }, setOn, isOn: () => S.on, _s: S };
+})();
+window.__sfx = SFX;
+SFX.preload(['ui_tap', 'ui_open', 'ui_notify', 'ui_coin']);
 const SOC = (() => {
   const L = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
   const SS = { get(k, d) { try { const v = sessionStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
@@ -1142,6 +1187,9 @@ renderer.domElement.addEventListener('click', e => {
 const toastEl = document.getElementById('toast'); let toastT;
 function toast(m) { toastEl.textContent = m; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1400); }
 document.querySelectorAll('[data-msg]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); toast(el.dataset.msg); }));
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.tap, #soc button, #invPop button')) SFX.play('ui_tap', .6); }, true);     // ボタンの音
+{ const b = document.getElementById('sfxBtn'), show = () => { b.querySelector('.hx').textContent = SFX.isOn() ? '♪' : '×'; b.querySelector('small').textContent = SFX.isOn() ? 'SFX ON' : 'SFX OFF'; b.classList.toggle('on', SFX.isOn()); };
+  show(); b.addEventListener('click', ev => { ev.stopPropagation(); SFX.setOn(!SFX.isOn()); show(); toast(SFX.isOn() ? '効果音をONにしました' : '効果音をOFFにしました'); }); }
 document.querySelectorAll('[data-href]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); location.href = el.dataset.href; }));
 document.querySelectorAll('.plus').forEach(el => el.addEventListener('click', () => toast('ショップ（デモ）')));
 
@@ -1318,7 +1366,7 @@ function onPeers() {
   socInbox((pl, k, p) => {
     if (k === 'fq') {                                     // フレンド申請
       if (SOC.friends[pl.pid] || LN.fout[pl.pid]) { addFriend(pl.pid, pl.name); socSend(pl.pid, 'fa'); return; }
-      if (!LN.freq.some(r => r.pid === pl.pid)) { LN.freq.push({ pid: pl.pid, name: pl.name }); SOC.SS.set('arc_freq', LN.freq); toast(`${pl.name} さんからフレンド申請`); }
+      if (!LN.freq.some(r => r.pid === pl.pid)) { SFX.play('ui_notify', .9); LN.freq.push({ pid: pl.pid, name: pl.name }); SOC.SS.set('arc_freq', LN.freq); toast(`${pl.name} さんからフレンド申請`); }
     } else if (k === 'fa') { addFriend(pl.pid, pl.name); toast(`${pl.name} さんとフレンドになりました`); }
     else if (k === 'pi' && typeof p.id === 'string' && PID_RE.test(p.id)) {        // パーティ招待
       if (SOC.party && SOC.party.id === p.id) return;
@@ -1326,7 +1374,7 @@ function onPeers() {
     } else if (k === 'pj' && SOC.party && SOC.party.lead === SOC.pid && p.id === SOC.party.id) {     // 参加したい
       if (SOC.party.m.includes(pl.pid)) return;
       if (SOC.party.m.length >= 4) { socSend(pl.pid, 'pk', { id: SOC.party.id, why: 'full' }); return; }
-      SOC.party.m.push(pl.pid); socSave(); publish(true); toast(`${pl.name} さんがパーティに参加しました`);
+      SOC.party.m.push(pl.pid); socSave(); publish(true); SFX.play('ui_notify', .8); toast(`${pl.name} さんがパーティに参加しました`);
     } else if (k === 'pk' && SOC.party && SOC.party.id === p.id && SOC.party.lead === pl.pid) {
       SOC.party = null; socSave(); toast(p.why === 'full' ? 'パーティが満員でした' : 'パーティから外れました');
     }
@@ -1392,13 +1440,13 @@ function updateChip() {
   if (n && !b) { b = document.createElement('span'); b.className = 'badge'; fb.appendChild(b); }
   if (b) { if (n) b.textContent = n; else b.remove(); }
 }
-function showInvite() { const v = LN.invites[LN.invites.length - 1]; if (!v) return hideInvite(); $('invText').textContent = `${v.name} さんからパーティに招待されました`; $('invPop').classList.add('on'); }
+function showInvite() { const v = LN.invites[LN.invites.length - 1]; if (!v) return hideInvite(); SFX.play('ui_notify', .9); $('invText').textContent = `${v.name} さんからパーティに招待されました`; $('invPop').classList.add('on'); }
 function hideInvite() { $('invPop').classList.remove('on'); }
 $('invYes').addEventListener('click', e => { e.stopPropagation(); const v = LN.invites[LN.invites.length - 1]; if (v) acceptInvite(v); });
 $('invNo').addEventListener('click', e => { e.stopPropagation(); LN.invites.pop(); LN.invites.length ? showInvite() : hideInvite(); renderSoc(); });
 
 /* ---------- 画面 ---------- */
-function openSoc(tab) { LN.tab = tab; $('soc').classList.add('on'); renderSoc(); }
+function openSoc(tab) { SFX.play('ui_open', .7); LN.tab = tab; $('soc').classList.add('on'); renderSoc(); }
 $('soc').addEventListener('click', e => { e.stopPropagation(); if (e.target.id === 'soc') $('soc').classList.remove('on'); });
 $('soc').addEventListener('pointerdown', e => e.stopPropagation());
 document.querySelector('#soc .x').addEventListener('click', () => $('soc').classList.remove('on'));
