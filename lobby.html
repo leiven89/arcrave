@@ -253,7 +253,7 @@
       <h2>ネオン・ナイトパレード</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261127124223">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261127125235">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
@@ -262,11 +262,11 @@
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261127124223">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261127124223">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127125235">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261127125235">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261127124223">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127125235">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -966,7 +966,7 @@ function say(text, emo = 'happy') {
   speech = { chars, mora: toMora(text), i: 0, t: 0, shown: -1, utter: null, ttsDone: true, wait: 0 };
   bubble.textContent = ''; bubble.classList.add('show');
   setEmotion(emo, 2 + chars.length * 0.12);
-  if (camMode === 'auto' && shot !== 'close') cutTo('close');      // 喋るときは顔アップへ
+  if (camMode === 'auto' && shot !== 'close' && !document.body.classList.contains('plobby')) cutTo('close');      // 喋るときは顔アップへ（パーティのロビーでは引きのまま）
   shotT = 0;
   if (voiceOn && jaVoice) {
     const u = new SpeechSynthesisUtterance(text.replace(/[♪〜～]/g, 'ー'));
@@ -1040,14 +1040,16 @@ function cutTo(name, silent) {
 const tgt = new THREE.Vector3(), right = new THREE.Vector3();
 function updateCamera(t, dt) {
   shotT += dt;
-  if (camMode === 'auto' && !speech && shotT > SHOT_DUR[shot]) cutTo(shot === 'wide' ? 'close' : 'wide');
+  const plb = document.body.classList.contains('plobby');
+  if (camMode === 'auto' && plb && shot !== 'wide') cutTo('wide', true);
+  else if (camMode === 'auto' && !plb && !speech && shotT > SHOT_DUR[shot]) cutTo(shot === 'wide' ? 'close' : 'wide');
 
   const portrait = camera.aspect < 1;
   const vFov = THREE.MathUtils.degToRad(camera.fov);
   let yaw, frameH;
   if (shot === 'wide') {
-    frameH = charH * 1.22;                                   // キャラを大きく
-    tgt.set(0, charH * 0.5, 0);
+    frameH = charH * 1.22 * PL.frameS;                       // キャラを大きく（パーティの時はみんなが入るように）
+    tgt.set(PL.cx, charH * PL.ty, PL.cz);
     yaw = 0.42 + Math.sin(t * 0.09) * 0.07 - shotT * 0.008; // ゆっくりパン
   } else {
     frameH = 0.72;                                           // バストアップ
@@ -1177,7 +1179,7 @@ setInterval(() => {
 }, 1000);
 setInterval(() => { if (st < 150) document.getElementById('stamina').textContent = `${++st}/150`; }, 8000);
 
-window.__lobby = { react: (type, t = 0) => { react = { type, t }; }, say, cut: cutTo, weights: () => ({ ...exW }) };
+window.__lobby = { react: (type, t = 0) => { react = { type, t }; }, say, cut: cutTo, weights: () => ({ ...exW }), loop: () => loop(), mates: () => mates };
 
 /* =====================================================================
    ループ
@@ -1193,11 +1195,12 @@ function loop() {
   if (vrm) {
     updateCamera(t, dt);
     if (react) { react.t += dt; if (react.t > 2.6) react = null; }
-    idleT += dt; if (idleT > 28 && !speech) { idleT = 0; say(...pick(IDLE_LINES)); }
+    idleT += dt; if (idleT > 28 && !speech && !banterOn) { idleT = 0; say(...pick(IDLE_LINES)); }
     pose(t);
     expressions(dt);
     vrm.update(dt);
     vrm.humanoid.getRawBoneNode('head').getWorldPosition(headPos);
+    mateTick(dt, t);
     // セリフ枠の位置（頭の右上、画面内に収める）
     tmp.copy(headPos); tmp.y += 0.1; tmp.project(camera);
     const bx = (tmp.x + 1) / 2 * innerWidth + (shot === 'close' ? 120 : 60);
@@ -1475,6 +1478,179 @@ function renderSoc() {
 $('friendBtn').addEventListener('click', e => { e.stopPropagation(); openSoc(LN.freq.length ? 'req' : 'friends'); });
 $('dungeon').addEventListener('click', e => { e.stopPropagation(); e.stopImmediatePropagation(); openSoc('party'); }, true);
 updateChip();
+
+/* =====================================================================
+   パーティの専用ロビー：仲間のキャラが横に並び、名前が見える。
+   キャラの組み合わせで掛け合いのセリフが流れる（それぞれの画面で同じ台本を再生）。
+   ===================================================================== */
+document.head.insertAdjacentHTML('beforeend', `<style>
+  .nplate{position:fixed;left:0;top:0;z-index:4;pointer-events:none;transform:translate(-50%,-100%);text-align:center;white-space:nowrap;transition:opacity .3s}
+  .nplate b{display:block;font-size:13px;font-weight:900;color:#fff;text-shadow:0 0 6px #000,0 0 12px rgba(63,240,255,.6)}
+  .nplate small{display:inline-block;margin-top:2px;padding:1px 8px;font:700 10px var(--en);letter-spacing:.15em;color:#03101c;background:var(--cy)}
+  .nplate.karen small{background:#ffb070}
+  .nplate.me b{color:#bff6ff}
+  .mbub{position:fixed;left:0;top:0;z-index:4;pointer-events:none;max-width:240px;padding:8px 12px;font-size:13px;font-weight:700;line-height:1.5;transform:translate(-50%,-100%);opacity:0;transition:opacity .2s}
+  .mbub.show{opacity:1}
+  .mbub.karen{box-shadow:inset 0 0 0 1px rgba(255,170,110,.7)}
+  #plTag{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);z-index:4;display:none;padding:5px 16px;font:700 12px var(--en);letter-spacing:.3em;color:#03101c;background:linear-gradient(90deg,#8fe9ff,var(--cy),#8fe9ff);pointer-events:none}
+  body.plobby #plTag{display:block}
+  body.noui .nplate,body.noui #plTag{display:none}
+</style>`);
+document.body.insertAdjacentHTML('beforeend', '<div id="plTag">PARTY LOBBY</div>');
+const MATE_SLOTS = [[1.05, -.4], [-1.0, -.45], [2.05, -.95]];      // 自分から見た位置：[カメラの右向きに, 手前(+)/奥(-)へ]
+const CAM_R = new THREE.Vector3(Math.cos(.42), 0, -Math.sin(.42)), CAM_F = new THREE.Vector3(Math.sin(.42), 0, Math.cos(.42));
+const mates = new Map();         // pid → { ch, vrm, slot, plate, bub, say }
+let myPlate = null, banterOn = false, banterQ = [], banterTimer = 0;
+const PL = { frameS: 1, cx: 0, cz: 0, ty: .5 };
+function slotPos(i) { const [r, f] = MATE_SLOTS[i]; return new THREE.Vector3().addScaledVector(CAM_R, r).addScaledVector(CAM_F, f); }
+function makePlate(cls) { const e = document.createElement('div'); e.className = 'nplate ' + cls; e.innerHTML = '<b></b><small></small>'; document.body.appendChild(e); return e; }
+function setPlate(e, name, ch, lead) { e.querySelector('b').textContent = (lead ? '♛ ' : '') + name; e.querySelector('small').textContent = ch === 'karen' ? 'CAREN' : 'SHINO'; e.classList.toggle('karen', ch === 'karen'); }
+// 仲間のキャラを読み込む
+function addMate(pid, ch, slot) {
+  const M = { pid, ch, vrm: null, slot, plate: makePlate(''), bub: document.createElement('div'), say: null, blinkT: rand(1, 4), blinkV: 0, wave: 2.4, ph: rand(0, 6), dead: false };
+  M.bub.className = 'mbub panel ' + ch; document.body.appendChild(M.bub);
+  mates.set(pid, M);
+  getModelBuf(ch).then(buf => loader.parse(buf, './', gltf => {
+    if (M.dead) return;
+    const v = gltf.userData.vrm;
+    VRMUtils.removeUnnecessaryVertices(gltf.scene);
+    VRMUtils.combineSkeletons ? VRMUtils.combineSkeletons(gltf.scene) : VRMUtils.removeUnnecessaryJoints?.(gltf.scene);
+    VRMUtils.rotateVRM0(v);
+    v.scene.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.frustumCulled = false;
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (m.isMToonMaterial && m.parametricRimColorFactor) { m.parametricRimColorFactor.setRGB(0.10, 0.38, 0.48); m.parametricRimFresnelPowerFactor = 5.0; m.parametricRimLiftFactor = 0.04; m.rimLightingMixFactor = 0.6; } }); });
+    const box = new THREE.Box3().setFromObject(v.scene); M.footY = -box.min.y; M.h = box.max.y - box.min.y;
+    M.hipsY = v.humanoid.getNormalizedBoneNode('hips').position.y;
+    if (v.lookAt) v.lookAt.target = lookTarget;
+    scene.add(v.scene); M.vrm = v; M.wave = 2.4;
+    placeMate(M);
+  }, err => console.warn('mate', err))).catch(err => console.warn('mate', err));
+}
+function placeMate(M) { if (!M.vrm) return; const p = slotPos(M.slot); M.vrm.scene.position.set(p.x, M.footY, p.z); M.vrm.scene.rotation.y = CHAR_ROT + (MATE_SLOTS[M.slot][0] > 0 ? -.25 : .25); }
+function removeMate(M) { M.dead = true; M.plate.remove(); M.bub.remove(); if (M.vrm) { scene.remove(M.vrm.scene); VRMUtils.deepDispose(M.vrm.scene); } mates.delete(M.pid); }
+// パーティの名簿に合わせて、並ぶキャラをそろえる
+function syncMates() {
+  const P = SOC.party, pls = socPlayers();
+  const want = P ? P.m.filter(id => id !== SOC.pid && pls.get(id)).slice(0, 3) : [];
+  for (const M of [...mates.values()]) { const pl = pls.get(M.pid); if (!want.includes(M.pid) || (pl && pl.ch !== M.ch)) { removeMate(M); cancelBanter(); } }
+  const used = new Set([...mates.values()].map(M => M.slot));
+  for (const id of want) if (!mates.has(id)) { let s = 0; while (used.has(s)) s++; used.add(s); addMate(id, pls.get(id).ch, s); }
+  document.body.classList.toggle('plobby', !!P);
+  if (P) $('plTag').textContent = `PARTY LOBBY  ${P.m.length}/4`;
+  // 名札
+  if (P && !myPlate) myPlate = makePlate('me');
+  if (!P && myPlate) { myPlate.remove(); myPlate = null; }
+  if (myPlate) setPlate(myPlate, SOC.myName || 'あなた', PARTNER, P.lead === SOC.pid);
+  for (const M of mates.values()) setPlate(M.plate, nameOf(M.pid), M.ch, P && P.lead === M.pid);
+  // 画角：みんなが入るように広げる
+  const xs = [0, ...[...mates.values()].map(M => MATE_SLOTS[M.slot][0])];
+  const lo = Math.min(...xs), hi = Math.max(...xs);
+  PL.frameS = P ? 1.16 + (hi - lo) * .2 : 1; PL.ty = P ? .57 : .5;      // 頭の上に名札が入るくらい余白を取る const c = new THREE.Vector3().addScaledVector(CAM_R, (lo + hi) / 2 * .85); PL.cx = c.x; PL.cz = c.z;
+  checkBanter();
+}
+// 仲間の待機ポーズ（腕をおろして、呼吸・揺れ・登場時に手をふる）
+function mateTick(dt, t) {
+  for (const M of mates.values()) {
+    const v = M.vrm; if (!v) continue;
+    const b = n => v.humanoid.getNormalizedBoneNode(n), set = (n, x, y, z) => { const o = b(n); if (o) o.rotation.set(x, y, z); };
+    const tt = t + M.ph, br = Math.sin(tt * 1.5), sw = Math.sin(tt * .6);
+    M.wave = Math.max(0, M.wave - dt); const wv = Math.min(1, M.wave * 2) * Math.min(1, (2.4 - M.wave) * 4);
+    const talk = M.say ? 1 : 0;
+    set('spine', .03 + br * .012, sw * .03, sw * .02); set('chest', br * .015, 0, 0);
+    set('head', -.03 + Math.sin(tt * .7) * .03, Math.sin(tt * .4) * .12 + talk * Math.sin(tt * 3) * .05, sw * -.03 + (M.ch === 'karen' ? .06 : -.06));
+    set('leftUpperArm', 0, -.12, -1.18 + br * .01); set('leftLowerArm', 0, -.25, 0);
+    set('rightUpperArm', 0, .12 + wv * -.2, 1.18 - wv * 2.1 + br * .01); set('rightLowerArm', 0, .25 + wv * .4, -wv * (1.2 + Math.sin(t * 12) * .35));
+    set('leftUpperLeg', 0, 0, -.04); set('rightUpperLeg', 0, 0, .04);
+    const hips = b('hips'); hips.position.y = M.hipsY + br * .004; hips.rotation.set(0, sw * .03, 0);
+    // 表情・まばたき・口パク
+    const em = v.expressionManager;
+    if (em) {
+      M.blinkT -= dt; if (M.blinkT < 0) { M.blinkV += dt * 14; if (M.blinkV > 2) { M.blinkV = 0; M.blinkT = rand(1.8, 4.5); } }
+      const happy = M.say ? (M.say.emo === 'happy' ? .7 : 0) : .25;
+      for (const e of ['happy', 'relaxed', 'surprised', 'angry', 'sad']) if (em.getExpression(e)) em.setValue(e, M.say && M.say.emo === e ? .6 : e === 'happy' ? happy * .5 : 0);
+      em.setValue('blink', (M.blinkV ? (M.blinkV < 1 ? M.blinkV : 2 - M.blinkV) : 0) * (1 - happy));
+      let mouth = 0;
+      if (M.say) {
+        const S = M.say; S.t += dt;
+        const n = Math.min(S.chars.length, Math.floor(S.t / .11) + 1);
+        if (n !== S.shown) { S.shown = n; M.bub.textContent = S.chars.slice(0, n).join(''); }
+        if (n < S.chars.length) mouth = .3 + .5 * Math.abs(Math.sin(S.t * 18));
+        if (S.t > S.dur) { M.say = null; M.bub.classList.remove('show'); }
+      }
+      if (em.getExpression('aa')) em.setValue('aa', mouth);
+    }
+    v.update(dt);
+    // 名札とセリフ枠の位置
+    const hp = v.humanoid.getRawBoneNode('head').getWorldPosition(new THREE.Vector3());
+    placeTagAt(M.plate, hp, .24); placeTagAt(M.bub, hp, .5, true);
+  }
+  if (myPlate) placeTagAt(myPlate, headPos, .24);
+}
+const _pt = new THREE.Vector3();
+function placeTagAt(e, p, up, keepIn) {
+  _pt.copy(p); _pt.y += up; _pt.project(camera);
+  const vis = _pt.z < 1 && Math.abs(_pt.x) < 1.05 && Math.abs(_pt.y) < 1.05 && shot === 'wide';
+  if (!keepIn) e.style.opacity = vis ? 1 : 0;
+  if (!vis && !keepIn) return;
+  let x = (_pt.x * .5 + .5) * innerWidth, y = (-_pt.y * .5 + .5) * innerHeight;
+  if (keepIn) { const w = e.offsetWidth / 2 + 8; x = Math.max(w, Math.min(innerWidth * .72 - w, x)); y = Math.max(e.offsetHeight + 64, Math.min(innerHeight * .7, y)); }   // セリフ枠は画面の中に
+  e.style.transform = `translate(${x}px,${y}px) translate(-50%,-100%)`;
+}
+function mateSay(M, text, emo) {
+  M.say = { chars: [...text], t: 0, shown: 0, emo, dur: 1.2 + [...text].length * .11 };
+  M.bub.textContent = ''; M.bub.classList.add('show');
+  if (voiceOn && jaVoice) { const u = new SpeechSynthesisUtterance(text.replace(/[♪〜～]/g, 'ー')); u.voice = jaVoice; u.lang = 'ja-JP'; u.rate = M.ch === 'karen' ? 1.25 : 1.15; u.pitch = M.ch === 'karen' ? 1.7 : 1.45; speechSynthesis.speak(u); }
+}
+
+/* ---------- 掛け合い：キャラの組み合わせごとの台本（話す役は 0 と 1） ---------- */
+const BANTER = {
+  'karen+shino': { roles: ['karen', 'shino'], lines: [
+    [0, 'あっ、しのじゃん！ やっほー！ 今日はあたしと組むの？', 'happy'],
+    [1, '……カレン。うん、よろしく。……あんまり騒がんでね。', 'relaxed'],
+    [0, 'えー、それは保証できないなあ。ショーは賑やかな方がいいでしょ？', 'happy'],
+    [1, '……ふふ。じゃあ、うちは後ろで見とく。危なくなったら、ちゃんと守るけん。', 'relaxed'],
+    [0, 'ほんと！？ じゃあ今日は最強コンビの初ステージだね！ さあさあ、いっくよー！', 'happy']] },
+  'karen+karen': { roles: ['karen', 'karen'], lines: [
+    [0, 'ちょっと待って！ あたしがもう一人いるんだけど！？', 'surprised'],
+    [1, 'え、それこっちのセリフ！ どっちが本物か、勝負する？', 'surprised'],
+    [0, 'ふふん、天才が二人なら……ショーも二倍ってことじゃん！', 'happy'],
+    [1, 'いいねいいね！ じゃあ今日はダブル主演で決まり！', 'happy']] },
+  'shino+shino': { roles: ['shino', 'shino'], lines: [
+    [0, '……え。うちが、もう一人おる……？', 'surprised'],
+    [1, '……鏡、じゃなかよね。……なんか、落ち着かん。', 'relaxed'],
+    [0, 'でも……うちが二人なら、氷の壁も二倍やね。', 'relaxed'],
+    [1, '……ふふ。うん。いっしょに行こ。', 'happy']] },
+};
+const banterSeen = new Set(SOC.SS.get('arc_banter', []));
+// いまの顔ぶれで、まだ流していない組み合わせを探す
+function checkBanter() {
+  const P = SOC.party; if (!P || banterOn) return;
+  const actors = P.m.map(id => id === SOC.pid ? { pid: id, ch: PARTNER, ok: !!vrm } : { pid: id, ch: mates.get(id)?.ch, ok: !!mates.get(id)?.vrm }).filter(a => a.ch);
+  if (actors.some(a => !a.ok)) return;                       // 全員のキャラがそろってから
+  for (let i = 0; i < actors.length; i++) for (let j = i + 1; j < actors.length; j++) {
+    const A = actors[i], B = actors[j], key = [A.ch, B.ch].sort().join('+'), sc = BANTER[key]; if (!sc) continue;
+    const pairKey = `${P.id}:${[A.pid, B.pid].sort().join('-')}`; if (banterSeen.has(pairKey)) continue;
+    if (A.pid !== SOC.pid && B.pid !== SOC.pid && actors.length > 2) continue;      // 自分が入っている組を優先
+    const cast = sc.roles[0] === A.ch ? [A, B] : [B, A];
+    banterSeen.add(pairKey); SOC.SS.set('arc_banter', [...banterSeen]);
+    playBanter(sc, cast); return;
+  }
+}
+function playBanter(sc, cast) {
+  banterOn = true; if (shot !== 'wide') cutTo('wide');
+  let i = 0;
+  const next = () => {
+    if (!banterOn) return;
+    const L = sc.lines[i++]; if (!L) { banterOn = false; idleT = 0; return; }
+    const who = cast[L[0]], text = L[1], emo = L[2];
+    for (const M of mates.values()) { M.say = null; M.bub.classList.remove('show'); }       // 話す人のセリフ枠だけ出す
+    clearTimeout(bubbleTimer); bubble.classList.remove('show');
+    if (who.pid === SOC.pid) say(text, emo); else { const M = mates.get(who.pid); if (!M) { banterOn = false; return; } mateSay(M, text, emo); }
+    banterTimer = setTimeout(next, (1.6 + [...text].length * .115) * 1000);
+  };
+  setTimeout(next, 900);
+}
+function cancelBanter() { banterOn = false; clearTimeout(banterTimer); }
+setInterval(syncMates, 700);
 </script>
 </body>
 </html>

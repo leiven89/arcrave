@@ -1327,7 +1327,7 @@ $('detailBtn').addEventListener('click', () => $('detail').classList.remove('hid
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('.modal').classList.add('hide')));
 document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.add('hide'); }));
 $('addCrys').addEventListener('click', () => { crystals += 10000; store.set('crystals', crystals); refreshUI(); toast('テスト用クリスタル ◆10,000 を追加しました'); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127124223');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127125235');
 $('skip').addEventListener('click', e => { e.stopPropagation(); skipSummon(); });
 $('summon').addEventListener('click', () => { if (S?.done) finishSummon(); });
 $('rClose').addEventListener('click', backToBanner);
