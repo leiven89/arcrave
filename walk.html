@@ -284,7 +284,7 @@
 <div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
 <div id="bossHud"><small>BOSS</small><b>氷殻の守護者グラキエス</b><div class="bb"><i id="bossBar"></i></div><span id="bossNum"></span></div>
-<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261127235522">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261127235522">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
+<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261128002838">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261128002838">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
   <header><div class="logo" id="shopLogo">夜</div><div class="nm"><b id="shopName">ヨルマート</b><small id="shopEn">YORU MART</small></div><button class="close tap" id="shopClose">✕ 店を出る</button></header>
@@ -1674,7 +1674,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127235522');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128002838');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -3367,7 +3367,7 @@ function fArea(A, x, z, r, base, opt = {}, set) {
 }
 const fSpark = (p, col, size = .35, life = .4) => kSpark(p, col, size, life);
 function fVoice(id) {
-  const V = { s1: ['call_s1', .6, .15], s2: ['call_s2', .55, .15], s3: ['call_s3', .65, .17], charge: ['call_charge', .7, .13], awaken: ['call_awaken', .55, .33], jackpot: ['jackpot', .7, .13], miss: ['miss', .65, .15] }[id];
+  const V = { s1: ['call_s1', .6, .1], s2: ['call_s2', .55, .18], s3: ['call_s3', .65, .1], charge: ['call_charge', .7, .13], awaken: ['call_awaken', .55, .33], jackpot: ['jackpot', .7, .13], miss: ['miss', .65, .15] }[id];
   if (V && PARTNER === 'fortuna') SFX.voice('voice/fortuna/' + V[0], V[1], V[2]);
 }
 
@@ -3678,7 +3678,7 @@ function fAct(dt, A, a, def, k0, k, local) {
 }
 
 /* ---- 技を出す（自分） ---- */
-const F_LINES = { s1: ['さあ、運試しよ。', 'ルーレットショット！'], s2: ['ハットトリック！', 'ほら、帽子に注目。'], s3: ['表か、裏か――！'], charge: ['レイズ。', '賭け金、上げるわよ。'] };
+const F_LINES = { s1: ['さあ、運試しよ。', 'ルーレットショット！'], s2: ['ハットトリック！', 'ほら、帽子に注目。'], s3: ['コイントス――表か、裏か！'], charge: ['レイズ。', '賭け金、上げるわよ。'] };
 function fUseSkill(id) {
   const cur = player.act;
   if (cur && !cur.name.startsWith('atk')) return;
@@ -4312,7 +4312,7 @@ function dBuild() {
   dWall(-1.75, 0, -1.75, 6.6); dWall(1.75, 0, 1.75, 6.6); dWall(-1.8, 6.6, 1.8, 6.6);     // 地上へ続く階段の壁
   const portal = new THREE.Mesh(new THREE.RingGeometry(.6, 1.1, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.5, 2.2), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   portal.rotation.x = -Math.PI / 2; portal.position.set(DX, .03, -1); scene.add(portal); DG.portalA = portal;
-  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127235522', 350); } });
+  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128002838', 350); } });
   dCorridor(-18, -10);
   // 戦闘の部屋1
   dRoom(-9, 9, -36, -18, { n: true, s: true }); for (const [x, z] of [[-5, -23], [5, -23], [-5, -31], [5, -31]]) dPillar(x, z);
@@ -4572,7 +4572,7 @@ function dClear() {
   // 帰り道のポータル
   const p = new THREE.Mesh(new THREE.RingGeometry(.8, 1.4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.4, .6), transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   p.rotation.x = -Math.PI / 2; p.position.set(DX, .04, -104); scene.add(p); DG.portalB = p;
-  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127235522', 350); } });
+  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128002838', 350); } });
   dChest(0, -112, 5000, 'boss');
   setTimeout(() => {
     $('dresTime').textContent = fmt(sec); $('dresBest').textContent = nb ? 'ベスト更新！' : `ベスト ${fmt(best)}`; $('dresCoin').textContent = `+${reward.toLocaleString()}円`;

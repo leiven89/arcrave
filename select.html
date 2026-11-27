@@ -1928,7 +1928,7 @@ function fFinHat(f, t) {
 function fFinStep(f, rdt) {
   const t = f.t, cross = x => t - rdt < x && t >= x;
   const [P, drop] = fFinPose(t); fDrop = drop;
-  if (cross(FD.release - .04)) { fWhoosh(); say('このカード、あなたに預けるわ――', 1.2); }
+  if (cross(FD.release - .04)) { fWhoosh(); say('このカード、あなたに預けるわ――', 1.2); fSelVoice('sel_02'); }
   if (cross(FD.hit)) fThump();
   // 暗転：画面が帽子でふさがる → 足元の帽子のところへ
   const blk = document.getElementById('fblk');
@@ -1959,7 +1959,7 @@ function fFinStep(f, rdt) {
     if (fSlot) fBig('JACKPOT!! 7-7-7', fSlot.g.position.clone().add(new THREE.Vector3(0, .7, 0)));
     setFace({ happy_mouth: .8, brow_happy: .5, blinkLeft: 1 });
   }
-  if (cross(FD.line)) say('ほら、当たり。……あなたを選んで、正解だったわ。', 2.6);
+  if (cross(FD.line)) { say('ほら、当たり。……あなたを選んで、正解だったわ。', 2.6); fSelVoice('sel_03'); }
   if (cross(FD.home + .3)) setFace({ happy_mouth: .5, brow_happy: .4, relaxed_eye: .25 });
   return P;
 }
@@ -1974,6 +1974,13 @@ function fFinCam(f) {
   _ct.set(F.x - .02, FLOOR_Y + .34 + .45 * k, F.z - .05 - .25 * k);
   camera.getWorldDirection(_cd); const curT = camera.position.clone().addScaledVector(_cd, 2.5);
   camera.position.lerp(_cp, w); camera.lookAt(curT.lerp(_ct, w));
+}
+// フォルトゥナの声（ElevenLabs：tools/gen_fortuna_voice.py の sel_01〜03）
+const fVoiceBuf = {}, F_SEL_VOICE = { sel_01: [1, .12], sel_02: [1, .16], sel_03: [1, .1] };
+function fLoadVoice(n) { const ac = audio(); if (!ac) return Promise.resolve(null); return fVoiceBuf[n] ||= fetch('voice/fortuna/' + n + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).then(a => a && ac.decodeAudioData(a)).catch(() => null); }
+function fSelVoice(n) {
+  const ac = audio(); if (!ac) return; const [vol, skip] = F_SEL_VOICE[n];
+  fLoadVoice(n).then(b => { if (!b) return; const s = ac.createBufferSource(), g = ac.createGain(); s.buffer = b; g.gain.value = SND.on ? vol : 0; s.connect(g); g.connect(ac.destination); s.start(ac.currentTime, skip); });
 }
 function fApply(P, t) {
   for (const n in P) { const b = fb(n); if (b) b.rotation.set(P[n][0], P[n][1], P[n][2]); }
@@ -2019,6 +2026,7 @@ function loadFortuna() {
     fApply(F_POSE, 0); fortuna.update(0);
     c.icon = modelIcon(fortuna, fRoot);
     fHatSetup();
+    for (const n in F_SEL_VOICE) fLoadVoice(n);      // 声は先に読み込んでおく
     if (c.card) { c.card.classList.remove('lock', 'wait'); c.card.innerHTML = cardHTML(c); }
   }, e => { if (e.total && c.card) { const l = c.card.querySelector('.ld'); if (l) l.textContent = Math.round(e.loaded / e.total * 100) + '%'; } },
   err => { console.error(err); if (c.card) { const l = c.card.querySelector('.ld'); if (l) l.textContent = 'ERROR'; } });
@@ -2069,7 +2077,7 @@ function fortunaTick(dt, rdt, t) {
     if (cross(FH.release + 1.25)) { fKuru(1.26); fOno('くるっ！', -6); }
     if (cross(FH.catch)) { fCatchSnd(); flash(.45, .3); burstShock(2.2, .5); popConfetti(); fOno('パシッ', 8); setFace({ happy_mouth: .6, brow_happy: .4, blinkLeft: 1 }); }
     if (cross(FH.catch + .6)) setFace({ happy_mouth: .45, brow_happy: .35, relaxed_eye: .25 });
-    if (cross(FH.line)) { s.said = true; say('フォルトゥナ・レイズよ。……今夜の勝負、楽しみましょう？', 2.6); }
+    if (cross(FH.line)) { s.said = true; say('フォルトゥナ・レイズよ。……今夜の勝負、楽しみましょう？', 2.6); fSelVoice('sel_01'); }
     if (s.t > FH.release && s.t < FH.catch) setFace({ happy_mouth: .5, brow_happy: .3 });
     env.userData.nameMesh.material.opacity = Math.min(.9, Math.max(0, (s.t - FH.catch) * 1.5));
     if (s.t > FH.line + .4) { fShow = null; pillar.material.opacity = 0; camWide = 0; focus.y = 0; }
@@ -2134,8 +2142,8 @@ function setInfo(id) {
    ===================================================================== */
 const toastEl = document.getElementById('toast'); let toastT;
 function toast(m) { toastEl.textContent = m; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1700); }
-document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127235522');
-document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261127235522');
+document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128002838');
+document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261128002838');
 window.__sel = { karen: () => ({ karen, kRoot, kShow, kFin, kClock, SPOTS, M, select: () => selectKaren(ROSTER.find(r => r.id === 'karen').card), decide: karenDecide, KP, kApply, clock: v => { musicStop(); kClock = v; }, icon: karenIcon }), pose: n => setPose(n, 10), shot: setShot, select: () => selectShino(document.querySelector('.ic.ur')), step: (sec) => { for (let i = 0; i < sec * 60; i++) tick(1 / 60); }, state: () => ({ skill, conv: conv.visible, glow: handGlow.scale.x, shot }), POSES, bone: n => bone(n), THREE, ear: EAR_OFFSET, hint: ELBOW_HINT, dbg: () => { const f = n => bone(n).getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)); const t = EAR_OFFSET.clone(); bone('head').localToWorld(t); return { head: f('head'), hand: f('leftHand'), elbow: f('leftLowerArm'), sh: f('leftUpperArm'), target: t.toArray().map(v => +v.toFixed(3)), rawHand: vrm.humanoid.getRawBoneNode('leftHand').getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)) }; }, show: () => { vrm.scene.visible = true; document.getElementById('loading').classList.add('hide'); setShot('normal'); } };
 
 /* =====================================================================

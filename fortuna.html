@@ -46,10 +46,10 @@
   .ono{position:absolute;font:400 clamp(28px,6.5vw,58px)/1 var(--pop);color:#fff4c9;-webkit-text-stroke:2px #6a2a00;paint-order:stroke fill;text-shadow:0 0 14px rgba(255,200,90,.9),0 4px 0 #3a1200;white-space:nowrap;transform:translate(-50%,-50%) scale(.2) rotate(-14deg);opacity:0;animation:ono .75s cubic-bezier(.2,1.6,.4,1) forwards}
   @keyframes ono{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(var(--r,-14deg))}25%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(var(--r,-14deg))}70%{opacity:1;transform:translate(-50%,-60%) scale(1) rotate(var(--r,-14deg))}100%{opacity:0;transform:translate(-50%,-80%) scale(.9) rotate(var(--r,-14deg))}}
   /* 名前のロゴ */
-  #logo{position:fixed;left:max(6vw,16px);bottom:calc(min(9vh,9vw) + 7vh);max-width:min(560px,60vw);opacity:0;transform:translateX(-30px);transition:opacity 1s,transform 1.2s cubic-bezier(.2,.8,.2,1)}
+  #logo{position:fixed;left:max(5vw,16px);bottom:calc(min(9vh,9vw) + 13vh);max-width:min(680px,70vw);opacity:0;transform:translateX(-30px);transition:opacity 1s,transform 1.2s cubic-bezier(.2,.8,.2,1)}
   #logo.on{opacity:1;transform:none}
   #logo .tag{font:700 clamp(10px,1.8vw,14px) var(--en);letter-spacing:.5em;color:var(--violet);text-shadow:0 0 10px rgba(155,107,255,.8)}
-  #logo h2{margin:.15em 0 0;font:800 clamp(30px,7.2vw,76px)/1.05 var(--min);letter-spacing:.06em;background:linear-gradient(180deg,#fffbe8 10%,var(--gold) 55%,#b07a25);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(255,190,90,.55)) drop-shadow(0 3px 0 rgba(0,0,0,.6))}
+  #logo h2{margin:.15em 0 0;white-space:nowrap;width:max-content;font:800 clamp(24px,4.6vw,58px)/1.05 var(--min);letter-spacing:.06em;background:linear-gradient(180deg,#fffbe8 10%,var(--gold) 55%,#b07a25);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(255,190,90,.55)) drop-shadow(0 3px 0 rgba(0,0,0,.6))}
   #logo .en{font:700 clamp(13px,2.6vw,22px) var(--en);letter-spacing:.55em;color:var(--ink);margin-top:.3em}
   #logo .line{height:1px;margin:.8em 0;background:linear-gradient(90deg,var(--gold),transparent)}
   #logo .copy{font:700 clamp(13px,2.4vw,18px)/1.6 var(--min);letter-spacing:.16em;color:#fff}
@@ -90,6 +90,51 @@
   #luck.full i b{background:#ffe066;box-shadow:0 0 8px #ffe066}
   #raiseTag{grid-column:1/-1;font:700 11px var(--en);letter-spacing:.2em;color:#ffe066;min-height:13px}
   @keyframes pulse{50%{filter:brightness(1.3)}}
+  /* ---- キャラ紹介PVの演出 ---- */
+  #tc{position:fixed;inset:0;pointer-events:none;z-index:3}
+  #tc span{position:absolute;left:50%;font:700 clamp(46px,12vw,150px)/1 var(--en);letter-spacing:.14em;color:#fff;text-shadow:0 0 30px rgba(255,215,122,.85),0 0 4px #000;opacity:0;white-space:nowrap}
+  #tc .a{top:34%} #tc .b{top:52%;font-size:clamp(30px,7.5vw,92px);color:var(--gold)}
+  #tc span.on{animation:slam 1.25s cubic-bezier(.2,1.4,.3,1) forwards}
+  @keyframes slam{0%{opacity:0;transform:translateX(-50%) scale(2.6)}14%{opacity:1;transform:translateX(-50%) scale(1)}75%{opacity:1;transform:translateX(-50%) scale(1.04)}100%{opacity:0;transform:translateX(-50%) scale(1.1)}}
+  #prof{position:fixed;right:max(4vw,16px);top:calc(min(9vh,9vw) + 9vh);width:min(430px,50vw);padding:18px 22px 18px 30px;background:linear-gradient(100deg,rgba(20,6,16,.15),rgba(20,6,16,.82) 22%);border-left:3px solid var(--gold);clip-path:polygon(18px 0,100% 0,100% 100%,0 100%);transform:translateX(120%);transition:transform .7s cubic-bezier(.2,.9,.2,1);pointer-events:none}
+  #prof.on{transform:none}
+  #prof .st{font-size:clamp(14px,2.4vw,20px);letter-spacing:.2em;color:#ffe066;text-shadow:0 0 10px rgba(255,224,102,.8)}
+  #prof .st b{display:inline-block;margin-left:.6em;padding:0 .5em;font:700 .8em var(--en);color:#1a0d02;background:linear-gradient(120deg,#fff1c4,var(--gold));letter-spacing:.1em}
+  #prof h3{margin:.25em 0 0;white-space:nowrap;width:max-content;font:800 clamp(18px,3.3vw,38px)/1.1 var(--min);letter-spacing:.04em;background:linear-gradient(180deg,#fffbe8,var(--gold) 60%,#b07a25);-webkit-background-clip:text;background-clip:text;color:transparent}
+  #prof .en{font:700 clamp(11px,1.8vw,15px) var(--en);letter-spacing:.45em;color:var(--ink)}
+  #prof .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  #prof .chips span{font-size:clamp(10px,1.6vw,13px);padding:3px 9px;border:1px solid rgba(255,215,122,.6);color:var(--ink);background:rgba(155,107,255,.18)}
+  #speed{position:fixed;inset:-25%;pointer-events:none;opacity:0;transition:opacity .25s;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,0) 0deg 2.6deg,rgba(255,240,210,.22) 2.6deg 3.1deg);-webkit-mask:radial-gradient(circle,transparent 30%,#000 72%);mask:radial-gradient(circle,transparent 30%,#000 72%);animation:spd .9s linear infinite}
+  #speed.on{opacity:1}
+  @keyframes spd{to{transform:rotate(25deg)}}
+  #skp{position:fixed;left:max(4vw,16px);top:calc(min(9vh,9vw) + 3vh);display:flex;gap:14px;align-items:center;max-width:min(560px,80vw);padding:12px 22px 12px 14px;background:linear-gradient(90deg,rgba(20,6,16,.88) 70%,rgba(20,6,16,0));border-top:1px solid rgba(255,215,122,.7);border-bottom:1px solid rgba(255,215,122,.7);transform:translateX(-120%);transition:transform .45s cubic-bezier(.2,.9,.2,1);pointer-events:none}
+  #skp.on{transform:none}
+  #skp i{flex:none;display:grid;place-items:center;width:clamp(46px,8vw,70px);aspect-ratio:1;font:900 clamp(22px,4vw,36px)/1 var(--min);font-style:normal;color:#1a0d02;background:radial-gradient(circle at 35% 30%,#fff6d8,var(--gold) 55%,#a87422);transform:rotate(45deg);border:2px solid #fff3c8;box-shadow:0 0 18px rgba(255,215,122,.7)}
+  #skp i span{transform:rotate(-45deg)}
+  #skp small{display:block;font:700 12px var(--en);letter-spacing:.4em;color:var(--violet)}
+  #skp b{display:block;font:800 clamp(20px,4vw,36px)/1.15 var(--min);letter-spacing:.06em;background:linear-gradient(180deg,#fffbe8,var(--gold) 60%,#b07a25);-webkit-background-clip:text;background-clip:text;color:transparent}
+  #skp em{display:block;font:700 clamp(10px,1.6vw,13px) var(--en);font-style:normal;letter-spacing:.35em;color:var(--ink);opacity:.85}
+  #skp p{margin:.4em 0 0;font-size:clamp(11px,1.8vw,14px);line-height:1.55;color:#f2e6cf}
+  #wipe{position:fixed;inset:0;pointer-events:none;display:grid;place-items:center;z-index:4;overflow:hidden}
+  #wipe::before{content:"";position:absolute;inset:-20%;background:repeating-linear-gradient(115deg,#140810 0 46px,#2b0c3d 46px 92px);transform:translateX(-130%) skewX(-12deg)}
+  #wipe.on::before{animation:wipebg 1.3s cubic-bezier(.7,0,.2,1) forwards}
+  @keyframes wipebg{0%{transform:translateX(-130%) skewX(-12deg)}34%,66%{transform:translateX(0) skewX(-12deg)}100%{transform:translateX(130%) skewX(-12deg)}}
+  #wipe b{position:relative;font:700 clamp(40px,10vw,120px) var(--en);letter-spacing:.3em;padding-left:.3em;color:var(--gold);text-shadow:0 0 26px rgba(255,215,122,.8);opacity:0}
+  #wipe small{position:absolute;top:calc(50% + clamp(30px,6vw,70px));font:700 clamp(12px,2vw,18px) var(--jp);letter-spacing:.4em;color:var(--ink);opacity:0}
+  #wipe.on b,#wipe.on small{animation:wtxt 1.3s forwards}
+  @keyframes wtxt{0%,26%{opacity:0;transform:scale(1.35)}40%,62%{opacity:1;transform:none}76%,100%{opacity:0}}
+  #cut{position:fixed;left:0;right:0;top:50%;height:clamp(120px,26vh,230px);transform:translateY(-50%);pointer-events:none;z-index:4;overflow:hidden}
+  #cut .band{position:absolute;inset:0;display:flex;align-items:center;gap:4vw;padding:0 6vw;background:linear-gradient(100deg,#1a0612,#3a0e4a 45%,#8a5a12 100%);border-top:3px solid var(--gold);border-bottom:3px solid var(--gold);transform:translateX(110%) skewY(-4deg)}
+  #cut.on .band{animation:cutin 1.7s cubic-bezier(.2,.9,.2,1) forwards}
+  @keyframes cutin{0%{transform:translateX(110%) skewY(-4deg)}22%,80%{transform:translateX(0) skewY(-4deg)}100%{transform:translateX(-110%) skewY(-4deg)}}
+  #cut img{height:118%;aspect-ratio:1;object-fit:cover;-webkit-mask:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent);mask:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent)}
+  #cut small{display:block;font:700 clamp(12px,2vw,18px) var(--en);letter-spacing:.5em;color:var(--violet)}
+  #cut b{display:block;white-space:nowrap;font:800 clamp(18px,4.2vw,50px)/1.1 var(--min);letter-spacing:.06em;color:#fff6d8;text-shadow:0 0 20px rgba(255,200,90,.9)}
+  #logo .st{font-size:clamp(14px,2.6vw,22px);letter-spacing:.25em;color:#ffe066;text-shadow:0 0 12px rgba(255,224,102,.8);margin-bottom:.2em}
+  #logo .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  #logo .chips span{font-size:clamp(10px,1.6vw,13px);padding:3px 9px;border:1px solid rgba(255,215,122,.6);color:var(--ink);background:rgba(155,107,255,.2)}
+  #note{position:fixed;right:max(16px,3vw);bottom:calc(min(9vh,9vw) + 8px);font-size:11px;color:rgba(255,255,255,.55);opacity:0;transition:opacity 1s}
+  #note.on{opacity:1}
   @media (prefers-reduced-motion:reduce){.ono{animation-duration:.01s}}
 </style>
 </head>
@@ -99,12 +144,21 @@
 <div id="ono" class="layer"></div>
 <div id="place"><small>CASINO</small><b>ルーチェ・ドーロ</b></div>
 <div id="cap"></div>
+<div id="tc"><span class="a">NEW</span><span class="b">CHARACTER</span></div>
+<div id="prof"><div class="st">★★★★★<b>UR</b></div><h3>フォルトゥナ・レイズ</h3><div class="en">FORTUNA RAIZE</div><div class="chips"><span>♠ 運属性</span><span>ギャンブラー</span><span>遠距離</span></div></div>
+<div id="speed"></div>
+<div id="skp"><i><span></span></i><div><small></small><b></b><em></em><p></p></div></div>
+<div id="wipe"><b>SKILL</b><small>勝負師の手札</small></div>
+<div id="cut"><div class="band"><img id="cutimg" alt=""><div><small>AWAKEN</small><b>オールイン・ロイヤルフラッシュ</b></div></div></div>
+<div id="note">※画面は開発中のものです</div>
 <div id="logo">
+  <div class="st">★★★★★</div>
   <div class="tag">NEW CHARACTER</div>
   <h2>フォルトゥナ・レイズ</h2>
   <div class="en">FORTUNA RAIZE</div>
   <div class="line"></div>
   <div class="copy">運命の札は、わたしが切る。</div>
+  <div class="chips"><span>♠ 運属性</span><span>ギャンブラー</span><span>遠距離</span></div>
 </div>
 <div id="flash" class="layer"></div>
 <div id="fade" class="layer"></div>
@@ -126,7 +180,7 @@
   <button id="snd" type="button" aria-pressed="true">音：ON</button>
   <button id="replay" type="button" hidden>PVを見る</button>
   <button id="skip" type="button" hidden>スキップ</button>
-  <a href="lobby.html?v=20261127235522">ロビーへ</a>
+  <a href="lobby.html?v=20261128002838">ロビーへ</a>
 </div>
 <div id="gate" class="layer">
   <div class="gbox">
@@ -518,7 +572,7 @@ for (let i = 0; i < NC; i++) {
    音：BGM（ラウンジ風）と効果音は、その場で合成する
    ===================================================================== */
 // フォルトゥナのボイス（ElevenLabs：tools/gen_fortuna_voice.py）[音量, 頭の無音を飛ばす秒]
-const VOICES = { pv_01: [.85, .15], pv_02: [1, .13], pv_03: [.95, .09], pv_04: [.85, 0], pv_05: [1, 0], call_s1: [.85, .15], jackpot: [1, .13], miss: [.9, .15], call_s2: [.75, .15], call_s3: [.9, .17], call_charge: [.95, .13], call_awaken: [.75, .33] };
+const VOICES = { pv_06: [1, .13], pv_01: [.85, .15], pv_02: [1, .13], pv_03: [.95, .09], pv_04: [.85, 0], pv_05: [1, 0], call_s1: [.85, .1], jackpot: [1, .13], miss: [.9, .15], call_s2: [.75, .18], call_s3: [.95, .1], call_charge: [.95, .13], call_awaken: [.75, .33] };
 let vBus = null, vAn = null, vSrc = null, mouthOpen = 0;
 const vData = new Uint8Array(256);
 function voice(name, cap) {
@@ -548,6 +602,7 @@ function lipSync() {
     expr(VOWELS[i], clamp(mouthOpen * w * VW[i] * 1.1, 0, 1));
   }
 }
+let bgmLP = null;
 let AC = null, master = null, bgmBus = null, sfxBus = null, noiseBuf = null, soundOn = true;
 const bufs = {};
 function initAudio() {
@@ -555,7 +610,7 @@ function initAudio() {
   try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
   master = AC.createGain(); master.gain.value = soundOn ? 1 : 0; master.connect(AC.destination);
   const comp = AC.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3; comp.connect(master);
-  bgmBus = AC.createGain(); bgmBus.gain.value = .5; bgmBus.connect(comp);
+  bgmBus = AC.createGain(); bgmBus.gain.value = .5; bgmLP = AC.createBiquadFilter(); bgmLP.type = 'lowpass'; bgmLP.frequency.value = 18000; bgmBus.connect(bgmLP); bgmLP.connect(comp);
   sfxBus = AC.createGain(); sfxBus.gain.value = .9; sfxBus.connect(comp);
   const n = AC.sampleRate * 2; noiseBuf = AC.createBuffer(1, n, AC.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
   vBus = AC.createGain(); vBus.connect(master); vAn = AC.createAnalyser(); vAn.fftSize = 512; vBus.connect(vAn);
@@ -624,6 +679,26 @@ function bgmTick(now) {          // 少し先の音まで予約する（now は�
   }
 }
 function bgmStart(now) { bgmOn = true; bgmNext = Math.ceil(now / (BEAT * .5)); }
+// PV用：明るいテンポのエレクトロスウィング（Am7 – Dm7 – G7 – E7）。スポットが点くまではこもった音で始まる
+const PV_BPM = 126, PB = 60 / PV_BPM;
+const PV_CH = [{ r: 45, c: [57, 60, 64, 67] }, { r: 50, c: [57, 60, 62, 65] }, { r: 43, c: [55, 59, 62, 65] }, { r: 40, c: [56, 59, 62, 64] }];
+let pvNext = 0;
+function kick(d, v) { const t = at(d), o = AC.createOscillator(), g = AC.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + .16); o.connect(g); g.connect(bgmBus); env(g, t, .003, v, .3); o.start(t); o.stop(t + .35); }
+function stab(d, ms, v) { for (const m of ms) { tone(d, mf(m), 'sawtooth', v, .16, bgmBus, .006); tone(d, mf(m) * 1.005, 'square', v * .5, .12, bgmBus, .006); } }
+function pvMusic(now) {
+  if (!AC || !bgmOn) return;
+  while (pvNext * PB * .5 < now + .25) {
+    const k = pvNext, bt = k * PB * .5, d = bt - now, beat = Math.floor(k / 2), off = k % 2, bar = Math.floor(beat / 4) % 4, inBar = beat % 4, ch = PV_CH[bar];
+    const full = bt > TL.spot, sw = off ? PB * .16 : 0, du = duck;
+    if (!off && (full || inBar === 0)) kick(d, (full ? .55 : .3) * du);
+    if (full && !off && inBar % 2 === 1) { noise(d, .12, 'bandpass', 1500, .8, .35 * du, bgmBus); noise(d + .012, .1, 'bandpass', 1200, .8, .25 * du, bgmBus); }
+    if (off) noise(d + sw, .05, 'highpass', 8000, .6, (full ? .12 : .06) * du, bgmBus);
+    if (full) { const n = [0, 7, 12, 7][(inBar * 2 + off) % 4]; tone(d + sw, mf(ch.r - 12 + n), 'triangle', .3 * du, .2, bgmBus); tone(d + sw, mf(ch.r + n), 'square', .04 * du, .12, bgmBus); }
+    if (full && off && inBar % 2 === 1) stab(d + sw, ch.c, .035 * du);
+    if (!off && inBar === 0) ch.c.forEach(m => rhodes(d, m + 12, .03 * du));
+    pvNext++;
+  }
+}
 function setSound(on) {
   soundOn = on; $('snd').textContent = '音：' + (on ? 'ON' : 'OFF'); $('snd').setAttribute('aria-pressed', on);
   if (master) master.gain.setTargetAtTime(on ? 1 : 0, AC.currentTime, .05);
@@ -671,6 +746,7 @@ loader.load('./fortuna.vrm', gltf => {
   $('bar').firstChild.style.width = '100%';
   $('gmsg').textContent = '準備ができました。音が出ます。';
   $('go').disabled = false;
+  makeFaceShot();
   if (SNAP_T !== null) snapshot(SNAP_T);
   else if (SNAP_WALK) { startWalk(); for (let i = 0; i < 60; i++) update(1 / 60); render(); window.__ready = true; }
 }, e => { if (e.total) $('bar').firstChild.style.width = Math.round(e.loaded / e.total * 100) + '%'; },
@@ -720,7 +796,7 @@ function num(keys, t) {
   return keys[keys.length - 1][1];
 }
 /* PVの段取り（秒） */
-const TL = { spot: 2.3, grab: 5.05, release: 6.3, catch: 8.7, flip0: 8.95, flip1: 9.45, cards: 9.6, fan: 12.4, ret0: 12.45, ret1: 13.1, logo: 16.3, end: 19.0 };
+const TL = { spot: 2.3, grab: 5.05, release: 6.3, catch: 8.7, flip0: 8.95, flip1: 9.45, cards: 9.6, fan: 12.4, ret0: 12.45, ret1: 13.1, logo: 16.3, end: 22.6 };
 // 3.9秒目に、1枚目の絵の「ようこそ」のポーズを3秒差し込む。TL・R_KEYS などは差し込む前の時刻で書いてある
 // さらに 13.15秒目（帽子を頭に戻した後）に、技紹介を17秒差し込む
 const INS_A = 3.9, INS_D = 3.0, INS_B = 13.15, INS_S = 17;
@@ -914,7 +990,7 @@ function cameraPV(T, RT = T) {
   else { const u = smooth((T - TL.fan) / 4); set(L([.2, 1.35, 3.6], [-.05, 1.42, 2.75], u), L([-.35, 1.32, 0], [-.42, 1.36, 0], u)); fov = 40; }
   if (RT >= 3.2 && RT < INS_A + INS_D + .1) { const u = smooth((RT - 3.2) / 3.6); set(L([-.4, 1.15, 3.5], [-.28, 1.25, 2.95], u), L([.05, 1.0, 0], [.05, 1.08, 0], u)); fov = 38; }
   if (inShow(RT)) fov = showCam(RT - SHOW0, set, L) || 42;
-  if (RT >= P2 + .1) { const u = smooth((RT - P2) / 4.5); set(L([.2, 2.0, 1.95], [.08, 1.92, 1.55], u), L([-.2, 1.32, .15], [-.18, 1.36, .15], u)); fov = 46; }
+  if (RT >= P2 + .1) { const u = smooth((RT - P2) / 4.5); set(L([0, 2.0, 1.95], [-.12, 1.92, 1.55], u), L([-.4, 1.32, .15], [-.38, 1.36, .15], u)); fov = 46; }     // キャラを右に寄せ、左に名前を出す
   // 縦長の画面では少し引く
   if (camera.aspect < 1) { camPos.sub(camTgt).multiplyScalar(lerp(1.7, 1, clamp(camera.aspect, .5, 1) * 2 - 1)).add(camTgt); fov += 6; }
   camera.position.copy(camPos); camera.lookAt(camTgt);
@@ -934,34 +1010,80 @@ function showCam(s, set, L) {      // どれもキャラの位置が基準
 
 /* 演出の合図（その時刻を通り過ぎたら一度だけ） */
 const CUES = [
-  [0.0, () => { SFX.thunk(); }],
+  [0.0, () => { SFX.thunk(); titleCards(); }],
   [0.4, () => { $('place').classList.add('on'); SFX.coin(0); SFX.coin(.35); SFX.coin(.9); }],
   [2.3, () => { SFX.thunk(); $('place').classList.remove('on'); }],
-  [3.45, () => voice('pv_01', 'ようこそ、ルーチェ・ドーロへ。')],
+  [3.2, () => { flash(); }],
+  [3.45, () => { voice('pv_01', 'ようこそ、ルーチェ・ドーロへ。'); $('prof').classList.add('on'); }],
+  [6.55, () => $('prof').classList.remove('on')],
   [5.3, () => voice('pv_02', '今宵の運命――わたしに賭けてみない？')],
-  [real(6.15), () => { SFX.whoosh(0, 1); duck = .35; }],
+  [real(6.15), () => { SFX.whoosh(0, 1); duck = .35; speedOn(true); }],
   [real(6.6), () => { SFX.kuru(0, 1); ono('くるっ', -18); }],
   [real(7.25), () => { SFX.kuru(0, 1.12); ono('くるっ', 10); }],
   [real(7.9), () => { SFX.kuru(0, 1.26); ono('くるっ！', -6); }],
+  [real(TL.catch) + .25, () => speedOn(false)],
   [real(TL.catch), () => { SFX.catch(); flash(); for (let i = 0; i < 70; i++) SP.emit(hatPos.x, hatPos.y, hatPos.z, (rnd() - .5) * 3, (rnd() - .2) * 3, (rnd() - .5) * 3, .7 + rnd() * .5, i % 4 === 0); ono('パシッ', 8, 1.25); }],
   [real(TL.catch) + .3, () => voice('pv_03', 'ふふっ、当たり。')],
   [real(TL.cards) - .05, () => { SFX.flutter(0, 1.9); duck = 1; }],
   [real(TL.cards) + .2, () => SFX.chime(0)],
   [real(TL.fan), () => SFX.whoosh(0, -1)],
   // ---- 技紹介
-  [SHOW0, () => { SK.respawn = false; [[-2.4, 5.6], [0, 4.2], [2.4, 5.6]].forEach(([x, z], i) => { const d = makeDummy(x, z, 1100, i); d.rise = 0; }); SFX.thunk(); showSkill('SKILL SHOWCASE', '勝負師の手札'); }],
+  [SHOW0 - .45, () => replay('wipe')],
+  [SHOW0, () => { SK.respawn = false; [[-2.4, 5.6], [0, 4.2], [2.4, 5.6]].forEach(([x, z], i) => { const d = makeDummy(x, z, 1100, i); d.rise = 0; }); SFX.thunk(); }],
   [SHOW0 + .2, () => voice('pv_05', '見せてあげる。わたしの勝ち方。')],
-  [SHOW0 + 4.1, () => { showSkill('SKILL 1', 'ルーレットショット'); SK.force.s1 = 'jack'; pvUse('s1'); }],
-  [SHOW0 + 7.9, () => { showSkill('SKILL 2', 'ハットトリック'); pvUse('s2'); }],
-  [SHOW0 + 10.0, () => { showSkill('SKILL 3', 'コイントス・ステップ'); SK.force.s3 = 'omote'; SK.dash = 6; pvUse('s3'); }],
-  [SHOW0 + 12.0, () => { showSkill('CHARGE', 'レイズ'); vrm.scene.rotation.y = Math.PI; pvUse('charge'); }],      // 振り向いて、的のほうへ
+  [SHOW0 + 4.1, () => { showSkp('s1', 3.4); SK.force.s1 = 'jack'; pvUse('s1'); }],
+  [SHOW0 + 7.9, () => { showSkp('s2'); pvUse('s2'); }],
+  [SHOW0 + 10.0, () => { showSkp('s3'); SK.force.s3 = 'omote'; SK.dash = 6; pvUse('s3'); }],
+  [SHOW0 + 12.0, () => { showSkp('charge', 1.6); vrm.scene.rotation.y = Math.PI; pvUse('charge'); }],      // 振り向いて、的のほうへ
   [SHOW0 + 13.4, () => releaseCharge()],
-  [SHOW0 + 13.75, () => { SK.luck = 100; showSkill('AWAKEN', 'オールイン・ロイヤルフラッシュ'); pvUse('awaken'); }],
+  [SHOW0 + 13.75, () => { SK.luck = 100; replay('cut'); speedOn(true); pvUse('awaken'); }],
+  [SHOW0 + 15.5, () => { speedOn(false); showSkp('awaken', 2); }],
   [SHOW1, () => { SK.dash = 0; resetSkills(); vrm.scene.position.set(0, DAIS_Y, 0); vrm.scene.rotation.y = 0; flash(); vrm.springBoneManager?.reset?.(); }],
+  [P2 - .1, () => flash()],
   [P2 + .4, () => voice('pv_04', 'さあ――次は、あなたの番よ。')],
-  [real(TL.logo), () => { hideCap(); SFX.hit(); $('logo').classList.add('on'); for (let i = 0; i < 120; i++) { const a = rnd() * 6.283, B = vrm.scene.position; SP.emit(B.x + Math.sin(a) * 1.1, B.y + 1.35 + Math.cos(a) * .9, B.z - .4, Math.sin(a) * .8, Math.cos(a) * .8, .3, 1 + rnd(), i % 3 === 0); } }],
+  [real(TL.logo), () => { hideCap(); SFX.hit(); $('logo').classList.add('on'); $('note').classList.add('on'); setTimeout(() => voice('pv_06', 'わたしはフォルトゥナ・レイズ。運命の札を切る、ギャンブラーよ。'), 400); for (let i = 0; i < 120; i++) { const a = rnd() * 6.283, B = vrm.scene.position; SP.emit(B.x + Math.sin(a) * 1.1, B.y + 1.35 + Math.cos(a) * .9, B.z - .4, Math.sin(a) * .8, Math.cos(a) * .8, .3, 1 + rnd(), i % 3 === 0); } }],
   [real(TL.end) - 1.2, () => $('endmenu').classList.add('on')],
 ];
+/* ---- キャラ紹介PVの部品 ---- */
+const SKP = {
+  s1: ['7', 'SKILL 1', 'ルーレットショット', 'ROULETTE SHOT', 'スロット砲台を設置。出目しだいで、弾の威力と性質が変わる。'],
+  s2: ['帽', 'SKILL 2', 'ハットトリック', 'HAT TRICK', '帽子を投げて往復で斬る。キャッチの瞬間、カードが周囲に噴き出す。'],
+  s3: ['貨', 'SKILL 3', 'コイントス・ステップ', 'COIN TOSS STEP', '表なら前へ駆け抜けて斬り、裏なら下がってコイン爆弾を置く。'],
+  charge: ['＄', 'CHARGE', 'レイズ', 'RAISE', 'チップを積み上げ、次に使う技を強化する。'],
+  awaken: ['覚', 'AWAKEN', 'オールイン・ロイヤルフラッシュ', 'ALL-IN ROYAL FLUSH', '巨大な5枚の札を突き立て、役がそろった瞬間に一斉に炸裂させる。'],
+};
+function showSkp(k, hold = 2.8) {
+  const [ic, tag, name, en, desc] = SKP[k], e = $('skp');
+  e.querySelector('i span').textContent = ic; e.querySelector('small').textContent = tag; e.querySelector('b').textContent = name; e.querySelector('em').textContent = en; e.querySelector('p').textContent = desc;
+  e.classList.remove('on'); void e.offsetWidth; e.classList.add('on');
+  clearTimeout(showSkp.t); showSkp.t = setTimeout(() => e.classList.remove('on'), hold * 1000);
+}
+const replay = id => { const e = $(id); e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); };
+function titleCards() { for (const [sel, d] of [['#tc .a', 0], ['#tc .b', 380]]) setTimeout(() => { const e = document.querySelector(sel); e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); }, d); }
+function speedOn(on) { $('speed').classList.toggle('on', on); }
+// 覚醒カットイン用：顔のアップを1枚撮っておく
+function makeFaceShot() {
+  try {
+    const hp = new THREE.Vector3(); headRaw.getWorldPosition(hp);
+    const W = renderer.domElement.width, H = renderer.domElement.height;
+    const cam = new THREE.PerspectiveCamera(18, W / H, .05, 50); cam.position.set(hp.x - .12, hp.y + .03, hp.z + 1.0); cam.lookAt(hp.x, hp.y - .01, hp.z);
+    const si = spot.intensity, ki = keyLight.intensity; spot.intensity = SPOT_I; keyLight.intensity = 1;
+    expr('happy_mouth', .6); expr('brow_happy', .4); vrm.update(0);
+    renderer.render(scene, cam);
+    const c = document.createElement('canvas'); c.width = c.height = 360; const side = H * .9;
+    c.getContext('2d').drawImage(renderer.domElement, (W - side) / 2, (H - side) / 2, side, side, 0, 0, 360, 360);
+    $('cutimg').src = c.toDataURL('image/jpeg', .9);
+    spot.intensity = si; keyLight.intensity = ki; expr('happy_mouth', 0); expr('brow_happy', 0);
+  } catch (e) {}
+}
+// スロー：キャッチの瞬間と、ロイヤルフラッシュの炸裂
+function timeScale(t) {
+  const slow = (c, a, b) => t > c - a && t < c + b;
+  if (slow(real(TL.catch), .12, .32)) return .3;
+  if (slow(SHOW0 + 13.75 + 2.95, .05, .4)) return .35;
+  return 1;
+}
+let pvClock = 0;
 function showCap(s) { const c = $('cap'); c.textContent = s; c.classList.add('on'); }
 function hideCap() { $('cap').classList.remove('on'); }
 function flash() { const f = $('flash'); f.style.transition = 'none'; f.style.opacity = .85; requestAnimationFrame(() => { f.style.transition = 'opacity .35s'; f.style.opacity = 0; }); }
@@ -1454,7 +1576,7 @@ const coinGeo = new THREE.CylinderGeometry(.09, .09, .014, 28);
 function skillCoin() {
   const r = takeRaise();
   SK.cd.s3 = CD.s3; aimAtNearest();
-  voice('call_s3', '表か、裏か――！');
+  voice('call_s3', 'コイントス――表か、裏か！');
   const face = SK.force.s3 || (rnd() < .5 ? 'omote' : 'ura'); SK.force.s3 = null;
   const m = new THREE.Mesh(coinGeo, coinMats); m.castShadow = true; scene.add(m);
   SK.coin = { m, t: 0, face, mul: RAISE_MUL[r], hit: new Set(), done: false, p0: null };
@@ -1699,13 +1821,14 @@ function resetPV() {
   for (const c of cards) c.m.visible = false;
   vrm.scene.position.set(0, DAIS_Y, 0); vrm.scene.rotation.y = 0;
   vrm.springBoneManager?.reset?.();
-  ['logo', 'place', 'endmenu'].forEach(id => $(id).classList.remove('on')); hideCap();
+  ['logo', 'place', 'endmenu', 'prof', 'skp', 'note', 'speed', 'wipe', 'cut'].forEach(id => $(id).classList.remove('on')); document.querySelectorAll('#tc span').forEach(e => e.classList.remove('on')); hideCap();
 }
 function startPV() {
   initAudio(); resetPV(); mode = 'pv'; document.body.className = 'pv';
   $('gate').classList.add('hide'); $('fade').style.opacity = 0;
   $('replay').hidden = true; $('skip').hidden = false;
-  if (AC) bgmStart(0);
+  pvClock = 0; pvNext = 0;
+  if (AC) { bgmStart(0); bgmLP.frequency.cancelScheduledValues(AC.currentTime); bgmLP.frequency.setValueAtTime(500, AC.currentTime); bgmLP.frequency.exponentialRampToValueAtTime(18000, AC.currentTime + TL.spot + .1); }
 }
 function startWalk() {
   initAudio(); resetPV(); mode = 'walk'; document.body.className = 'walk';
@@ -1714,7 +1837,7 @@ function startWalk() {
   player.pos.set(0, 0, 5.2); player.yaw = Math.PI; player.speed = 0; camYaw = 0;
   spot.intensity = SPOT_I; keyLight.intensity = .8;
   hat.rel = null;
-  if (AC && !bgmOn) bgmStart(wallT);
+  if (AC) { bgmStart(wallT); bgmLP.frequency.cancelScheduledValues(AC.currentTime); bgmLP.frequency.setValueAtTime(18000, AC.currentTime); }
   duck = .8;
   camera.position.set(0, 4, 9);
   spawnWalkDummies();
@@ -1738,10 +1861,11 @@ function update(dt) {
   const dp = dust.geometry.attributes.position.array; for (let i = 1; i < dp.length; i += 3) { dp[i] += dt * .08; if (dp[i] > 8) dp[i] = 0; } dust.geometry.attributes.position.needsUpdate = true;
   if (!vrm) return;
   if (mode === 'pv') {
+    pvClock += dt; dt *= timeScale(T);        // スローの間は、絵だけゆっくり（曲はそのまま）
     T += dt;
     for (const [ct, fn] of CUES) if (prevT < ct && T >= ct) fn();
     prevT = T;
-    if (AC) bgmTick(T);
+    if (AC) pvMusic(pvClock);
     // 照明：最初は暗く、スポットが点いて主役が浮かぶ
     spot.intensity = T < TL.spot ? 0 : lerp(0, SPOT_I, smooth((T - TL.spot) / .25));
     keyLight.intensity = T < TL.spot ? .1 : .8;

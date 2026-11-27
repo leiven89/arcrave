@@ -56,11 +56,11 @@
     <label class="name">プレイヤー名 <input id="name" maxlength="12" autocomplete="nickname"></label>
     <button id="start" type="button">TAP TO START</button>
     <nav aria-label="画面へ直接移動">
-      <a href="lobby.html?v=20261127235522">ロビー</a>
-      <a href="walk.html?v=20261127235522">出撃：ノエルベルク</a>
-      <a href="gacha.html?v=20261127235522">ガチャ</a>
-      <a href="select.html?v=20261127235522">キャラ選択</a>
-      <a href="fortuna.html?v=20261127235522">新キャラPV</a>
+      <a href="lobby.html?v=20261128002838">ロビー</a>
+      <a href="walk.html?v=20261128002838">出撃：ノエルベルク</a>
+      <a href="gacha.html?v=20261128002838">ガチャ</a>
+      <a href="select.html?v=20261128002838">キャラ選択</a>
+      <a href="fortuna.html?v=20261128002838">新キャラPV</a>
     </nav>
     <p class="note">初回はキャラクターデータ（約12MB）の読み込みに少し時間がかかります。出撃中は、同じ時間に出撃しているプレイヤーと一緒に街を歩けます。名前はほかのプレイヤーに表示されます。</p>
     <div id="online">オンライン：準備中</div>
@@ -78,7 +78,7 @@ const CHANNEL = 'noelberg-v1' + ((new URLSearchParams(location.search).get('ch')
 const $ = id => document.getElementById(id);
 const game = $('game');
 function play(href) { game.src = href; document.body.classList.add('playing'); }
-$('start').addEventListener('click', () => play('lobby.html?v=20261127235522'));
+$('start').addEventListener('click', () => play('lobby.html?v=20261128002838'));
 document.querySelectorAll('nav a').forEach(a => a.addEventListener('click', e => { e.preventDefault(); play(a.getAttribute('href')); }));
 
 /* ---- プレイヤー名（この端末に保存） ---- */
