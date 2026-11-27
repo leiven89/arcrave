@@ -148,6 +148,8 @@
   #invite input{width:100%;box-sizing:border-box;padding:10px;font:700 16px var(--en,sans-serif);letter-spacing:.12em;text-align:center;text-transform:uppercase;background:rgba(0,0,0,.4);color:#fff;border:1px solid rgba(255,215,122,.6)}
   #invite .row{display:flex;gap:8px;justify-content:center;margin-top:12px}
   #invite .row button{padding:9px 16px;font-weight:700}
+  .fono{position:fixed;z-index:40;pointer-events:none;font:900 clamp(26px,5.6vw,52px)/1 "Zen Kaku Gothic New",sans-serif;color:#fff4c9;-webkit-text-stroke:2px #6a2a00;paint-order:stroke fill;text-shadow:0 0 14px rgba(255,200,90,.9),0 4px 0 #3a1200;white-space:nowrap;transform:translate(-50%,-50%) scale(.2) rotate(var(--r,-14deg));opacity:0;animation:fono .75s cubic-bezier(.2,1.6,.4,1) forwards}
+  @keyframes fono{25%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(var(--r,-14deg))}70%{opacity:1;transform:translate(-50%,-60%) scale(1) rotate(var(--r,-14deg))}100%{opacity:0;transform:translate(-50%,-80%) scale(.9) rotate(var(--r,-14deg))}}
   #invMsg{display:block;margin-top:10px;min-height:1.2em;font-size:12px;color:#ffd77a}
   .ic.wait .ld{position:absolute;left:0;right:0;top:40%;text-align:center;font-family:var(--en);font-weight:700;font-size:13px;letter-spacing:.1em;color:#ffb8ec}
   #mute{height:40px;padding:0 14px;font-family:var(--en);font-weight:700;letter-spacing:.14em;font-size:13px;display:none}
@@ -1758,6 +1760,86 @@ const F_POSE = {
   rightUpperLeg: [-.06, -.1, .2], rightLowerLeg: [.22, 0, 0], rightFoot: [-.06, .25, 0],
 };
 const F_FIN = { ...F_POSE, rightUpperArm: [-1.35, .25, .35], rightLowerArm: [0, .15, 0], rightHand: [0, 0, -.3], head: [-.06, -.1, .1] };    // 決定：手を差し出す
+/* 帽子：頭の骨に付いた部品を、投げる間だけ頭から外した複製で動かす */
+let fHat = null;
+const _m1 = new THREE.Matrix4(), _m2 = new THREE.Matrix4(), _hpA = new THREE.Vector3(), _hqA = new THREE.Quaternion(), _hsA = new THREE.Vector3(), _hpB = new THREE.Vector3(), _hqB = new THREE.Quaternion(), _hsB = new THREE.Vector3();
+function fHatSetup() {
+  const parts = []; fortuna.scene.traverse(o => { if (o.isSkinnedMesh && /^(Hat|Blue_feather|Gold_band|Ribbon_bow)/.test(o.name)) parts.push(o); });
+  if (!parts.length) return;
+  const head = fortuna.humanoid.getRawBoneNode('head'), src = parts[0];
+  let bi = src.skeleton.bones.indexOf(head); if (bi < 0) bi = src.skeleton.bones.findIndex(b => b.name === head.name);
+  const box = new THREE.Box3(); for (const sm of parts) { sm.geometry.computeBoundingBox(); box.union(sm.geometry.boundingBox.clone().applyMatrix4(sm.bindMatrix)); }
+  const c = box.getCenter(new THREE.Vector3());
+  const pivot = new THREE.Object3D(); pivot.matrixAutoUpdate = false; pivot.visible = false; scene.add(pivot);
+  const inner = new THREE.Group(); inner.position.copy(c).negate(); pivot.add(inner);
+  for (const sm of parts) { const m = new THREE.Mesh(sm.geometry, sm.material); m.applyMatrix4(sm.bindMatrix); m.frustumCulled = false; inner.add(m); }
+  fHat = { parts, pivot, head, src, inv: src.skeleton.boneInverses[bi].clone(), Tc: new THREE.Matrix4().makeTranslation(c.x, c.y, c.z), rel: null, r0: null, q0: null };
+}
+const fHatOnHead = out => { const h = fHat, s = h.src; return out.copy(s.matrixWorld).multiply(s.bindMatrixInverse).multiply(h.head.matrixWorld).multiply(h.inv).multiply(s.bindMatrix).multiply(h.Tc); };
+const fHandW = () => fortuna.humanoid.getRawBoneNode('rightHand').matrixWorld;
+function fHatFree(on) { fHat.parts.forEach(p => p.visible = !on); fHat.pivot.visible = on; }
+// 登場の段取り（秒）：帽子をつかむ → 投げる → くるくる → キャッチ → かぶり直す → 名乗る
+const FH = { grab: .45, release: .72, catch: 2.2, onHead: 2.75, line: 3.05 };
+const F_GRAB = { ...F_POSE, rightUpperArm: [0, .85, -.95], rightLowerArm: [0, 1.5, 0], rightHand: [0, 0, .3], head: [0, -.05, .06] };
+const F_THROW = { ...F_POSE, rightUpperArm: [0, .15, -1.35], rightLowerArm: [0, .15, 0], rightHand: [0, 0, 0], head: [-.38, -.05, 0], spine: [-.06, 0, 0], chest: [-.04, 0, 0] };
+const F_WAIT = { ...F_THROW, rightUpperArm: [0, .4, -1.1], rightLowerArm: [0, .7, 0], rightHand: [0, 0, .2] };
+function fBlend(A, B, k) { const o = {}; for (const n in A) o[n] = A[n].map((v, i) => v + ((B[n] || A[n])[i] - v) * k); return o; }
+const fss = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+function fEntrancePose(t) {
+  if (t < FH.grab) return fBlend(F_POSE, F_GRAB, fss(t / FH.grab));
+  if (t < FH.release) { const k = (t - FH.grab) / (FH.release - FH.grab); return k < .55 ? fBlend(F_GRAB, { ...F_GRAB, rightUpperArm: [0, .6, -.6], spine: [.06, 0, 0] }, fss(k / .55)) : fBlend({ ...F_GRAB, rightUpperArm: [0, .6, -.6] }, F_THROW, fss((k - .55) / .45)); }
+  if (t < FH.catch - .35) return fBlend(F_THROW, F_WAIT, fss((t - FH.release) / .4));
+  if (t < FH.catch) return F_WAIT;
+  if (t < FH.onHead) return fBlend(F_WAIT, F_GRAB, fss((t - FH.catch) / (FH.onHead - FH.catch)));
+  return fBlend(F_GRAB, F_POSE, fss((t - FH.onHead) / .35));
+}
+// くるっ（擬音）
+function fOno(txt, rot) {
+  if (!fHat) return;
+  const p = fHat.pivot.getWorldPosition(new THREE.Vector3()).project(camera), el = document.createElement('div');
+  el.className = 'fono'; el.textContent = txt; el.style.setProperty('--r', rot + 'deg');
+  el.style.left = Math.min(innerWidth - 60, Math.max(60, (p.x * .5 + .5) * innerWidth + (rot < 0 ? -70 : 70))) + 'px';
+  el.style.top = Math.min(innerHeight - 80, Math.max(80, (-p.y * .5 + .5) * innerHeight - 30)) + 'px';
+  document.body.appendChild(el); setTimeout(() => el.remove(), 900);
+}
+// 音：投げる風切り・くるっ・パシッ（その場で合成）
+function fKuru(p) {
+  const ac = audio(); if (!ac || !SND.noise) return; const t = ac.currentTime + .01, dur = .5;
+  const s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain(), am = ac.createGain(), lfo = ac.createOscillator(), lg = ac.createGain();
+  s.buffer = SND.noise; s.loop = true; fl.type = 'bandpass'; fl.Q.value = 4;
+  fl.frequency.setValueAtTime(700 * p, t); fl.frequency.exponentialRampToValueAtTime(2600 * p, t + dur * .55); fl.frequency.exponentialRampToValueAtTime(1300 * p, t + dur);
+  lfo.frequency.setValueAtTime(14, t); lfo.frequency.linearRampToValueAtTime(26, t + dur); lg.gain.value = .5; am.gain.value = .5; lfo.connect(lg); lg.connect(am.gain);
+  s.connect(fl); fl.connect(am); am.connect(g); g.connect(SND.out);
+  g.gain.setValueAtTime(1e-4, t); g.gain.exponentialRampToValueAtTime(.9, t + .08); g.gain.setValueAtTime(.9, t + dur * .6); g.gain.exponentialRampToValueAtTime(1e-4, t + dur);
+  s.start(t); s.stop(t + dur + .05); lfo.start(t); lfo.stop(t + dur + .05);
+  const o = ac.createOscillator(), og = ac.createGain(); o.type = 'sine';
+  o.frequency.setValueAtTime(620 * p, t); o.frequency.exponentialRampToValueAtTime(1240 * p, t + .16); o.frequency.exponentialRampToValueAtTime(880 * p, t + .32);
+  o.connect(og); og.connect(SND.out); og.gain.setValueAtTime(0, t); og.gain.linearRampToValueAtTime(.16, t + .02); og.gain.exponentialRampToValueAtTime(1e-4, t + .36); o.start(t); o.stop(t + .45);
+}
+function fWhoosh() { const ac = audio(); if (!ac) return; const t = ac.currentTime + .01; hiss(t, .35, .4, 'bandpass', 900, 1.2); }
+function fCatchSnd() { const ac = audio(); if (!ac) return; const t = ac.currentTime + .01; tone('sine', 160, t, .18, .7); hiss(t, .07, .5, 'lowpass', 1800, .7); tone('triangle', 1568, t + .02, .5, .14); tone('sine', 2093, t + .05, .7, .1); }
+function fHatTick(t) {           // 登場中の帽子（fortuna.update の後に呼ぶ）
+  if (!fHat) return;
+  fortuna.scene.updateMatrixWorld(true);
+  const M = fHat.pivot.matrix;
+  if (t < FH.grab) { fHatFree(false); fHat.rel = null; return; }
+  if (!fHat.rel) { fHatOnHead(_m1); fHat.rel = _m2.copy(fHandW()).invert().multiply(_m1).clone(); fHatFree(true); }
+  if (t < FH.release) { M.copy(fHandW()).multiply(fHat.rel); M.decompose(_hpA, _hqA, _hsA); fHat.r0 = _hpA.clone(); fHat.q0 = _hqA.clone(); }
+  else if (t < FH.catch) {        // くるくる回りながら上がって、手元へ落ちてくる
+    const u = (t - FH.release) / (FH.catch - FH.release);
+    _m1.copy(fHandW()).multiply(fHat.rel); _m1.decompose(_hpB, _hqB, _hsB);
+    _hpA.copy(fHat.r0).lerp(_hpB, u); _hpA.y += .8 * 4 * u * (1 - u);
+    const e = 1 - Math.pow(1 - u, 3), spin = (e - 1) * Math.PI * 2 * 5;
+    _hqA.slerpQuaternions(fHat.q0, _hqB, fss(u)).premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), spin));
+    _hqA.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.sin(u * 9) * .25 * (1 - u)));
+    _hsB.multiplyScalar(1 + .45 * Math.sin(Math.PI * u)); M.compose(_hpA, _hqA, _hsB);
+  } else if (t < FH.onHead) {     // 手に持ったまま頭へ戻し、最後に元の位置へ合わせる
+    M.copy(fHandW()).multiply(fHat.rel);
+    const k = fss((t - (FH.onHead - .2)) / .2);
+    if (k > 0) { M.decompose(_hpA, _hqA, _hsA); fHatOnHead(_m1); _m1.decompose(_hpB, _hqB, _hsB); _hpA.lerp(_hpB, k); _hqA.slerp(_hqB, k); M.compose(_hpA, _hqA, _hsA); }
+  } else { fHatFree(false); return; }
+  fHat.pivot.matrixWorldNeedsUpdate = true;
+}
 function fApply(P, t) {
   for (const n in P) { const b = fb(n); if (b) b.rotation.set(P[n][0], P[n][1], P[n][2]); }
   fb('hips').position.y = fBaseHipsY + Math.sin(t * 1.7) * .004;
@@ -1801,6 +1883,7 @@ function loadFortuna() {
     fortuna.springBoneManager?.joints?.forEach(j => { j.center = fortuna.scene; });
     fApply(F_POSE, 0); fortuna.update(0);
     c.icon = modelIcon(fortuna, fRoot);
+    fHatSetup();
     if (c.card) { c.card.classList.remove('lock', 'wait'); c.card.innerHTML = cardHTML(c); }
   }, e => { if (e.total && c.card) { const l = c.card.querySelector('.ld'); if (l) l.textContent = Math.round(e.loaded / e.total * 100) + '%'; } },
   err => { console.error(err); if (c.card) { const l = c.card.querySelector('.ld'); if (l) l.textContent = 'ERROR'; } });
@@ -1825,14 +1908,14 @@ function selectFortuna(el) {
   selected = true;
 }
 function leaveFortuna() {
-  fShow = fFin = null; active = null; fRoot.visible = false; pillar.material.opacity = 0;
+  fShow = fFin = null; active = null; fRoot.visible = false; pillar.material.opacity = 0; if (fHat) fHatFree(false); camWide = 0; focus.y = 0;
   document.body.classList.remove('fortuna', 'skill');
   env.userData.nameMesh.material.map = NAME_TEX.shino;
   ringMat.map = ringTexShino; ringMat.color.copy(glow(.4, 1.6, 2.2)); ringMat.opacity = .55;
   charH = shinoH; focus.set(0, 0, 0); setFace({});
 }
 function fortunaDecide() {
-  if (fFin || (fShow && fShow.t < 1)) return;
+  if (fFin || fShow) return;
   fFin = { t: 0, stage: 0 }; document.body.classList.add('skill');
   setFace({ happy_mouth: .5, brow_happy: .4 }); say('今宵の運命、わたしに預けてみる？', 1.4);
 }
@@ -1842,9 +1925,19 @@ function fortunaTick(dt, rdt, t) {
   if (fShow) {                         // 登場：光の柱 → 名乗り
     const s = fShow; s.t += rdt;
     pillar.material.opacity = s.t < .1 ? s.t * 5 : Math.max(0, .5 - (s.t - .1) * 1.2); pillar.scale.set(1 - s.t * .5, 1, 1 - s.t * .5);
-    if (s.t > .35 && !s.said) { s.said = true; burstShock(1.6, .5); setFace({ happy_mouth: .45, brow_happy: .35, relaxed_eye: .25 }); say('フォルトゥナ・レイズよ。……今夜の勝負、楽しみましょう？', 2.6); }
-    env.userData.nameMesh.material.opacity = Math.min(.9, Math.max(0, (s.t - .2) * 1.5));
-    if (s.t > 1.6) { fShow = null; pillar.material.opacity = 0; }
+    P = fEntrancePose(s.t);
+    { const w = fss((s.t - FH.release + .3) / .35) * (1 - fss((s.t - FH.catch - .2) / .5)); camWide = .45 * w; focus.y = .32 * w; }   // 投げている間はカメラを引いて、帽子が画面に入るように
+    const cross = x => s.t - rdt < x && s.t >= x;
+    if (cross(FH.release - .05)) fWhoosh();
+    if (cross(FH.release + .25)) { fKuru(1); fOno('くるっ', -18); }
+    if (cross(FH.release + .75)) { fKuru(1.12); fOno('くるっ', 10); }
+    if (cross(FH.release + 1.25)) { fKuru(1.26); fOno('くるっ！', -6); }
+    if (cross(FH.catch)) { fCatchSnd(); flash(.45, .3); burstShock(2.2, .5); popConfetti(); fOno('パシッ', 8); setFace({ happy_mouth: .6, brow_happy: .4, blinkLeft: 1 }); }
+    if (cross(FH.catch + .6)) setFace({ happy_mouth: .45, brow_happy: .35, relaxed_eye: .25 });
+    if (cross(FH.line)) { s.said = true; say('フォルトゥナ・レイズよ。……今夜の勝負、楽しみましょう？', 2.6); }
+    if (s.t > FH.release && s.t < FH.catch) setFace({ happy_mouth: .5, brow_happy: .3 });
+    env.userData.nameMesh.material.opacity = Math.min(.9, Math.max(0, (s.t - FH.catch) * 1.5));
+    if (s.t > FH.line + .4) { fShow = null; pillar.material.opacity = 0; camWide = 0; focus.y = 0; }
   } else if (fFin) {                   // 決定：カードが舞って、手を差し出す
     const f = fFin; f.t += rdt;
     const k = Math.min(1, Math.max(0, (f.t - .9) / .35));
@@ -1866,6 +1959,7 @@ function fortunaTick(dt, rdt, t) {
   updateCamera(t, rdt);
   updateFace(rdt, fortuna);
   fortuna.update(rdt);
+  fHatTick(fShow ? fShow.t : 99);
 }
 // 招待コードの入力
 const invEl = document.getElementById('invite'), invCode = document.getElementById('invCode'), invMsg = document.getElementById('invMsg');
@@ -1909,8 +2003,8 @@ function setInfo(id) {
    ===================================================================== */
 const toastEl = document.getElementById('toast'); let toastT;
 function toast(m) { toastEl.textContent = m; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1700); }
-document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127234038');
-document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261127234038');
+document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127234710');
+document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261127234710');
 window.__sel = { karen: () => ({ karen, kRoot, kShow, kFin, kClock, SPOTS, M, select: () => selectKaren(ROSTER.find(r => r.id === 'karen').card), decide: karenDecide, KP, kApply, clock: v => { musicStop(); kClock = v; }, icon: karenIcon }), pose: n => setPose(n, 10), shot: setShot, select: () => selectShino(document.querySelector('.ic.ur')), step: (sec) => { for (let i = 0; i < sec * 60; i++) tick(1 / 60); }, state: () => ({ skill, conv: conv.visible, glow: handGlow.scale.x, shot }), POSES, bone: n => bone(n), THREE, ear: EAR_OFFSET, hint: ELBOW_HINT, dbg: () => { const f = n => bone(n).getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)); const t = EAR_OFFSET.clone(); bone('head').localToWorld(t); return { head: f('head'), hand: f('leftHand'), elbow: f('leftLowerArm'), sh: f('leftUpperArm'), target: t.toArray().map(v => +v.toFixed(3)), rawHand: vrm.humanoid.getRawBoneNode('leftHand').getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)) }; }, show: () => { vrm.scene.visible = true; document.getElementById('loading').classList.add('hide'); setShot('normal'); } };
 
 /* =====================================================================
