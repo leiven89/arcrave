@@ -255,7 +255,7 @@
       <h2>ネオン・ナイトパレード</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261127232220">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261127234038">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
@@ -264,11 +264,11 @@
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261127232220">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261127232220">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127234038">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261127234038">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261127232220">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127234038">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -301,8 +301,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 
 /* ---------- パートナー：キャラ選択画面で選んだキャラ（shino / karen）を使う ---------- */
-const PARTNER = (() => { try { return localStorage.getItem('partner') === 'karen' ? 'karen' : 'shino'; } catch (e) { return 'shino'; } })();
+// フォルトゥナは招待コードで解放した人だけ（キャラ選択画面・タイトル画面で入力）
+const FORTUNA_OK = (() => { try { return !!localStorage.getItem('unlock_fortuna'); } catch (e) { return false; } })();
+const PARTNER = (() => { try { const p = localStorage.getItem('partner'); return p === 'karen' ? 'karen' : p === 'fortuna' && FORTUNA_OK ? 'fortuna' : 'shino'; } catch (e) { return 'shino'; } })();
+const chOf = c => c === 'karen' || c === 'fortuna' ? c : 'shino';
 document.documentElement.classList.toggle('karen', PARTNER === 'karen');
+document.documentElement.classList.toggle('fortuna', PARTNER === 'fortuna');
 
 /* ---------- オンライン共通：プレイヤーID・フレンド・パーティ・メッセージ ----------
    通信はタイトル画面（親フレーム）が受け持つ。ここでは自分の状態 x を presence に載せ、
@@ -430,7 +434,7 @@ function socPlayers() {
   for (const peer of SOC.peers) {
     const x = peer.presence && peer.presence.x;
     if (!x || typeof x !== 'object' || !PID_RE.test(x.pid) || x.pid === SOC.pid) continue;
-    out.set(x.pid, { pid: x.pid, name: socName(peer.name) || socName(x.nm) || 'プレイヤー', area: peer.presence.area || '', ch: peer.presence.ch === 'karen' ? 'karen' : 'shino', x, peer });
+    out.set(x.pid, { pid: x.pid, name: socName(peer.name) || socName(x.nm) || 'プレイヤー', area: peer.presence.area || '', ch: chOf(peer.presence.ch), x, peer });
   }
   return out;
 }
@@ -458,7 +462,7 @@ function socDupCheck() {
 const areaLabel = a => a === 'lobby' ? 'ロビー' : a === 'noelberg' ? '出撃中' : /^dg:/.test(a) ? 'ダンジョン' : '';
 /*MODEL_FETCH*/
 // モデルを ArrayBuffer で読む（公開版では、この部分が Base64 テキストの分割読み込みに置き換わる）
-const MODEL_URL = { shino: './shino_lite.vrm', karen: './karen.vrm' };
+const MODEL_URL = { shino: './shino_lite.vrm', karen: './karen.vrm', fortuna: './fortuna_lite.vrm' };
 function fetchModel(id, onProgress) {
   return fetch(MODEL_URL[id] || MODEL_URL.shino).then(async r => {
     if (!r.ok) throw new Error(r.status + ' ' + r.url);
@@ -477,8 +481,9 @@ function getModelBuf(id, onProgress) { return modelBufs[id] ||= fetchModel(id, o
 function loadPartner(loader, onLoad, onProgress, onError) { getModelBuf(PARTNER, onProgress).then(buf => loader.parse(buf, './', onLoad, onError)).catch(onError); }
 // カレンを選んでいる時は、しののセリフをカレン版に差し替える（値が [セリフ, 表情] のものもある）
 function partnerLine(text, emo) {
-  if (PARTNER !== 'karen') return [text, emo];
-  const k = KAREN_LINES[text];
+  const T = PARTNER === 'karen' ? KAREN_LINES : PARTNER === 'fortuna' ? FORTUNA_LINES : null;
+  if (!T) return [text, emo];
+  const k = T[text];
   return k === undefined ? [text, emo] : Array.isArray(k) ? k : [k, emo];
 }
 // カレン版のセリフ（キー：しののセリフ → 値：[カレンのセリフ, 表情]）
@@ -503,6 +508,32 @@ const KAREN_LINES = {
   '……なでてくれると？ ……ん、嫌じゃなか。': ['えっ！？ ちょ、急になでないでよ！ ……べ、別に嬉しくないとは言ってないし！', 'surprised'],
   '……声、聞こえとる？ よろしくね。': ['あー、あー！ 声、聞こえてる？ よろしくね！', 'happy'],
 };
+// フォルトゥナ版のセリフ（キー：しののセリフ → 値：[フォルトゥナのセリフ, 表情]）
+const FORTUNA_LINES = {
+  "……おかえり。今夜も、街がきれいやね。": ["おかえりなさい。今夜も、いい勝負ができそうね。", "happy"],
+  "わ……っ。急につつかんで。びっくりするけん。": ["あら、急に触るなんて……。賭け金の上乗せのつもり？", "surprised"],
+  "イベントの報酬、まだ残っとるみたいよ。": ["イベントの報酬、まだ残っているわよ。取りこぼしは損でしょう？", "happy"],
+  "……そろそろ、出撃する？ ノエルベルク、雪が降っとるって。": ["そろそろ出撃しましょうか。ノエルベルク、今夜は雪ですって。", "relaxed"],
+  "あの車、どこまで飛んでいくっちゃろうね。": ["あの車、どこまで飛んでいくのかしら。……賭けてみる？", "happy"],
+  "呼んでくれたと？……ん、ちょっと嬉しい。": ["わたしを呼んだ？ ふふ、いい引きをしたわね。", "happy"],
+  "この前の任務、ちょっと手強かったね……。次は、うちが守るけん。": ["この前の任務は手強かったわね。……次は、わたしが勝たせてあげる。", "relaxed"],
+  "屋上の風、けっこう冷たかよ。……うちは平気やけど。": ["屋上の風、冷たいわね。……あなた、震えていない？", "relaxed"],
+  "……ねえ。ちゃんと、見とる？": ["ねえ。ちゃんと、わたしを見ている？", "relaxed"],
+  "ネオンって、ずっと見とられるね。": ["ネオンって、カジノの灯りに似ていて好きよ。", "relaxed"],
+  "今日は、どこ行こっか。": ["今日はどこへ行く？ 退屈な夜は、わたしが許さないわ。", "happy"],
+  "ぼーっとしとったら、置いていくけんね。": ["ぼんやりしていると、置いていくわよ。", "happy"],
+  "こんな時間まで起きとると？……無理したらいかんよ。": ["こんな時間まで起きているの？ ……夜更かしは、負けの元よ。", "sad"],
+  "……おはよう。今日も、よろしくね。": ["おはよう。今日のツキは、どちらに転ぶかしらね。", "happy"],
+  "……来てくれたと？ 待っとったよ。": ["いらっしゃい。待っていたわ、わたしのお客様。", "happy"],
+  "こんばんは。今夜も、おつかれさま。": ["こんばんは。今夜も、テーブルは空けてあるわ。", "happy"],
+  "……もう。つつきすぎ。怒るけんね。": ["もう、触りすぎ。……次は、チップを払ってもらうわよ？", "angry"],
+  "……なでてくれると？ ……ん、嫌じゃなか。": ["……撫でるの？ ふふ、高くつくわよ。……嫌じゃないけれど。", "surprised"],
+  "……声、聞こえとる？ よろしくね。": ["声、ちゃんと聞こえている？ よろしくね。", "happy"],
+};
+if (PARTNER === 'fortuna') {
+  document.querySelector('#plate h1').innerHTML = 'フォルトゥナ <span>レイズ</span>';
+  document.querySelector('#plate .rn').textContent = 'FORTUNA RAIZE';
+}
 if (PARTNER === 'karen') {
   document.querySelector('#plate h1').innerHTML = 'カレン <span>カデンツァ</span>';
   document.querySelector('#plate .rn').textContent = 'CAREN CADENZA';
@@ -1107,7 +1138,7 @@ function say(text, emo = 'happy') {
   shotT = 0;
   if (voiceOn && jaVoice && !rv) {
     const u = new SpeechSynthesisUtterance(text.replace(/[♪〜～]/g, 'ー'));
-    u.voice = jaVoice; u.lang = 'ja-JP'; u.rate = PARTNER === 'karen' ? 1.25 : 1.15; u.pitch = PARTNER === 'karen' ? 1.7 : 1.45;
+    u.voice = jaVoice; u.lang = 'ja-JP'; u.rate = PARTNER === 'karen' ? 1.25 : PARTNER === 'fortuna' ? 1.05 : 1.15; u.pitch = PARTNER === 'karen' ? 1.7 : PARTNER === 'fortuna' ? 1.15 : 1.45;
     const s = speech; s.utter = u; s.ttsDone = false; s.wait = 1.0;
     u.onstart = () => { s.wait = 0; };
     u.onend = u.onerror = () => { s.ttsDone = true; s.wait = 0; };
@@ -1562,7 +1593,7 @@ function renderSoc() {
   });
   const B = $('socBody'); B.innerHTML = ''; const pls = socPlayers(), P = SOC.party, lead = P && P.lead === SOC.pid;
   if (!online()) B.appendChild(el('p', 'note', LN.inFrame ? 'オンラインにつないでいます…（つながらない時は、ひとりでパーティを組んで出発できます）' : 'オフラインです。ひとりでパーティを組んで出発できます。'));
-  const charName = c => c === 'karen' ? 'カレン' : 'しの';
+  const charName = c => c === 'karen' ? 'カレン' : c === 'fortuna' ? 'フォルトゥナ' : 'しの';
   if (LN.tab === 'party') {
     if (!P) {
       B.appendChild(el('p', 'note', 'ダンジョンへは、パーティを組んでから出発します（最大4人・ひとりでもOK）。'));
@@ -1646,7 +1677,7 @@ let myPlate = null, banterOn = false, banterQ = [], banterTimer = 0;
 const PL = { frameS: 1, cx: 0, cz: 0, ty: .5 };
 function slotPos(i) { const [r, f] = MATE_SLOTS[i]; return new THREE.Vector3().addScaledVector(CAM_R, r).addScaledVector(CAM_F, f); }
 function makePlate(cls) { const e = document.createElement('div'); e.className = 'nplate ' + cls; e.innerHTML = '<b></b><small></small>'; document.body.appendChild(e); return e; }
-function setPlate(e, name, ch, lead) { e.querySelector('b').textContent = (lead ? '♛ ' : '') + name; e.querySelector('small').textContent = ch === 'karen' ? 'CAREN' : 'SHINO'; e.classList.toggle('karen', ch === 'karen'); }
+function setPlate(e, name, ch, lead) { e.querySelector('b').textContent = (lead ? '♛ ' : '') + name; e.querySelector('small').textContent = ch === 'karen' ? 'CAREN' : ch === 'fortuna' ? 'FORTUNA' : 'SHINO'; e.classList.toggle('karen', ch === 'karen'); }
 // 仲間のキャラを読み込む
 function addMate(pid, ch, slot) {
   const M = { pid, ch, vrm: null, slot, plate: makePlate(''), bub: document.createElement('div'), say: null, blinkT: rand(1, 4), blinkV: 0, wave: 2.4, ph: rand(0, 6), dead: false };
@@ -1743,7 +1774,7 @@ function mateSay(M, text, emo) {
   M.say = { chars: [...text], t: 0, shown: 0, emo, vd, dur: Math.max(1.2 + [...text].length * .11, vd + .6) };
   M.bub.textContent = ''; M.bub.classList.add('show');
   if (rv) SFX.voice('voice/shino/' + rv[0], rv[1], rv[2]);
-  else if (voiceOn && jaVoice) { const u = new SpeechSynthesisUtterance(text.replace(/[♪〜～]/g, 'ー')); u.voice = jaVoice; u.lang = 'ja-JP'; u.rate = M.ch === 'karen' ? 1.25 : 1.15; u.pitch = M.ch === 'karen' ? 1.7 : 1.45; speechSynthesis.speak(u); }
+  else if (voiceOn && jaVoice) { const u = new SpeechSynthesisUtterance(text.replace(/[♪〜～]/g, 'ー')); u.voice = jaVoice; u.lang = 'ja-JP'; u.rate = M.ch === 'karen' ? 1.25 : M.ch === 'fortuna' ? 1.05 : 1.15; u.pitch = M.ch === 'karen' ? 1.7 : 1.45; speechSynthesis.speak(u); }
 }
 
 /* ---------- 掛け合い：キャラの組み合わせごとの台本（話す役は 0 と 1） ---------- */

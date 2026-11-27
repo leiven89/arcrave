@@ -135,6 +135,20 @@
   body.karen #decide{background:linear-gradient(120deg,rgba(176,76,255,.95),rgba(255,106,216,.95));color:#1c0220}
   body.karen #info h1{text-shadow:0 0 18px rgba(255,106,216,.45);font-size:31px}
   .ic.ka{background:linear-gradient(160deg,#c2409a,#2a0b3a)}
+  .ic.fo{background:linear-gradient(160deg,#c99a3b,#2a0b3a)}
+  .ic.inv{cursor:pointer}
+  .ic.inv .sil{color:rgba(255,215,122,.45)}
+  .ic.inv .nm{color:#ffd77a}
+  body.fortuna #decide{background:linear-gradient(120deg,rgba(201,154,59,.95),rgba(155,107,255,.95));color:#1a0d02}
+  #invBtn{height:40px;padding:0 12px;font-weight:700;font-size:12px;letter-spacing:.1em}
+  #invite{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:60;width:min(340px,calc(100vw - 32px));padding:18px;text-align:center}
+  #invite[hidden]{display:none}
+  #invite b{display:block;font-size:16px;letter-spacing:.2em;margin-bottom:6px}
+  #invite p{font-size:12px;opacity:.8;margin:0 0 12px}
+  #invite input{width:100%;box-sizing:border-box;padding:10px;font:700 16px var(--en,sans-serif);letter-spacing:.12em;text-align:center;text-transform:uppercase;background:rgba(0,0,0,.4);color:#fff;border:1px solid rgba(255,215,122,.6)}
+  #invite .row{display:flex;gap:8px;justify-content:center;margin-top:12px}
+  #invite .row button{padding:9px 16px;font-weight:700}
+  #invMsg{display:block;margin-top:10px;min-height:1.2em;font-size:12px;color:#ffd77a}
   .ic.wait .ld{position:absolute;left:0;right:0;top:40%;text-align:center;font-family:var(--en);font-weight:700;font-size:13px;letter-spacing:.1em;color:#ffb8ec}
   #mute{height:40px;padding:0 14px;font-family:var(--en);font-weight:700;letter-spacing:.14em;font-size:13px;display:none}
   body.karen #mute{display:block}
@@ -195,6 +209,7 @@
     <button id="back" class="panel tap">◀ LOBBY</button>
     <div id="title"><b>キャラクター選択</b><small>CHARACTER SELECT</small></div>
     <button id="mute" class="panel tap" aria-label="音楽のオン・オフ">♪ ON</button>
+    <button id="invBtn" class="panel tap">招待コード</button>
   </div>
 
   <div id="info" class="hidden">
@@ -228,6 +243,13 @@
 <div id="flash"></div>
 <div id="cutin"><div class="band"><img id="cutImg" alt=""><div class="txt"><small>SKILL</small><b>氷華・零式</b><span>HYOKA ZERO</span></div></div></div>
 <div id="toast" class="panel"></div>
+<div id="invite" class="panel" hidden role="dialog" aria-label="招待コード">
+  <b>招待コード</b>
+  <p>フォルトゥナ・レイズの招待コードを入力してください</p>
+  <input id="invCode" autocomplete="off" spellcheck="false" placeholder="FR-XXXX-XXXX" aria-label="招待コード">
+  <div class="row"><button id="invOk" class="panel tap">受け取る</button><button id="invNo" class="panel tap">閉じる</button></div>
+  <small id="invMsg"></small>
+</div>
 
 <div id="loading">
   <div class="t">LOADING</div>
@@ -625,6 +647,7 @@ loader.load('./shino_lite.vrm', gltf => {
   vrm.scene.visible = false;
   buildRoster();
   loadKaren();
+  loadFortuna();
   pbar.style.width = '100%'; lmsg.textContent = 'READY';
   setTimeout(() => document.getElementById('loading').classList.add('hide'), 300);
 }, e => { if (e.total) { const p = Math.round(e.loaded / e.total * 100); pbar.style.width = p + '%'; lmsg.textContent = `CHARACTER DATA … ${p}%`; } },
@@ -907,15 +930,28 @@ function updateCamera(t, dt) {
 /* =====================================================================
    キャラ選択・登場
    ===================================================================== */
+/* ---------- 招待コード（フォルトゥナ・レイズの使用権） ----------
+   コードそのものは載せず、SHA-256 の値だけを照らし合わせる。受け取ると、この端末のブラウザに記録される */
+const INVITES = {"1362674e7ddd750293090aa677e29de270dc6ebd5cc6fdcf618d1ba8e96b845b": "レイブン", "e42a893134b8df414af91697d6a453dc5f3771ac3e567292d7ee471dbf04ba46": "レイたそ", "0394dee641660c0d7e33c254321e803589329d5bfb50c41dbe055cafeef31113": "はるさーめん"};
+async function redeemInvite(code) {
+  const c = String(code || '').trim().toUpperCase(); if (!c) return null;
+  try {
+    const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(c)))].map(b => b.toString(16).padStart(2, '0')).join('');
+    const who = INVITES[h]; if (who) { localStorage.setItem('unlock_fortuna', who); return who; }
+  } catch (e) {}
+  return null;
+}
+const FORTUNA_OK = (() => { try { return !!localStorage.getItem('unlock_fortuna'); } catch (e) { return false; } })();
 const ROSTER = [
   { id: 'shino', name: '雪代しの', el: '❄', stars: 5, own: true },
-  { id: 'karen', name: 'カレン', el: '♪', stars: 5, own: true }, { name: '？？？', el: '⚡', stars: 4 }, { name: '？？？', el: '🌿', stars: 4 },
+  { id: 'karen', name: 'カレン', el: '♪', stars: 5, own: true }, { id: 'fortuna', name: 'フォルトゥナ', el: '♠', stars: 5, own: FORTUNA_OK, invite: true }, { name: '？？？', el: '🌿', stars: 4 },
   { name: '？？？', el: '✦', stars: 5 }, { name: '？？？', el: '❄', stars: 3 }, { name: '？？？', el: '☾', stars: 4 }, { name: '？？？', el: '🔥', stars: 3 },
 ];
 const rosterEl = document.getElementById('roster');
 function cardHTML(c) {
   const icon = c.id === 'shino' ? iconURL : c.icon;
   if (c.own && icon) return `<img src="${icon}" alt=""><span class="st">${'★'.repeat(c.stars)}</span><span class="e">${c.el}</span><span class="nm">${c.name}</span>`;
+  if (c.invite && !c.own) return `<span class="sil">♠</span><span class="st">${'★'.repeat(c.stars)}</span><span class="lk">🔒</span><span class="nm">招待限定</span>`;
   if (c.own) return `<span class="sil">${c.el}</span><span class="st">${'★'.repeat(c.stars)}</span><span class="ld">0%</span><span class="nm">${c.name}</span>`;
   return `<span class="sil">?</span><span class="st">${'★'.repeat(c.stars)}</span><span class="e">${c.el}</span><span class="lk">🔒</span><span class="nm">未所持</span>`;
 }
@@ -923,17 +959,18 @@ function buildRoster() {
   ROSTER.forEach((c, i) => {
     const d = document.createElement('div'); c.card = d;
     const waiting = c.own && c.id !== 'shino' && !c.icon;
-    d.className = 'ic' + (c.own ? (c.id === 'karen' ? ' ka' : ' ur') : ' lock') + (waiting ? ' lock wait' : '');
+    d.className = 'ic' + (c.own ? (c.id === 'karen' ? ' ka' : c.id === 'fortuna' ? ' fo' : ' ur') : c.invite ? ' inv' : ' lock') + (waiting ? ' lock wait' : '');
     d.innerHTML = cardHTML(c);
-    d.addEventListener('click', () => !c.own ? toast('未所持のキャラクターです') : c.id === 'karen' ? selectKaren(d) : selectShino(d));
+    d.addEventListener('click', () => !c.own ? (c.invite ? openInvite() : toast('未所持のキャラクターです')) : c.id === 'karen' ? selectKaren(d) : c.id === 'fortuna' ? selectFortuna(d) : selectShino(d));
     rosterEl.appendChild(d);
   });
 }
 let selected = false, appearT = -1, skill = null;
 const info = document.getElementById('info');
 function selectShino(el) {
-  if (skill || kFin) return;
+  if (skill || kFin || fFin) return;
   if (active === 'karen') leaveKaren();
+  if (active === 'fortuna') leaveFortuna();
   active = 'shino'; charH = shinoH; setInfo('shino');
   document.querySelectorAll('.ic').forEach(x => x.classList.remove('sel')); el.classList.add('sel');
   document.getElementById('prompt').classList.add('hide');
@@ -977,6 +1014,7 @@ let timeScale = 1;
 
 document.getElementById('decide').addEventListener('click', () => {
   if (active === 'karen') return karenDecide();
+  if (active === 'fortuna') return fortunaDecide();
   if (!selected || skill) return;
   skill = { t: 0, stage: 0 };
   appearT = -1; pillar.material.opacity = 0;
@@ -1552,7 +1590,7 @@ muteBtn.addEventListener('click', () => setMute(SND.on));
 
 /* ---------- 舞台の切り替え（しの：氷の舞台／カレン：暗転してスポットライト） ---------- */
 const nameTexOf = (text, col) => canvasTex(1024, 256, (g, w, h) => { g.font = '700 220px "Rajdhani", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.strokeStyle = col; g.lineWidth = 3; g.strokeText(text, w / 2, h / 2 + 10); });
-const NAME_TEX = { shino: env.userData.nameMesh.material.map, karen: nameTexOf('KAREN', 'rgba(255,90,216,.6)') };
+const NAME_TEX = { shino: env.userData.nameMesh.material.map, karen: nameTexOf('KAREN', 'rgba(255,90,216,.6)'), fortuna: nameTexOf('FORTUNA', 'rgba(255,200,90,.6)') };
 const ringTexKaren = canvasTex(512, 512, g => {
   g.translate(256, 256); g.strokeStyle = '#fff'; g.lineWidth = 6; g.beginPath(); g.arc(0, 0, 240, 0, Math.PI * 2); g.stroke();
   g.lineWidth = 2; for (const r of [214, 150, 110]) { g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.stroke(); }
@@ -1573,8 +1611,9 @@ function updateTheme(dt) {
 /* ---------- 選んだとき：暗転 → カチッとスポット → 振り向いて踊りだす ---------- */
 let kSm = null, kHipW = 0, kShow = null, kFin = null, kClock = 0, kLineT = 0;
 function selectKaren(el) {
-  if (skill || kFin) return;
+  if (skill || kFin || fFin) return;
   if (!karen) { toast('カレンを読み込み中です…'); return; }
+  if (active === 'fortuna') leaveFortuna();
   document.querySelectorAll('.ic').forEach(x => x.classList.remove('sel')); el.classList.add('sel');
   document.getElementById('prompt').classList.add('hide');
   setInfo('karen');
@@ -1703,6 +1742,149 @@ function karenTick(dt, rdt, t) {
   karen.update(rdt);
 }
 
+/* =====================================================================
+   フォルトゥナ・レイズ（招待コードで解放）：光の柱から現れて、カードを手に迎える
+   ===================================================================== */
+const FORTUNA_URL = './fortuna_lite.vrm';
+let fortuna = null, fortunaH = 1.6, fBaseHipsY = 0, fShow = null, fFin = null;
+const fRoot = new THREE.Group(); fRoot.visible = false; scene.add(fRoot);
+const fb = n => fortuna.humanoid.getNormalizedBoneNode(n);
+// 1枚目の絵のポーズ：右手を横に広げて迎え、左手のカードを顔の横に。脚は軽く交差
+const F_POSE = {
+  hips: [0, .14, 0], spine: [.02, 0, 0], chest: [0, 0, -.04], neck: [0, 0, 0], head: [-.02, -.05, .13],
+  rightUpperArm: [0, .45, .55], rightLowerArm: [0, .35, 0], rightHand: [0, 0, -.25],
+  leftUpperArm: [0, -.7, -.75], leftLowerArm: [0, -2.05, 1.45], leftHand: [0, -.5, .1],
+  leftUpperLeg: [0, .06, -.02], leftLowerLeg: [.05, 0, 0], leftFoot: [0, -.12, 0],
+  rightUpperLeg: [-.06, -.1, .2], rightLowerLeg: [.22, 0, 0], rightFoot: [-.06, .25, 0],
+};
+const F_FIN = { ...F_POSE, rightUpperArm: [-1.35, .25, .35], rightLowerArm: [0, .15, 0], rightHand: [0, 0, -.3], head: [-.06, -.1, .1] };    // 決定：手を差し出す
+function fApply(P, t) {
+  for (const n in P) { const b = fb(n); if (b) b.rotation.set(P[n][0], P[n][1], P[n][2]); }
+  fb('hips').position.y = fBaseHipsY + Math.sin(t * 1.7) * .004;
+  fb('spine').rotation.x += Math.sin(t * 1.7) * .012;
+}
+function modelIcon(model, root) {        // 顔アイコン（ほかのものを隠して、顔だけ撮る）
+  const hp = new THREE.Vector3(); model.humanoid.getRawBoneNode('head').getWorldPosition(hp);
+  const em = model.expressionManager; em?.setValue('happy_mouth', .8); em?.setValue('brow_happy', .5); model.update(0);
+  const cam = new THREE.PerspectiveCamera(20, renderer.domElement.width / renderer.domElement.height, .05, 50);
+  cam.position.set(hp.x + .25, hp.y + .02, hp.z + 1.3); cam.lookAt(hp.x, hp.y - .02, hp.z);
+  const vis = [env, snow, magic, spotG, kRoot, vrm?.scene].filter(Boolean).map(o => [o, o.visible]);
+  vis.forEach(([o]) => o.visible = false); deco.forEach(d => d.visible = false); root.visible = true;
+  const bg = scene.background, fog = scene.fog; scene.background = null; scene.fog = null;
+  renderer.setClearColor(0x000000, 0); renderer.render(scene, cam);
+  const src = renderer.domElement, Hh = src.height, W = src.width, cv = document.createElement('canvas'); cv.width = cv.height = 320;
+  const side = Hh * .9; cv.getContext('2d').drawImage(src, (W - side) / 2, (Hh - side) / 2, side, side, 0, 0, 320, 320);
+  scene.background = bg; scene.fog = fog; vis.forEach(([o, v]) => o.visible = v); deco.forEach(d => d.visible = true); root.visible = active === 'fortuna';
+  em?.setValue('happy_mouth', 0); em?.setValue('brow_happy', 0);
+  return cv.toDataURL('image/png');
+}
+function loadFortuna() {
+  const c = ROSTER.find(r => r.id === 'fortuna'); if (!c || !c.own) return;
+  loader.load(FORTUNA_URL, gltf => {
+    fortuna = gltf.userData.vrm;
+    VRMUtils.removeUnnecessaryVertices(gltf.scene);
+    VRMUtils.combineSkeletons ? VRMUtils.combineSkeletons(gltf.scene) : VRMUtils.removeUnnecessaryJoints?.(gltf.scene);
+    VRMUtils.rotateVRM0(fortuna);
+    fortuna.scene.traverse(o => {
+      if (!o.isMesh) return;
+      o.castShadow = true; o.frustumCulled = false;
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
+        if (m.isMToonMaterial && m.parametricRimColorFactor) { m.parametricRimColorFactor.setRGB(.5, .38, .12); m.parametricRimFresnelPowerFactor = 4; m.parametricRimLiftFactor = .04; m.rimLightingMixFactor = .6; }
+      });
+    });
+    fRoot.add(fortuna.scene);
+    const box = new THREE.Box3().setFromObject(fortuna.scene);
+    fortunaH = box.max.y - box.min.y;
+    fortuna.scene.position.y = 0.121 - box.min.y;
+    fBaseHipsY = fb('hips').position.y;
+    if (fortuna.lookAt) fortuna.lookAt.target = lookTarget;
+    fortuna.springBoneManager?.joints?.forEach(j => { j.center = fortuna.scene; });
+    fApply(F_POSE, 0); fortuna.update(0);
+    c.icon = modelIcon(fortuna, fRoot);
+    if (c.card) { c.card.classList.remove('lock', 'wait'); c.card.innerHTML = cardHTML(c); }
+  }, e => { if (e.total && c.card) { const l = c.card.querySelector('.ld'); if (l) l.textContent = Math.round(e.loaded / e.total * 100) + '%'; } },
+  err => { console.error(err); if (c.card) { const l = c.card.querySelector('.ld'); if (l) l.textContent = 'ERROR'; } });
+}
+function selectFortuna(el) {
+  if (skill || kFin || fFin) return;
+  if (!fortuna) { toast('フォルトゥナを読み込み中です…'); return; }
+  if (active === 'karen') leaveKaren();
+  document.querySelectorAll('.ic').forEach(x => x.classList.remove('sel')); el.classList.add('sel');
+  document.getElementById('prompt').classList.add('hide');
+  setInfo('fortuna'); info.classList.remove('hidden');
+  document.querySelectorAll('.stat .b i').forEach(i => { i.style.width = '0'; requestAnimationFrame(() => setTimeout(() => i.style.width = i.dataset.w + '%', 60)); });
+  document.getElementById('toLobby').classList.remove('show');
+  appearT = -1; pillar.material.opacity = 0; palmK = 0; palmFlake.visible = false;
+  if (vrm) vrm.scene.visible = false;
+  active = 'fortuna'; document.body.classList.add('fortuna');
+  charH = fortunaH; focus.set(0, 0, 0); fRoot.visible = true; fRoot.rotation.y = 0;
+  env.userData.nameMesh.material.map = NAME_TEX.fortuna; env.userData.nameMesh.material.opacity = 0;
+  ringMat.color.copy(glow(2.2, 1.6, .6)); ringMat.opacity = .45;
+  setShot('normal'); setFace({}); flash(.55, .35);
+  fShow = { t: 0, said: false };
+  selected = true;
+}
+function leaveFortuna() {
+  fShow = fFin = null; active = null; fRoot.visible = false; pillar.material.opacity = 0;
+  document.body.classList.remove('fortuna', 'skill');
+  env.userData.nameMesh.material.map = NAME_TEX.shino;
+  ringMat.map = ringTexShino; ringMat.color.copy(glow(.4, 1.6, 2.2)); ringMat.opacity = .55;
+  charH = shinoH; focus.set(0, 0, 0); setFace({});
+}
+function fortunaDecide() {
+  if (fFin || (fShow && fShow.t < 1)) return;
+  fFin = { t: 0, stage: 0 }; document.body.classList.add('skill');
+  setFace({ happy_mouth: .5, brow_happy: .4 }); say('今宵の運命、わたしに預けてみる？', 1.4);
+}
+const _fh = new THREE.Vector3();
+function fortunaTick(dt, rdt, t) {
+  let P = F_POSE;
+  if (fShow) {                         // 登場：光の柱 → 名乗り
+    const s = fShow; s.t += rdt;
+    pillar.material.opacity = s.t < .1 ? s.t * 5 : Math.max(0, .5 - (s.t - .1) * 1.2); pillar.scale.set(1 - s.t * .5, 1, 1 - s.t * .5);
+    if (s.t > .35 && !s.said) { s.said = true; burstShock(1.6, .5); setFace({ happy_mouth: .45, brow_happy: .35, relaxed_eye: .25 }); say('フォルトゥナ・レイズよ。……今夜の勝負、楽しみましょう？', 2.6); }
+    env.userData.nameMesh.material.opacity = Math.min(.9, Math.max(0, (s.t - .2) * 1.5));
+    if (s.t > 1.6) { fShow = null; pillar.material.opacity = 0; }
+  } else if (fFin) {                   // 決定：カードが舞って、手を差し出す
+    const f = fFin; f.t += rdt;
+    const k = Math.min(1, Math.max(0, (f.t - .9) / .35));
+    P = {}; for (const n in F_POSE) P[n] = F_POSE[n].map((v, i) => v + (F_FIN[n][i] - v) * k);
+    if (f.stage === 0 && f.t > .9) {
+      f.stage = 1; popConfetti(); flash(.6, .5); shake = .5; burstShock(4, .7);
+      setFace({ happy_mouth: .8, brow_happy: .5, blinkLeft: 1 }); say('さあ――次は、あなたの番よ。よろしくね。', 2.4);
+    }
+    if (f.t > 3.4) {
+      fFin = null; document.body.classList.remove('skill');
+      document.getElementById('toLobby').classList.add('show');
+      toast('フォルトゥナ・レイズ をパートナーに決定しました');
+      try { localStorage.setItem('partner', 'fortuna'); } catch (e) {}
+    }
+  }
+  fApply(P, t);
+  fortuna.humanoid.getRawBoneNode('head').getWorldPosition(headPos);
+  (fortuna.humanoid.getRawBoneNode('upperChest') || fortuna.humanoid.getRawBoneNode('chest')).getWorldPosition(chestPos);
+  updateCamera(t, rdt);
+  updateFace(rdt, fortuna);
+  fortuna.update(rdt);
+}
+// 招待コードの入力
+const invEl = document.getElementById('invite'), invCode = document.getElementById('invCode'), invMsg = document.getElementById('invMsg');
+function openInvite() { invEl.hidden = false; invMsg.textContent = ''; invCode.value = ''; setTimeout(() => invCode.focus(), 50); }
+async function tryInvite(code) {
+  const who = await redeemInvite(code);
+  if (!who) { invMsg.textContent = 'コードが違うようです。もう一度確かめてください。'; return false; }
+  invMsg.textContent = `${who} さん、フォルトゥナ・レイズの使用権を受け取りました！`;
+  toast('フォルトゥナ・レイズ が解放されました');
+  setTimeout(() => { location.href = location.pathname; }, 1400);
+  return true;
+}
+document.getElementById('invBtn').addEventListener('click', openInvite);
+document.getElementById('invNo').addEventListener('click', () => invEl.hidden = true);
+document.getElementById('invOk').addEventListener('click', () => tryInvite(invCode.value));
+invCode.addEventListener('keydown', e => { if (e.key === 'Enter') tryInvite(invCode.value); if (e.key === 'Escape') invEl.hidden = true; });
+{ const q = new URLSearchParams(location.search).get('invite'); if (q) { openInvite(); invCode.value = q; tryInvite(q); } }   // 招待リンク（?invite=コード）
+if (FORTUNA_OK) document.getElementById('invBtn').textContent = '招待済み';
+
 /* ---------- 右パネルの中身 ---------- */
 const CHARS = {
   shino: { rar: 'UR', stars: 5, el: '❄', role: '氷属性 ／ アタッカー', name: '雪代 <span>しの</span>', ep: '凍晶のオペレーター ── SHINO YUKISHIRO',
@@ -1711,6 +1893,9 @@ const CHARS = {
   karen: { rar: 'UR', stars: 5, el: '♪', role: '音属性 ／ ダンサー', name: 'カレン・<span>カデンツァ</span>', ep: 'ステップで舞う踊り子 ── KAREN CADENZA',
     stats: [['HP', 64, '7,920'], ['ATK', 78, '3,240'], ['DEF', 50, '1,480'], ['SPD', 98, '171']],
     skill: '終幕舞踏・カデンツァ', skillEn: 'FINAL CADENZA', skillTxt: '華麗なステップで舞台を支配し、スポットライトの当たった敵すべてに音属性の連続ダメージ。2ターンのあいだ味方全体の行動速度を上げる。' },
+  fortuna: { rar: 'UR', stars: 5, el: '♠', role: '運属性 ／ ギャンブラー', name: 'フォルトゥナ・<span>レイズ</span>', ep: '運命の札を切る勝負師 ── FORTUNA RAIZE',
+    stats: [['HP', 66, '8,120'], ['ATK', 88, '3,680'], ['DEF', 55, '1,620'], ['SPD', 84, '150']],
+    skill: 'オールイン・ロイヤルフラッシュ', skillEn: 'ALL-IN ROYAL FLUSH', skillTxt: '巨大な5枚の札を次々と戦場に突き立て、役がそろった瞬間に一斉に炸裂させる。技1《ルーレットショット》は出目しだいで威力が上下する。' },
 };
 function setInfo(id) {
   const c = CHARS[id];
@@ -1724,8 +1909,8 @@ function setInfo(id) {
    ===================================================================== */
 const toastEl = document.getElementById('toast'); let toastT;
 function toast(m) { toastEl.textContent = m; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1700); }
-document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127232220');
-document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261127232220');
+document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127234038');
+document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261127234038');
 window.__sel = { karen: () => ({ karen, kRoot, kShow, kFin, kClock, SPOTS, M, select: () => selectKaren(ROSTER.find(r => r.id === 'karen').card), decide: karenDecide, KP, kApply, clock: v => { musicStop(); kClock = v; }, icon: karenIcon }), pose: n => setPose(n, 10), shot: setShot, select: () => selectShino(document.querySelector('.ic.ur')), step: (sec) => { for (let i = 0; i < sec * 60; i++) tick(1 / 60); }, state: () => ({ skill, conv: conv.visible, glow: handGlow.scale.x, shot }), POSES, bone: n => bone(n), THREE, ear: EAR_OFFSET, hint: ELBOW_HINT, dbg: () => { const f = n => bone(n).getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)); const t = EAR_OFFSET.clone(); bone('head').localToWorld(t); return { head: f('head'), hand: f('leftHand'), elbow: f('leftLowerArm'), sh: f('leftUpperArm'), target: t.toArray().map(v => +v.toFixed(3)), rawHand: vrm.humanoid.getRawBoneNode('leftHand').getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)) }; }, show: () => { vrm.scene.visible = true; document.getElementById('loading').classList.add('hide'); setShot('normal'); } };
 
 /* =====================================================================
@@ -1756,6 +1941,7 @@ function tick(rdt) {
       updateFace(dt);
       vrm.update(dt);
     } else if (active === 'karen' && karen) karenTick(dt, rdt, simT);
+    else if (active === 'fortuna' && fortuna) fortunaTick(dt, rdt, simT);
     else {
       if (shot !== 'normal') setShot('normal');
       updateCamera(simT, rdt);
@@ -1774,6 +1960,9 @@ function tick(rdt) {
   snowGeo.attributes.position.needsUpdate = true;
   composer.render(rdt);
 }
+// 確認用：画面が隠れていても、決まった刻みで進めて1コマ描く（__step(コマ数, 幅, 高さ)）
+window.__step = (n, w, h) => { if (w) { camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); composer.setSize(w, h); } for (let i = 0; i < n; i++) tick(1 / 60); return renderer.domElement.toDataURL('image/jpeg', .8); };
+
 loop();
 
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); });

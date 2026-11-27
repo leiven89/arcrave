@@ -42,6 +42,9 @@
   #sub{z-index:30}
   body.shopping #sub{bottom:auto;top:16px}
   html.karen #sub::before{content:"カレン"}
+  html.fortuna #sub::before{content:"フォルトゥナ"}
+  html.fortuna .sk i{text-shadow:0 0 10px rgba(255,215,122,.95)}
+  html.fortuna #awk{background:radial-gradient(ellipse at center,rgba(255,215,122,.28),rgba(20,6,30,.75))}
   #sub::before{content:"しの";display:block;font-family:var(--jp);font-size:11px;color:var(--cy);letter-spacing:.2em;margin-bottom:2px}
 
   #title{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;opacity:0;transition:opacity 1.2s}
@@ -281,7 +284,7 @@
 <div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
 <div id="bossHud"><small>BOSS</small><b>氷殻の守護者グラキエス</b><div class="bb"><i id="bossBar"></i></div><span id="bossNum"></span></div>
-<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261127232220">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261127232220">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
+<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261127234038">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261127234038">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
   <header><div class="logo" id="shopLogo">夜</div><div class="nm"><b id="shopName">ヨルマート</b><small id="shopEn">YORU MART</small></div><button class="close tap" id="shopClose">✕ 店を出る</button></header>
@@ -318,8 +321,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 
 /* ---------- パートナー：キャラ選択画面で選んだキャラ（shino / karen）を使う ---------- */
-const PARTNER = (() => { try { return localStorage.getItem('partner') === 'karen' ? 'karen' : 'shino'; } catch (e) { return 'shino'; } })();
+// フォルトゥナは招待コードで解放した人だけ（キャラ選択画面・タイトル画面で入力）
+const FORTUNA_OK = (() => { try { return !!localStorage.getItem('unlock_fortuna'); } catch (e) { return false; } })();
+const PARTNER = (() => { try { const p = localStorage.getItem('partner'); return p === 'karen' ? 'karen' : p === 'fortuna' && FORTUNA_OK ? 'fortuna' : 'shino'; } catch (e) { return 'shino'; } })();
+const chOf = c => c === 'karen' || c === 'fortuna' ? c : 'shino';      // 送られてきたキャラ名を確かめる
 document.documentElement.classList.toggle('karen', PARTNER === 'karen');
+document.documentElement.classList.toggle('fortuna', PARTNER === 'fortuna');
 // ダンジョン：walk.html?area=dungeon で開くと、街の代わりに地下迷宮になる
 const DUNGEON = new URLSearchParams(location.search).get('area') === 'dungeon';
 document.documentElement.classList.toggle('dungeon', DUNGEON);
@@ -354,7 +361,7 @@ function socPlayers() {
   for (const peer of SOC.peers) {
     const x = peer.presence && peer.presence.x;
     if (!x || typeof x !== 'object' || !PID_RE.test(x.pid) || x.pid === SOC.pid) continue;
-    out.set(x.pid, { pid: x.pid, name: socName(peer.name) || socName(x.nm) || 'プレイヤー', area: peer.presence.area || '', ch: peer.presence.ch === 'karen' ? 'karen' : 'shino', x, peer });
+    out.set(x.pid, { pid: x.pid, name: socName(peer.name) || socName(x.nm) || 'プレイヤー', area: peer.presence.area || '', ch: chOf(peer.presence.ch), x, peer });
   }
   return out;
 }
@@ -533,13 +540,14 @@ function shinoVoice(id) { const v = VOICE[id]; if (v && PARTNER === 'shino') SFX
 function sfxAt(n, pos, vol = 1, rate = 1) { const d = Math.hypot(pos.x - player.pos.x, pos.z - player.pos.z); SFX.play(n, vol * Math.max(0, 1 - d / 24), rate); }
 // 技が始まった時の音
 function sfxAct(A, name) {
+  if (isF(A)) return;          // フォルトゥナの音は技の中で鳴らす
   const k = isK(A), n = { s1: k ? 'karen_step' : null, s3: k ? 'karen_arpeggio' : 'shino_step', charge: k ? null : 'shino_charge' }[name];
   if (n) sfxAt(n, A.pos, A === player ? .9 : .6);
 }
 const MYAREA = DUNGEON ? (DPARTY ? 'dg:' + DPARTY.id : null) : 'noelberg';      // 同じ場所の人だけ表示する
 /*MODEL_FETCH*/
 // モデルを ArrayBuffer で読む（公開版では、この部分が Base64 テキストの分割読み込みに置き換わる）
-const MODEL_URL = { shino: './shino_lite.vrm', karen: './karen.vrm' };
+const MODEL_URL = { shino: './shino_lite.vrm', karen: './karen.vrm', fortuna: './fortuna_lite.vrm' };
 function fetchModel(id, onProgress) {
   return fetch(MODEL_URL[id] || MODEL_URL.shino).then(async r => {
     if (!r.ok) throw new Error(r.status + ' ' + r.url);
@@ -558,8 +566,9 @@ function getModelBuf(id, onProgress) { return modelBufs[id] ||= fetchModel(id, o
 function loadPartner(loader, onLoad, onProgress, onError) { getModelBuf(PARTNER, onProgress).then(buf => loader.parse(buf, './', onLoad, onError)).catch(onError); }
 // カレンを選んでいる時は、しののセリフをカレン版に差し替える（値が [セリフ, 表情] のものもある）
 function partnerLine(text, emo) {
-  if (PARTNER !== 'karen') return [text, emo];
-  const k = KAREN_LINES[text];
+  const T = PARTNER === 'karen' ? KAREN_LINES : PARTNER === 'fortuna' ? FORTUNA_LINES : null;
+  if (!T) return [text, emo];
+  const k = T[text];
   return k === undefined ? [text, emo] : Array.isArray(k) ? k : [k, emo];
 }
 // カレン版のセリフ（キー：しののセリフ → 値：カレンのセリフ）
@@ -657,6 +666,92 @@ const KAREN_LINES = {
   '……勝った。': '天才って、こういうこと！',
   'ふう……うちの勝ちやね。': '作戦通り？ ううん、即興通り！',
   'ごめんね、手加減できんかった。': 'はい拍手ー！ 今のは文句なしの満点！',
+};
+// フォルトゥナ版のセリフ（キー：しののセリフ → 値：フォルトゥナのセリフ）
+const FORTUNA_LINES = {
+  "ここがノエルベルク……。雪、きれいやね。ちょっと歩こっか。": "ここがノエルベルク。雪の夜って、それだけで絵になるわね。少し歩きましょうか。",
+  "うしろに訓練場があるけん、技の練習も、ほかの人との手合わせもできるよ。": "後ろに訓練場があるわ。技の練習も、ほかの人との勝負もできるそうよ。",
+  "あれがグラン・ノエル……。おっきかね。": "あれがグラン・ノエル……。大きいわね。",
+  "これがグラン・ノエル……。この街の人みんなの、目印なんやって。": "これがグラン・ノエル。この街みんなの目印なんですって。",
+  "星、ちゃんと一番上に乗っとる。……なんか、安心するね。": "てっぺんの星、いい位置ね。一番の場所は、ちゃんと勝ち取るものよ。",
+  "お店、ぐるっと六つあるんやね。どこから見よっか。": "お店がぐるっと六つ。どこから回るか、あなたが決めて。",
+  "きれいやね……。みんなで見られたら、もっとよかったっちゃけど。": "きれいね……。こういう景色は、賭けずに眺めるのが一番。",
+  "寒くない？……うちは平気。氷、得意やけん。": "寒くない？ ……手、貸してあげましょうか。",
+  "わ、コイン……！ ちょっと得した気分。": "あら、コイン。今夜はツイているみたい。",
+  "宝箱、ほんとにあるっちゃね。": "宝箱……中身は、開けてからのお楽しみね。",
+  "これで何か買っていこっか。": "これで何か買っていきましょう。",
+  "いらっしゃいませー、って言われると、なんか照れるね。": "「いらっしゃいませ」って、ディーラーの挨拶に少し似ているわね。",
+  "夜のコンビニって、ちょっとわくわくするっちゃん。": "夜のコンビニって、少しだけ秘密めいていて好きよ。",
+  "ノエルベルクでも、ヨルマートはいつも開いとるね。": "ヨルマートはここでも開いているのね。年中無休、立派だわ。",
+  "……ヨルチキの匂いがする。": "ヨルチキの匂い……。誘惑には強いつもりなのだけれど。",
+  "スパイス、ちょっと大人の味……。好きかも。": "スパイスが効いているわね。……ええ、悪くないわ。",
+  "あったか……。手、温まるね。": "あったかい……。手が温まるわね。",
+  "サンタさんの顔……食べにくかぁ。": "サンタさんの顔……。どこから食べるか、悩ましいわね。",
+  "ヨルチキ、揚げたて……。半分こする？": "揚げたてね。半分こする？ ……大きいほうは、勝ったほうよ。",
+  "焼き鮭か昆布……うちは昆布派。": "焼き鮭か昆布……。迷ったら両方に張るのが、わたしの流儀。",
+  "……しのソーダって、誰が言い出したと？": "しのソーダ？ ……ふふ、わたしの名前の飲み物も欲しいところね。",
+  "残っとった……！ 今日はついとるね。": "残っていたわ。今日のツキは本物ね。",
+  "任務前にはこれ。味は……まあ、うん。": "任務の前はこれ。味は……まあ、勝負の前の験担ぎね。",
+  "うちには要らんけど……誰かにあげよっか。": "耐熱手袋……。熱い勝負の前には、ちょうどいいかしら。",
+  "……これ、自分で作れるっちゃけどね。": "冷却ジェル。のぼせた頭を冷やすのにいいわね。",
+  "ステッカー、どこに貼ろうかな。": "ステッカー……。トランプのケースに貼ろうかしら。",
+  "……うちのアクスタ？ なんか、恥ずかしかね。": "しののアクスタ？ ……わたしのも、作ってくれていいのよ。",
+  "あったかい……。ありがと。": "あったかい……。ありがとう。大事にするわ。",
+  "焼きたての匂い、広場まで届いとったよ。": "焼きたての匂い、広場まで届いていたわね。",
+  "朝早くから開いとるとって。えらかね。": "朝早くから開いているのね。勤勉な人は嫌いじゃないわ。",
+  "パンの匂いって、なんでこんなに落ち着くっちゃろ。": "パンの匂いって、なぜか心がほどけるのよね。",
+  "一日ひと切れずつ……クリスマスまで、待つと。": "一日ひと切れずつ……。待つのも、勝負のうちね。",
+  "角、どっちから食べればいいと……？": "トナカイの角……。どちらから食べるか、賭けましょうか。",
+  "雪だるまなのに、あったかい……。変な感じ。": "雪だるまなのに温かい。……ちょっとした手品みたい。",
+  "革のいい匂い……。落ち着くね。": "革のいい匂い……。落ち着くわね。",
+  "恋人へのプレゼント、か。……うちには、まだ縁のない話やね。": "恋人へのプレゼント、ね。……それは、まだ伏せておく札よ。",
+  "旅行鞄……いつか、遠くまで行ってみたいね。": "旅行鞄。いつか、世界中のカジノを巡ってみたいわね。",
+  "……ちっちゃくて、かわいかね。何入れよう。": "小さくてかわいい。チップを入れるのにぴったり。",
+  "雪の結晶……うちのと、同じ形しとる。": "雪の結晶の刺繍……。しのが見たら、きっと喜ぶわ。",
+  "ペア……？ だ、誰と分けるとか、決めとらんけん。": "ペア……？ 誰と分けるかは、まだ教えてあげない。",
+  "果物がきらきらしとる……。ほんとに宝石箱やね。": "果物がきらきらしている。本当に宝石箱ね。",
+  "いちご、いい香り……。": "いちごの香り……。いいわね。",
+  "みかんの匂いって、冬って感じがするね。": "みかんの匂いって、冬を感じるわ。",
+  "宝石みたい……。食べるの、もったいなか。": "宝石みたい……。食べるのがもったいないわね。",
+  "贈る人、決まっとる？ ……うちは、まだ考え中。": "贈る相手、決まっている？ ……わたしは、ひ・み・つ。",
+  "星の形のキウイ……。器用な人がおるとね。": "星形のキウイ。器用な人がいるのね。",
+  "お花の匂い……。冬でも、ちゃんと咲いとるね。": "お花の香り……。冬でも、ちゃんと咲いているのね。",
+  "プロポーズの花束、作ってもらう人もおるっちゃろうね。": "プロポーズの花束……。人生で一番大きな賭けかもしれないわね。",
+  "寒いのに、花はえらかね。……うちも、見習わんと。": "寒くても咲いている。……花のほうが、よほど勝負強いわ。",
+  "赤い薔薇……。もらう人、きっと嬉しかろうね。": "赤い薔薇。勝った夜に贈られたら、最高ね。",
+  "溶けん雪、か。……ちょっと、うらやましい。": "溶けない雪、ね。……終わらない夜みたいで、少し憧れるわ。",
+  "ポインセチア、部屋に置いたら明るくなりそう。": "ポインセチア。部屋がぱっと明るくなりそう。",
+  "甘い匂い……。行列ができるの、わかるね。": "甘い匂い……。行列ができるのも、わかるわ。",
+  "ケーキ、どれにしよう……。迷うね。": "ケーキ、どれにしようかしら。……迷う時間も楽しいわね。",
+  "ここのケーキ、ずっと気になっとったと。": "ここのケーキ、ずっと気になっていたの。",
+  "並んだ甲斐、あったね。……いただきます。": "並んだ甲斐があったわね。……いただきます。",
+  "切り株みたいで、食べるのもったいなかね。": "切り株みたい。食べるのがもったいないわね。",
+  "ツリーのケーキ……！ みんなで食べられたら、よかね。": "ツリーのケーキ……！ みんなで分けたら、もっと美味しそう。",
+  "訓練場……。ここでは、ほかのしのとも手合わせできるけん。": "訓練場ね。ここでは、ほかのプレイヤーとも勝負できるわ。",
+  "……動いた？ 気をつけて、来るよ。": "……今、動いた？ 気をつけて、来るわよ。",
+  "あの石の……こっち見とる。": "あの石……こちらを見ているわね。",
+  "……かたかった。でも、うちの勝ち。": "硬かったわね。でも、勝ったのはわたし。",
+  "ふう……おとなしゅうしとって。": "ふう……。お行儀よくしていてちょうだい。",
+  "石でも、凍らせれば割れるけん。": "石でも、当たりどころが良ければ割れるのよ。",
+  "……凍りついて。": "まだ、勝負はこれからよ。",
+  "逃がさんけん。": "逃がさないわ。",
+  "……凍って。": "はい、一手目。",
+  "いくよ。": "いくわよ。",
+  "うちの後ろに。……誰も、通さん。": "わたしの後ろに。……誰も通さないわ。",
+  "うちの後ろに。": "わたしの後ろに。",
+  "守るけん。": "任せて。",
+  "ついてきて。……速いけんね。": "ついてきて。……置いていくわよ。",
+  "ついてきて。": "ついてきて。",
+  "滑るよ。": "流れに乗るわよ。",
+  "……集めるけん。": "賭け金を、上げましょうか。",
+  "冷気、集まってきた。": "いい流れが来ているわ。",
+  "白夜に咲け……氷の約束。": "オールイン――ロイヤルフラッシュ。",
+  "う……やられた……。": "あら……負けちゃった。",
+  "……つよかね。次は負けんけん。": "強いわね。……次は、わたしが勝つわ。",
+  "いたた……。もう一回、やろ。": "今のは様子見よ。もう一勝負、どう？",
+  "……勝った。": "勝負あり、ね。",
+  "ふう……うちの勝ちやね。": "読み通り。わたしの勝ちよ。",
+  "ごめんね、手加減できんかった。": "ごめんなさい、手加減は苦手なの。",
 };
 const karenFace = f => Object.fromEntries(Object.entries(f).map(([k, v]) => [k.replace('relaxed', 'happy'), v]));   // カレンはいつも楽しそうな顔で
 
@@ -1507,6 +1602,7 @@ function toMora(text) {
 let speech = null, subT, mouthBusy = 0, blinkT = 2, blinkV = 0;
 function say(text, face = { relaxed_eye: .3, brow_relaxed: .4, happy_mouth: .3 }) {
   if (PARTNER === 'karen') { text = partnerLine(text)[0]; face = karenFace(face); }
+  else if (PARTNER === 'fortuna') text = partnerLine(text)[0];
   clearTimeout(subT); speech = { chars: [...text], mora: toMora(text), i: 0, t: 0 };
   // 収録ボイスがあるセリフはそれを鳴らす（口パクは声が終わるまで続ける）
   const rv = PARTNER === 'shino' && SHINO_LINE_VOICE[text];
@@ -1578,7 +1674,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127232220');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127234038');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -1857,7 +1953,7 @@ function updateNetUI() {
 const peerName = p => (typeof p.name === 'string' && p.name.trim()) ? p.name.trim().slice(0, 24) : 'プレイヤー';
 
 /* ---- ほかのプレイヤーのしの ---- */
-function getVrmBuf(ch) { return getModelBuf(ch === 'karen' ? 'karen' : 'shino'); }
+function getVrmBuf(ch) { return getModelBuf(chOf(ch)); }
 function syncRemotes() {
   if (DUNGEON && !DPARTY) return;            // ひとりのダンジョンでは、ほかの人を出さない
   if (!vrm) return;            // 自分のモデルを読み終えてから
@@ -1865,7 +1961,7 @@ function syncRemotes() {
   for (const p of NET.peers) {
     seen.add(p.peer);
     let r = remotes.get(p.peer), again = false;
-    if (r && r.ch !== (p.presence.ch === 'karen' ? 'karen' : 'shino')) { removeRemote(p.peer, r); r = null; again = true; }   // 相手のキャラが分かったら、そのモデルに替える
+    if (r && r.ch !== chOf(p.presence.ch)) { removeRemote(p.peer, r); r = null; again = true; }   // 相手のキャラが分かったら、そのモデルに替える
     if (!r) {
       if (remotes.size >= MAX_REMOTE) continue;
       r = makeRemote(p); remotes.set(p.peer, r);
@@ -1885,7 +1981,7 @@ function makeRemote(p) {
   const r = { peer: p.peer, name: peerName(p), vrm: null, pos: new THREE.Vector3(), yaw: 0, tgt: null, speed: 0, phase: 0, walkW: 0, runW: 0, baseHipsY: 0, footY: 0, lastC: 1, sayN: null, sayT: 0, blinkT: rand(1, 4), blinkV: 0, dead: false, act: null, actW: 0, actN: null, pvH: PV.MAX, pvK: null, pvF: 0, hitByMeAt: 0, block: null, awakenT: 0, charged: false, claws: null, aura: null };
   r.label = document.createElement('div'); r.label.className = 'pname' + (p.guest ? ' guest' : ''); r.nameEl = document.createElement('span'); r.nameEl.className = 'nm'; r.nameEl.textContent = r.name; r.hpEl = document.createElement('i'); r.hpEl.className = 'hpb'; r.hpEl.appendChild(document.createElement('u')); r.label.append(r.nameEl, r.hpEl); r.label.style.display = 'none'; document.body.appendChild(r.label);
   r.bubble = document.createElement('div'); r.bubble.className = 'psay'; document.body.appendChild(r.bubble);
-  r.ch = p.presence.ch === 'karen' ? 'karen' : 'shino';
+  r.ch = chOf(p.presence.ch);
   getVrmBuf(r.ch).then(buf => loader.parse(buf, './', gltf => {
     const v = gltf.userData.vrm;
     if (r.dead) { VRMUtils.deepDispose(v.scene); return; }
@@ -1916,7 +2012,7 @@ function applyPresence(r, p) {
   if (!p.presence.say && r.sayN === null) r.sayN = -1;
   if (act && typeof act.k === 'string' && act.n !== r.actN) {
     if (r.actN !== null && ACT[act.k] && r.vrm) {
-      r.act = { name: act.k, t: 0, enh: r.ch === 'karen' ? !!act.e : (!!act.e || r.awakenT > 0 || r.charged) }; r.lastAct = act.k;
+      r.act = { name: act.k, t: 0, seed: act.n, enh: r.ch === 'karen' ? !!act.e : (!!act.e || r.awakenT > 0 || r.charged) }; r.lastAct = act.k;
       if (r.ch === 'karen') { kCombo(r, act.k); if (act.k !== 's1') r.hopY = 0; }
       const y = num(act.y, -10, 10); if (y !== null) { r.yaw = y; r.tgt.yaw = y; }
     }
@@ -1973,8 +2069,8 @@ function netTick(dt, t) {
     r.lastC = c;
     if (r.act) actTick(dt, r);
     r.awakenT = Math.max(0, r.awakenT - dt);
-    r.claws ||= makeClaws(); updateClaws((r.pos.z > TRAIN.z0 - .4 || !!r.act) && r.ch !== 'karen', r.claws, r.vrm);
-    if (!r.aura) { r.aura = new THREE.Sprite(aura.material.clone()); r.aura.material.color.setRGB(...(r.ch === 'karen' ? [2.6, 1.3, .6] : [1.2, 2, 2.6])); r.aura.scale.copy(aura.scale); scene.add(r.aura); }
+    r.claws ||= makeClaws(); updateClaws((r.pos.z > TRAIN.z0 - .4 || !!r.act) && r.ch === 'shino', r.claws, r.vrm);
+    if (!r.aura) { r.aura = new THREE.Sprite(aura.material.clone()); r.aura.material.color.setRGB(...(r.ch === 'karen' ? [2.6, 1.3, .6] : r.ch === 'fortuna' ? [2.2, 1.5, 2.4] : [1.2, 2, 2.6])); r.aura.scale.copy(aura.scale); scene.add(r.aura); }
     r.aura.material.opacity = damp(r.aura.material.opacity, r.awakenT > 0 ? .3 + Math.sin(t * 6) * .06 : r.charged ? .16 : 0, 5, dt);
     r.aura.position.set(r.pos.x, 1.1, r.pos.z); r.aura.visible = r.aura.material.opacity > .01;
     r.vrm.scene.position.set(r.pos.x, r.footY + (r.hopY || 0), r.pos.z); r.vrm.scene.rotation.y = r.yaw;
@@ -2004,6 +2100,7 @@ const SK = {
 // カレンの技名（中身の動きは共通）
 const SK_NAMES = {
   shino: { s1: 'スキル1《氷爪・霜断》', s2: 'スキル2《白霜障壁》', s3: 'スキル3《霜道ステップ》', charge: '特殊《氷気流チャージ》', awaken: '覚醒《白夜氷精》' },
+  fortuna: { s1: 'スキル1《ルーレットショット》', s2: 'スキル2《ハットトリック》', s3: 'スキル3《コイントス・ステップ》', charge: '特殊《レイズ》', awaken: '覚醒《オールイン・ロイヤルフラッシュ》' },
   karen: { s1: 'スキル1《アドリブ・ステップ》', s2: 'スキル2《フェイク・フィナーレ》', s3: 'スキル3《トリック・アルペジオ》', charge: '特殊', awaken: '覚醒《カデンツァ・グランドショー》' },
 };
 for (const id in SK) SK[id].name = SK_NAMES[PARTNER][id];
@@ -2016,6 +2113,14 @@ if (PARTNER === 'karen') {
   for (const [id, ch, sm, al] of [['sk_atk', '♪', 'スパーク・ノート', '通常攻撃 スパーク・ノート'], ['sk_s1', '跳', 'アドリブ', 'スキル1 アドリブ・ステップ'], ['sk_s2', '偽', 'フェイク', 'スキル2 フェイク・フィナーレ'], ['sk_s3', '奏', 'アルペジオ', 'スキル3 トリック・アルペジオ']]) {
     const e = $(id); e.querySelector('i').textContent = ch; e.querySelector('small').textContent = sm; e.setAttribute('aria-label', al);
   }
+}
+if (PARTNER === 'fortuna') {
+  $('awk').querySelector('b').textContent = '覚醒《オールイン・ロイヤルフラッシュ》'; $('awk').querySelector('small').textContent = 'ALL-IN  ROYAL  FLUSH';
+  $('sk_awaken').setAttribute('aria-label', '覚醒 オールイン・ロイヤルフラッシュ');
+  for (const [id, ch, sm, al] of [['sk_atk', '♠', 'カードスロー', '通常攻撃 カードスロー'], ['sk_s1', '7', 'ルーレット', 'スキル1 ルーレットショット'], ['sk_s2', '帽', 'ハット', 'スキル2 ハットトリック'], ['sk_s3', '貨', 'コイントス', 'スキル3 コイントス・ステップ'], ['sk_charge', '＄', 'レイズ', '特殊 レイズ']]) {
+    const e = $(id); e.querySelector('i').textContent = ch; e.querySelector('small').textContent = sm; e.setAttribute('aria-label', al);
+  }
+  SFX.preload(['call_s1', 'call_s2', 'call_s3', 'call_charge', 'call_awaken', 'jackpot', 'miss'].map(n => 'voice/fortuna/' + n));
 }
 const CB = {
   on: false, cd: { s1: 0, s2: 0, s3: 0, charge: 0 }, charged: false, awakenT: 0, gauge: 0, GAUGE_MAX: 1800,
@@ -2544,13 +2649,14 @@ function attack() {
   if (player.act) { if (player.act.name.startsWith('atk') && player.act.t > actOf(player, player.act.name).dur * .45) CB.queued = 'atk'; return; }
   const n = CB.comboT > 0 ? (CB.combo % 3) + 1 : 1;
   const walking = PARTNER === 'karen' && player.speed > .5;
-  CB.combo = n; if (!walking) autoAim(PARTNER === 'karen' ? 15 : 5); startAct('atk' + n);
+  CB.combo = n; if (!walking) autoAim(PARTNER === 'karen' ? 15 : PARTNER === 'fortuna' ? 12 : 5); startAct('atk' + n);
   if (PARTNER === 'karen') say(K_ATK[n].line, { happy_eye: .35, brow_happy: .4, happy_mouth: .5 });
 }
 function useSkill(id) {
   if (!canAct()) return;
   if (id === 'awaken') return useAwaken();
   if (PARTNER === 'karen') return kUseSkill(id);
+  if (PARTNER === 'fortuna') return fUseSkill(id);
   if (CB.cd[id] > 0 || (player.act && !player.act.name.startsWith('atk'))) return;
   if (player.act) player.act = null;
   const enh = id !== 'charge' && enhanced();
@@ -2571,7 +2677,7 @@ function useSkill(id) {
 function useAwaken() {
   if (CB.awakenT > 0 || CB.gauge < CB.GAUGE_MAX) { if (CB.gauge < CB.GAUGE_MAX) showSkillName(`覚醒ゲージ ${Math.floor(CB.gauge / CB.GAUGE_MAX * 100)}%`); return; }
   if (player.act) player.act = null;
-  CB.gauge = 0; startAct('awaken'); shinoVoice('awaken');
+  CB.gauge = 0; startAct('awaken'); shinoVoice('awaken'); if (PARTNER === 'fortuna') fVoice('awaken');
   const c = $('awk'); c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); setTimeout(() => c.classList.remove('on'), 1700);
   say('白夜に咲け……氷の約束。', { relaxed_eye: .1, brow_relaxed: .1 });
 }
@@ -2585,7 +2691,8 @@ function actTick(dt, A = player) {
   const fwd = (dist, k0_, k1_) => { const f = THREE.MathUtils.clamp((k - k0_) / (k1_ - k0_), 0, 1) - THREE.MathUtils.clamp((k0 - k0_) / (k1_ - k0_), 0, 1); if (f <= 0 || (a.name !== 's3' && foeAhead(A))) return; moveBy(Math.sin(A.yaw) * dist * f, Math.cos(A.yaw) * dist * f, A.pos); };
   const crossed = kk => k0 < kk && k >= kk;
   const P = A.pos, Y = A.yaw, aw = local ? CB.awakenT > 0 : (A.awakenT || 0) > 0;
-  if (isK(A) && KOWN.has(a.name)) kAct(dt, A, a, def, k0, k, local);
+  if (isF(A)) fAct(dt, A, a, def, k0, k, local);
+  else if (isK(A) && KOWN.has(a.name)) kAct(dt, A, a, def, k0, k, local);
   else if (a.name.startsWith('atk')) {
     fwd(def.lunge, .25, .55);
     if (crossed(def.hit * .78)) {
@@ -2678,6 +2785,7 @@ function updateClaws(show, set = claws, v = vrm) {
 const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: softTex, color: new THREE.Color(1.2, 2, 2.6), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
 aura.scale.set(2.2, 3.2, 1); scene.add(aura);
 if (PARTNER === 'karen') aura.material.color.setRGB(2.6, 1.3, .6);     // カレンの覚醒は暖色
+if (PARTNER === 'fortuna') aura.material.color.setRGB(2.2, 1.5, 2.4);   // フォルトゥナは金と紫
 const guardM = new THREE.Mesh(new THREE.IcosahedronGeometry(.95, 2), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.3, 1.9), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, wireframe: true }));
 scene.add(guardM);
 
@@ -2879,7 +2987,7 @@ const K_ATK = [null,
   { dmg: 20, color: KCOL.red, size: .45, hand: -1, line: 'こっちこっち！' },
   { dmg: 35, color: KCOL.gold, size: .9, hand: 0, star: true, boom: 1.6, line: 'ざーんねん！' }];
 const K_ATK_RANGE = 15;
-const actOf = (A, name) => (isK(A) ? KACT : ACT)[name];
+const actOf = (A, name) => (isK(A) ? KACT : isF(A) ? FACT : ACT)[name];
 
 /* ---------- 見た目の部品：音符・紙吹雪・スポットライト・魔法陣 ---------- */
 const noteTex = ['♪', '♫', '♬'].map(ch => canvasTex(64, 64, (g, w, h) => { g.font = 'bold 50px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = '#fff'; g.shadowBlur = 8; g.fillStyle = '#fff'; g.fillText(ch, w / 2, h / 2 + 2); }));
@@ -2968,7 +3076,7 @@ function kNearest(A, from, range, yaw = null, deg = 360) {
   }
   return best;
 }
-function kHit(A, d, base, opt = {}) { hit(d, base, { ...opt, remote: A !== player, kc: true, mul: awMul(A) }); }
+function kHit(A, d, base, opt = {}) { hit(d, base, { ...opt, remote: A !== player, kc: !isF(A), mul: awMul(A) }); }
 // 範囲攻撃（人形・敵・対戦相手・分身）。set があれば一度だけ当たる
 function kArea(A, x, z, r, base, opt = {}, set) {
   let n = 0;
@@ -3003,7 +3111,8 @@ function inputYaw() {
 /* ---------- 音符弾・音符刃 ---------- */
 const kShots = [];
 function kShoot(A, from, yaw, o) {
-  const s = noteSprite(o.color || pickK(), o.size || .45, o.star ? starTex : null); s.position.copy(from); scene.add(s);
+  const s = noteSprite(o.color || pickK(), o.size || .45, o.tex || (o.star ? starTex : null)); s.position.copy(from); scene.add(s);
+  if (o.flat) { s.material.blending = THREE.NormalBlending; s.material.color.setRGB(1, 1, 1); s.material.toneMapped = true; }     // トランプは光らせずにそのまま見せる
   kShots.push({ A, s, pos: from.clone(), vel: new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(o.speed || 20), dist: 0, range: o.range || 20, dmg: o.dmg, homing: o.homing || 0, aimAt: o.aimAt || null, opt: o.opt || {}, set: new Set(), cone: o.cone || 70, boom: o.boom || 0, onHit: o.onHit || null });
 }
 function kShotsTick(dt) {
@@ -3024,7 +3133,7 @@ function kShotsTick(dt) {
       groundRing(new THREE.Vector3(S.pos.x, 0, S.pos.z), S.boom, .45, KCOL.gold); confettiBurst(S.pos, 14, 2.2, 1.6); kSpark(S.pos, KCOL.gold, 1, .25);
     }
     if (n && S.onHit) S.onHit(S);
-    if (n || S.dist > S.range) { scene.remove(S.s); S.s.material.dispose(); kShots.splice(i, 1); noteBurst(S.pos, n ? 5 : 2, 1.6, .3, .5); }
+    if (n || S.dist > S.range) { scene.remove(S.s); S.s.material.dispose(); kShots.splice(i, 1); if (isF(A)) kSpark(S.pos, S.s.material.color.toArray(), n ? .9 : .5, .3); else noteBurst(S.pos, n ? 5 : 2, 1.6, .3, .5); }
   }
 }
 // 手元から一発
@@ -3233,6 +3342,365 @@ function kUseSkill(id) {
   say(K_LINES[id], { happy_eye: .4, brow_happy: .5, happy_mouth: .5 });
 }
 
+
+/* =====================================================================
+   フォルトゥナ・レイズの技（自分がフォルトゥナを選んだ時／フォルトゥナを使うほかのプレイヤー）
+   通常《カードスロー》：トランプを投げる。3段目は5枚を扇形に
+   技1《ルーレットショット》：3リールのスロット砲台。出目で弾が変わる（外れるとツキ＝覚醒ゲージが大きく貯まる）
+   技2《ハットトリック》：帽子のブーメラン。キャッチでカードが噴き出す
+   技3《コイントス・ステップ》：表＝前へ駆け抜けて斬る／裏＝下がってコイン爆弾を置く
+   特殊《レイズ》：次の技を強化（ルーレットは出目を引き直して良いほう）
+   覚醒《オールイン・ロイヤルフラッシュ》：巨大な5枚が刺さって一斉に弾ける。覚醒中は必ず 7-7-7
+   出目・表裏は技の番号から決めるので、ほかのプレイヤーの画面でも同じになる
+   ===================================================================== */
+const isF = A => A.ch === 'fortuna';
+const FORT = { cd: { s1: 9, s2: 5, s3: 4, charge: 10 }, enh: 1.5, atk: [0, 55, 55, 32], shot: 34, hat: 90, hatCard: 40, dash: 150, bomb: 240, slam: 260, finale: 700 };
+const FCOL = { gold: [1.8, 1.4, .5], violet: [1.1, .6, 2], red: [1.9, .4, .5], pink: [1.9, .6, 1.1], card: [1.25, 1.15, 1.05] };
+const vOf = A => A === player ? vrm : A.vrm;
+function fRng(seed) { let s = (Math.imul(seed | 0, 2654435761) + 12345) >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const fCardTex = canvasTex(64, 90, (g, w, h) => { g.fillStyle = '#100b16'; g.fillRect(0, 0, w, h); g.strokeStyle = '#e2b75e'; g.lineWidth = 4; g.strokeRect(3, 3, w - 6, h - 6); g.fillStyle = '#f2cd7a'; g.font = '40px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('♠', w / 2, h / 2 + 2); });
+const fHand = A => { const p = new THREE.Vector3(), v = vOf(A); if (v) v.humanoid.getRawBoneNode('rightHand').getWorldPosition(p); else p.set(A.pos.x, 1.2, A.pos.z); return p; };
+function fArea(A, x, z, r, base, opt = {}, set) {
+  let n = 0;
+  for (const d of aliveDummies()) if (Math.hypot(d.g.position.x - x, d.g.position.z - z) < r + .3 && !(set && set.has(d))) { set?.add(d); hit(d, base, { ...opt, remote: A !== player, mul: awMul(A) }); n++; }
+  return n + pvp(A, q => Math.hypot(q.x - x, q.z - z) < r, base, { ...opt, set, at: { x, z } });
+}
+const fSpark = (p, col, size = .35, life = .4) => kSpark(p, col, size, life);
+function fVoice(id) {
+  const V = { s1: ['call_s1', .6, .15], s2: ['call_s2', .55, .15], s3: ['call_s3', .65, .17], charge: ['call_charge', .7, .13], awaken: ['call_awaken', .55, .33], jackpot: ['jackpot', .7, .13], miss: ['miss', .65, .15] }[id];
+  if (V && PARTNER === 'fortuna') SFX.voice('voice/fortuna/' + V[0], V[1], V[2]);
+}
+
+/* ---- 姿勢 ---- */
+const FACT = {
+  ...ACT,
+  atk1: KACT.atk1, atk2: KACT.atk2,
+  atk3: { dur: .6, hit: .5, poses: [
+    [0, { chest: [0, -.35, 0], rightUpperArm: [0, .3, -.2], leftUpperArm: [0, -.3, .2], rightLowerArm: [0, 1.2, 0], leftLowerArm: [0, -1.2, 0] }],
+    [.45, { chest: [0, -.45, 0], spine: [.05, -.1, 0], rightUpperArm: [0, .2, -.1], leftUpperArm: [0, -.2, .1], rightLowerArm: [0, 1.4, 0], leftLowerArm: [0, -1.4, 0] }],
+    [.6, { chest: [0, .3, 0], spine: [.1, .1, 0], rightUpperArm: [0, 1.35, -.2], leftUpperArm: [0, -1.35, .2], rightLowerArm: [0, .15, 0], leftLowerArm: [0, -.15, 0] }],
+    [1, { chest: [0, .1, 0], rightUpperArm: [0, .5, .6], leftUpperArm: [0, -.5, -.6], rightLowerArm: [0, .3, 0], leftLowerArm: [0, -.3, 0] }]] },
+  s1: { dur: .75, hit: 0, poses: KACT.s2.poses },                    // 顔の横で指を鳴らす
+  s2: { dur: 1.75, hit: 0, poses: [                                  // 帽子を取って投げ、戻ってきたところをつかむ
+    [0, { rightUpperArm: [0, .85, -.95], rightLowerArm: [0, 1.5, 0], head: [-.05, .1, 0] }],
+    [.12, { rightUpperArm: [0, .7, -1.15], rightLowerArm: [0, 1.6, 0], head: [-.05, .1, 0] }],
+    [.22, { spine: [.2, 0, 0], chest: [.1, .2, 0], rightUpperArm: [-1.3, .2, .55], rightLowerArm: [0, .15, 0], rightHand: [0, 0, -.3] }],
+    [.75, { spine: [.08, 0, 0], rightUpperArm: [-.4, .2, .9], rightLowerArm: [0, .5, 0] }],
+    [.9, { spine: [-.05, 0, 0], head: [-.12, 0, 0], rightUpperArm: [-1.6, .25, .35], rightLowerArm: [0, .3, 0] }],
+    [1, { rightUpperArm: [-.2, .1, .9] }]] },
+  s3: { dur: 1.4, hit: 0, poses: [                                   // 親指でコインをはじいて、駆け抜ける
+    [0, { rightUpperArm: [0, .85, -.55], rightLowerArm: [0, 1.35, 0], rightHand: [0, 0, .35], head: [-.1, 0, 0] }],
+    [.5, { rightUpperArm: [0, .9, -.45], rightLowerArm: [0, 1.4, 0], head: [-.15, 0, 0] }],
+    [.6, { spine: [.35, 0, 0], chest: [.1, 0, 0], rightUpperArm: [.6, 0, 1.0], leftUpperArm: [.6, 0, -1.0], ...CROUCH }],
+    [.8, { spine: [.35, 0, 0], chest: [.1, 0, 0], rightUpperArm: [.7, 0, .95], leftUpperArm: [.7, 0, -.95], leftUpperLeg: [-.75, 0, .15], leftLowerLeg: [.8, 0, 0], rightUpperLeg: [.45, 0, -.1], rightLowerLeg: [.5, 0, 0] }],
+    [1, { spine: [.05, 0, 0] }]] },
+  charge: { dur: 1.0, hit: .85, poses: [                             // 両手をかざしてチップを積む
+    [0, { spine: [.08, 0, 0], rightUpperArm: [-.5, .3, .9], leftUpperArm: [-.5, -.3, -.9], rightLowerArm: [0, .5, 0], leftLowerArm: [0, -.5, 0], rightHand: [0, 0, .4], leftHand: [0, 0, -.4], ...CROUCH }],
+    [.7, { spine: [.08, 0, 0], rightUpperArm: [-.6, .3, .85], leftUpperArm: [-.6, -.3, -.85], rightLowerArm: [0, .6, 0], leftLowerArm: [0, -.6, 0], rightHand: [0, 0, .4], leftHand: [0, 0, -.4], ...CROUCH }],
+    [1, { rightUpperArm: [0, .1, .9], leftUpperArm: [0, -.1, -.9] }]] },
+  awaken: { dur: 3.3, hit: 0, poses: [                               // 両手を広げて札を呼び、指さして落とす
+    [0, { head: [.05, 0, 0], rightUpperArm: [0, .3, -.4], leftUpperArm: [0, -.3, .4], rightLowerArm: [0, .2, 0], leftLowerArm: [0, -.2, 0] }],
+    [.25, { head: [-.2, 0, 0], spine: [-.12, 0, 0], chest: [-.08, 0, 0], rightUpperArm: [0, .2, -.6], leftUpperArm: [0, -.2, .6], rightLowerArm: [0, .1, 0], leftLowerArm: [0, -.1, 0] }],
+    [.35, { spine: [.1, 0, 0], rightUpperArm: [-1.45, .15, .3], rightLowerArm: [0, .05, 0], leftUpperArm: [0, -.2, -.9] }],
+    [.88, { spine: [.1, 0, 0], rightUpperArm: [-1.45, .15, .3], rightLowerArm: [0, .05, 0], leftUpperArm: [0, -.2, -.9] }],
+    [1, { rightUpperArm: [0, .1, .8], leftUpperArm: [0, -.1, -.8] }]] },
+};
+const F_ATK_LINE = [null, 'さあ、一枚。', 'もう一枚。', 'はい、手札公開。'];
+
+/* ---- 技1：ルーレットショット ---- */
+const F_SYM = ['7', '♦', '♣', '♥', 'BAR', '★'];
+const fSymTex = F_SYM.map(s => canvasTex(128, 128, (g, w, h) => {
+  const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#bdb4a2'); gr.addColorStop(.5, '#fffaf0'); gr.addColorStop(1, '#bdb4a2'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = s === '7' || s === '♦' || s === '♥' ? '#c8102e' : s === '★' ? '#c98a12' : '#16121e';
+  g.font = s === 'BAR' ? '900 40px sans-serif' : s === '7' ? '900 96px serif' : '86px serif'; g.fillText(s, w / 2, h / 2 + 4);
+}));
+const F_OUT = {
+  jack:  { mul: 3, rate: .55, n: 7, big: true, label: 'JACKPOT!! 7-7-7', col: FCOL.gold, luck: .04 },
+  dia:   { mul: 2, rate: .2, n: 14, label: '♦ ラピッド', col: FCOL.red, luck: .04 },
+  club:  { mul: 2, rate: .42, n: 8, spread: true, label: '♣ スプレッド', col: FCOL.violet, luck: .04 },
+  heart: { mul: 1.5, rate: .4, n: 11, heal: true, label: '♥ ハートビート', col: FCOL.pink, luck: .04 },
+  pair:  { mul: 1.3, rate: .4, n: 11, label: 'ペア', col: FCOL.gold, luck: .08 },
+  none:  { mul: .7, rate: .4, n: 11, label: 'はずれ（ツキ＋）', col: [1.2, 1.1, 1], luck: .3 },
+};
+const F_RANK = { jack: 5, dia: 4, club: 4, heart: 4, pair: 2, none: 1 };
+const fRoll = rng => { const x = rng(); return x < .04 ? 'jack' : x < .08 ? 'dia' : x < .12 ? 'club' : x < .16 ? 'heart' : x < .56 ? 'pair' : 'none'; };
+function fReels(k, rng) {
+  const pick6 = () => Math.floor(rng() * 6);
+  if (k === 'jack') return [0, 0, 0]; if (k === 'dia') return [1, 1, 1]; if (k === 'club') return [2, 2, 2]; if (k === 'heart') return [3, 3, 3];
+  if (k === 'pair') { const a = pick6(); let b = pick6(); if (b === a) b = (a + 1) % 6; const r = [a, a, b], s = Math.floor(rng() * 3); [r[s], r[2]] = [r[2], r[s]]; return r; }
+  let a = pick6(), b = (a + 1 + Math.floor(rng() * 5)) % 6, c = 0; while (c === a || c === b) c++; return [a, b, c];
+}
+const fGold = new THREE.MeshStandardMaterial({ color: 0xd9a64a, metalness: .9, roughness: .3, emissive: 0x3a2508, emissiveIntensity: .6 });
+function fMakeTurret() {
+  const g = new THREE.Group();
+  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
+  add(new THREE.CylinderGeometry(.3, .38, .22, 20), new THREE.MeshStandardMaterial({ color: 0x0d0a10, metalness: .5, roughness: .3 }), 0, .11, 0);
+  add(new THREE.CylinderGeometry(.06, .06, .32, 10), fGold, 0, .38, 0);
+  add(new THREE.BoxGeometry(.92, .6, .46), new THREE.MeshStandardMaterial({ color: 0x4a0b1c, metalness: .6, roughness: .3 }), 0, .82, 0);
+  add(new THREE.BoxGeometry(.98, .06, .5), fGold, 0, .5, 0); add(new THREE.BoxGeometry(.98, .06, .5), fGold, 0, 1.14, 0);
+  const lamp = add(new THREE.SphereGeometry(.09, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffd77a, toneMapped: false }), 0, 1.27, 0);
+  const reels = [];
+  for (let i = 0; i < 3; i++) {
+    const rg = new THREE.Group(); rg.position.set(-.27 + i * .27, .82, -.23); g.add(rg);
+    for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2, f = new THREE.Mesh(new THREE.PlaneGeometry(.22, .19), new THREE.MeshBasicMaterial({ map: fSymTex[k] })); f.position.set(0, Math.sin(a) * .165, -Math.cos(a) * .165); f.rotation.set(a, Math.PI, 0); rg.add(f); }
+    reels.push(rg);
+  }
+  const barrel = new THREE.Group(); barrel.position.set(0, 1.0, .1); g.add(barrel);
+  const tube = new THREE.Mesh(new THREE.CylinderGeometry(.07, .1, .6, 14), fGold); tube.rotation.x = Math.PI / 2; tube.position.z = .3; barrel.add(tube);
+  const tip = new THREE.Object3D(); tip.position.z = .62; barrel.add(tip);
+  return { g, reels, barrel, tip, lamp };
+}
+const fTurrets = [];
+function fSpawnTurret(A, a, aw) {
+  const rng = fRng(a.seed * 31 + 7);
+  let k = aw ? 'jack' : fRoll(rng);
+  if (a.enh && !aw) { const k2 = fRoll(rng); if (F_RANK[k2] > F_RANK[k]) k = k2; }       // レイズ：引き直して良いほう
+  if (A === player) { if (k === 'none' && (CB.fMiss || 0) >= 3) k = 'pair'; CB.fMiss = k === 'none' ? (CB.fMiss || 0) + 1 : 0; }   // 外れが3回続いたら、次はそろう
+  const T = fMakeTurret(), P = A.pos;
+  T.g.position.set(P.x + Math.sin(A.yaw) * 1.4, 0, P.z + Math.cos(A.yaw) * 1.4); T.g.rotation.y = A.yaw; T.g.scale.setScalar(.01); scene.add(T.g);
+  groundRing(T.g.position, 1.4, .5, FCOL.gold);
+  fTurrets.push(Object.assign(T, { A, t: 0, k, o: F_OUT[k], res: fReels(k, rng), mul: a.enh ? FORT.enh : 1, fired: 0, next: 0, shown: false, stopped: [0, 0, 0], tick: 0 }));
+  sfxAt('ui_coin', P, A === player ? .7 : .4);
+}
+function fTurretTick(dt) {
+  for (let i = fTurrets.length - 1; i >= 0; i--) {
+    const T = fTurrets[i], A = T.A; T.t += dt;
+    const endT = 1.75 + T.o.n * T.o.rate + .4;
+    T.g.scale.setScalar(T.t > endT ? Math.max(.01, 1 - (T.t - endT) / .3) : T.t < .3 ? .01 + (1 - Math.pow(1 - T.t / .3, 3)) * 1.1 : 1);
+    T.reels.forEach((rg, j) => {
+      const st = [1.05, 1.3, 1.6][j];
+      if (T.t < st) rg.rotation.x = -22 * T.t;
+      else {
+        const cur = -22 * st, tgt = -(T.res[j] / 6) * Math.PI * 2, fin = tgt + Math.PI * 2 * Math.floor((cur - tgt) / (Math.PI * 2));
+        const u = Math.min(1, (T.t - st) / .22); rg.rotation.x = lerp(cur, fin, 1 + 2.2 * Math.pow(u - 1, 3) + 1.2 * Math.pow(u - 1, 2));
+        if (!T.stopped[j]) { T.stopped[j] = 1; sfxAt('ui_tap', T.g.position, .5); }
+      }
+    });
+    T.lamp.material.color.setHSL((T.t * 2) % 1, 1, .6);
+    if (T.t < 1.6) { T.tick -= dt; if (T.tick <= 0) { T.tick = .07; sfxAt('ui_tap', T.g.position, .18, 1.6); } }
+    if (!T.shown && T.t > 1.75) {          // 出目の発表
+      T.shown = true; const top = T.g.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+      if (T.k === 'jack') { burst(top, 40, 4, 4, 1.4, FCOL.gold); confettiBurst(top, 40, 3, 3); sfxAt('ui_clear', top, 1); }
+      else if (T.k !== 'none') burst(top, 16, 2.5, 2.5, 1, T.o.col);
+      if (A === player) {
+        showSkillName(T.o.label, T.k !== 'none' && T.k !== 'pair', T.k === 'jack' ? '大当たり' : '出目');
+        if (CB.awakenT <= 0) CB.gauge = Math.min(CB.GAUGE_MAX, CB.gauge + CB.GAUGE_MAX * T.o.luck);
+        if (T.k === 'jack') { fVoice('jackpot'); say('あら、引いちゃった♪', { happy_eye: .5, brow_happy: .5, happy_mouth: .6 }); }
+        else if (T.k === 'none' && Math.random() < .6) { fVoice('miss'); say('……今のは見逃してあげる。', { relaxed_eye: .3, brow_relaxed: .4 }); }
+      }
+    }
+    if (T.t >= 1.75 && T.fired < T.o.n && T.t >= T.next) {        // 撃つ
+      T.next = T.t + T.o.rate; T.fired++;
+      const mp = new THREE.Vector3(); T.tip.getWorldPosition(mp);
+      const tq = kNearest(A, T.g.position, 16, T.g.rotation.y, 200);
+      const yaw = tq ? Math.atan2(tq.x - mp.x, tq.z - mp.z) : T.g.rotation.y;
+      T.barrel.rotation.y = yaw - T.g.rotation.y;
+      const dmg = FORT.shot * T.o.mul * T.mul, o = T.o;
+      if (o.big) kShoot(A, mp, yaw, { dmg, color: FCOL.gold, size: 1.1, speed: 15, range: 17, homing: 3, aimAt: tq, tex: softTex, boom: 1.8, opt: { big: true, crit: true } });
+      else if (o.spread) for (const d of [-.22, 0, .22]) kShoot(A, mp, yaw + d, { dmg, color: o.col, size: .55, speed: 17, range: 15, tex: softTex });
+      else kShoot(A, mp, yaw, { dmg, color: o.col, size: .55, speed: 18, range: 16, homing: 2.5, aimAt: tq, tex: softTex });
+      if (o.heal && A === player && T.fired % 3 === 0) { PV.hp = Math.min(PV.MAX, PV.hp + 60); dmgText(new THREE.Vector3(player.pos.x, 1.9, player.pos.z), '+60', 'tag'); }
+      fSpark(mp, o.col, .5, .2); sfxAt(o.big ? 'karen_boom' : 'karen_note', mp, (A === player ? .45 : .3) * (o.big ? 1.4 : 1), o.big ? 1 : 1.5);
+    }
+    if (T.t > endT + .35) { scene.remove(T.g); T.g.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); fTurrets.splice(i, 1); }
+  }
+}
+
+/* ---- 技2：ハットトリック（帽子を頭から外して飛ばす） ---- */
+function fHatRig(v) {
+  if (!v) return null;
+  if (v.scene.userData.fhat !== undefined) return v.scene.userData.fhat;
+  const parts = []; v.scene.traverse(o => { if (o.isSkinnedMesh && /^(Hat|Blue_feather|Gold_band|Ribbon_bow)/.test(o.name)) parts.push(o); });
+  if (!parts.length) return v.scene.userData.fhat = null;
+  const box = new THREE.Box3(); for (const sm of parts) { sm.geometry.computeBoundingBox(); box.union(sm.geometry.boundingBox.clone().applyMatrix4(sm.bindMatrix)); }
+  const c = box.getCenter(new THREE.Vector3()), pivot = new THREE.Group(), inner = new THREE.Group(); inner.position.copy(c).negate(); pivot.add(inner); pivot.visible = false; scene.add(pivot);
+  for (const sm of parts) { const m = new THREE.Mesh(sm.geometry, sm.material); m.applyMatrix4(sm.bindMatrix); m.frustumCulled = false; inner.add(m); }
+  return v.scene.userData.fhat = { parts, pivot };
+}
+const fHats = [];
+const HAT_OUT = .32, HAT_FLY = 1.25;
+function fHatStart(A, a) {
+  const v = vOf(A), rig = fHatRig(v), o = new THREE.Vector3();
+  if (v) v.humanoid.getRawBoneNode('head').getWorldPosition(o); else o.set(A.pos.x, 1.6, A.pos.z);
+  if (rig) { rig.parts.forEach(p => p.visible = false); rig.pivot.visible = true; }
+  fHats.push({ A, rig, o, t: 0, yaw: A.yaw, side: fRng(a.seed)() < .5 ? 1 : -1, set: new Set(), back: false, caught: false, mul: a.enh ? FORT.enh : 1, n: a.enh ? 18 : 12 });
+  sfxAt('shino_step', A.pos, A === player ? .6 : .4, 1.3);
+}
+function fHatTick(dt) {
+  for (let i = fHats.length - 1; i >= 0; i--) {
+    const H = fHats[i], A = H.A; H.t += dt;
+    const u = Math.min(1, H.t / HAT_FLY), f = new THREE.Vector3(Math.sin(H.yaw), 0, Math.cos(H.yaw)), rt = new THREE.Vector3(-Math.cos(H.yaw), 0, Math.sin(H.yaw));
+    const p = H.o.clone().addScaledVector(f, 6.2 * Math.sin(Math.PI * u)).addScaledVector(rt, 1.3 * H.side * Math.sin(2 * Math.PI * u));
+    p.y += .25 * Math.sin(Math.PI * u);
+    if (H.rig) { H.rig.pivot.position.copy(p); H.rig.pivot.rotation.set(0, H.t * 24, 0); H.rig.pivot.scale.setScalar(1 + .5 * Math.sin(Math.PI * u)); }
+    if (u >= .5 && !H.back) { H.back = true; H.set.clear(); }
+    if (u < 1) { fArea(A, p.x, p.z, .9, FORT.hat * H.mul, {}, H.set); if (Math.random() < .6) fSpark(p, FCOL.violet, .4, .3); }
+    else if (!H.caught) {                    // キャッチ：カードが噴き出す
+      H.caught = true;
+      if (H.rig) { H.rig.parts.forEach(q => q.visible = true); H.rig.pivot.visible = false; }
+      const c = new THREE.Vector3(A.pos.x, 1.3, A.pos.z);
+      for (let k = 0; k < H.n; k++) kShoot(A, c, k / H.n * Math.PI * 2, { dmg: FORT.hatCard * H.mul, color: FCOL.card, size: .42, speed: 10, range: 3.4, tex: fCardTex, flat: true });
+      groundRing(A.pos, 3, .5, FCOL.violet); burst(c, 18, 3, 2.5, 1, FCOL.gold);
+      sfxAt('karen_snap', A.pos, A === player ? 1 : .6); sfxAt('karen_star', A.pos, A === player ? .7 : .4);
+      fHats.splice(i, 1);
+    }
+  }
+}
+
+/* ---- 技3：コイントス・ステップ ---- */
+const fCoinTex = (txt, col) => canvasTex(128, 128, (g, w, h) => { g.fillStyle = '#d9a64a'; g.beginPath(); g.arc(w / 2, h / 2, 62, 0, 7); g.fill(); g.strokeStyle = '#8a5f1e'; g.lineWidth = 6; g.beginPath(); g.arc(w / 2, h / 2, 52, 0, 7); g.stroke(); g.fillStyle = col; g.font = '900 54px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, w / 2, h / 2 + 3); });
+const fCoinMats = [fGold, new THREE.MeshStandardMaterial({ map: fCoinTex('表', '#5a1a00'), metalness: .6, roughness: .3, emissive: 0x3a2508, emissiveIntensity: .8 }), new THREE.MeshStandardMaterial({ map: fCoinTex('裏', '#2a0f45'), metalness: .6, roughness: .3, emissive: 0x3a2508, emissiveIntensity: .8 })];
+const fCoinGeo = new THREE.CylinderGeometry(.1, .1, .015, 24);
+const fBombs = [];
+function fCoin(dt, A, a, t, at) {
+  if (at(.02)) { a.face = fRng(a.seed * 13 + 3)() < .5 ? 'omote' : 'ura'; a.coin = new THREE.Mesh(fCoinGeo, fCoinMats); a.coin.castShadow = true; scene.add(a.coin); sfxAt('karen_note', A.pos, A === player ? .6 : .4, 1.8); }
+  if (a.coin && t < .78) { const h = fHand(A), u = t / .78; a.coin.position.copy(h).add(new THREE.Vector3(0, .1 + 4 * u * (1 - u), 0)); a.coin.rotation.set(t * 30, 0, .3); }
+  if (at(.8) && a.coin) {
+    a.coin.rotation.set(a.face === 'omote' ? 0 : Math.PI, A.yaw, 0); a.coin.position.copy(fHand(A)).add(new THREE.Vector3(0, .1, 0));
+    if (A === player) showSkillName(a.face === 'omote' ? '表！ ダッシュ' : '裏！ トラップ', false);
+    a.p0 = A.pos.clone(); a.set = new Set(); sfxAt('shino_step', A.pos, A === player ? .8 : .5);
+  }
+  if (a.p0 && t > .8 && t < 1.12) {
+    const step = Math.min(dt, 1.12 - Math.max(.8, t - dt)) / .32;
+    if (a.face === 'omote') {           // 前へ駆け抜けて、通った相手を斬る
+      const n = 4; for (let i = 0; i < n; i++) if (!kSlide(A, 4.8 * step / n)) break;
+      fArea(A, A.pos.x, A.pos.z, 1.2, FORT.dash * (a.enh ? FORT.enh : 1), { big: true }, a.set);
+      if (Math.random() < .8) fSpark(new THREE.Vector3(A.pos.x, rand(.4, 1.5), A.pos.z), FCOL.gold, .6, .35);
+    } else {                            // 後ろへ下がる
+      const d = 2.8 * step, dx = -Math.sin(A.yaw) * d, dz = -Math.cos(A.yaw) * d;
+      if (A === player) moveBy(dx, dz); else { A.pos.x += dx; A.pos.z += dz; }
+      if (!a.bombed) { a.bombed = true; a.coin.position.set(a.p0.x, .05, a.p0.z); a.coin.rotation.set(0, 0, 0); fBombs.push({ A, m: a.coin, p: a.p0.clone(), t: 0, mul: a.enh ? FORT.enh : 1 }); a.coin = null; }
+    }
+  }
+  if (t > 1.15 && a.coin) { scene.remove(a.coin); a.coin = null; }
+  else if (a.coin && t > .8) a.coin.position.copy(fHand(A)).add(new THREE.Vector3(0, .1, 0));
+}
+function fBombTick(dt) {
+  for (let i = fBombs.length - 1; i >= 0; i--) {
+    const B = fBombs[i]; B.t += dt; B.m.rotation.y += dt * 5; B.m.position.y = .05 + Math.abs(Math.sin(B.t * 6)) * .05;
+    const near = kNearest(B.A, B.p, 1.3);
+    if (B.t > 1.6 || (near && B.t > .3)) {
+      fArea(B.A, B.p.x, B.p.z, 2.3, FORT.bomb * B.mul, { big: true });
+      groundRing(B.p, 2.6, .6, FCOL.violet); burst(new THREE.Vector3(B.p.x, .6, B.p.z), 26, 4, 3.5, 1.3, FCOL.violet); sfxAt('karen_boom', B.p, B.A === player ? .9 : .6);
+      scene.remove(B.m); fBombs.splice(i, 1);
+    }
+  }
+}
+
+/* ---- 特殊：レイズ（チップの山） ---- */
+const fChipCols = [0xc8102e, 0x1d4ed8, 0x111111, 0x0f9d58, 0xf4f1e8, 0x7c3aed].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: .4, emissive: c, emissiveIntensity: .3 }));
+const fChipGeo = new THREE.CylinderGeometry(.06, .06, .018, 14);
+const fChips = [];
+function fChipStack(A, lvl) {
+  const g = new THREE.Group(), a = A.yaw + (lvl - 1) * 1.0; g.position.set(A.pos.x + Math.sin(a) * .6, 0, A.pos.z + Math.cos(a) * .6); scene.add(g);
+  fChips.push({ g, n: 0, max: 7 + lvl * 3, mat: fChipCols[(lvl * 2) % 6], t: 0, life: 3.2, A });
+}
+function fChipTick(dt) {
+  for (let i = fChips.length - 1; i >= 0; i--) {
+    const C = fChips[i]; C.t += dt;
+    if (C.n < C.max && C.t > C.n * .045) { const m = new THREE.Mesh(fChipGeo, C.mat); m.position.y = C.n * .02 + .01; m.rotation.y = Math.random() * 6; C.g.add(m); C.n++; }
+    if (C.t > C.life) { C.g.scale.y -= dt * 3; if (C.g.scale.y <= .02) { scene.remove(C.g); fChips.splice(i, 1); } }
+  }
+}
+
+/* ---- 覚醒：オールイン・ロイヤルフラッシュ ---- */
+let fRoyalTex = null;
+const fRoyals = [];
+function fRoyal(A, local) {
+  fRoyalTex ||= ['10', 'J', 'Q', 'K', 'A'].map(r => canvasTex(256, 358, (g, w, h) => {
+    g.fillStyle = '#0d0a12'; g.fillRect(0, 0, w, h); g.strokeStyle = '#d9a64a'; g.lineWidth = 8; g.strokeRect(8, 8, w - 16, h - 16); g.lineWidth = 2; g.strokeRect(20, 20, w - 40, h - 40);
+    g.fillStyle = '#f2cd7a'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold 44px serif'; g.fillText(r, 44, 50); g.font = '38px serif'; g.fillText('♠', 44, 92);
+    g.shadowColor = '#f2cd7a'; g.shadowBlur = 20; g.font = '150px serif'; g.fillText('♠', w / 2, h / 2 + 8);
+  }));
+  const P = A.pos.clone(), f = new THREE.Vector3(Math.sin(A.yaw), 0, Math.cos(A.yaw)), rt = new THREE.Vector3(-Math.cos(A.yaw), 0, Math.sin(A.yaw));
+  const cards = fRoyalTex.map((tx, i) => {
+    const mat = new THREE.MeshStandardMaterial({ map: tx, emissive: 0xffd77a, emissiveIntensity: .25, roughness: .35, metalness: .3 });
+    const m = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.1, .05), [fGold, fGold, fGold, fGold, mat, mat]); m.scale.setScalar(.01); m.castShadow = true; scene.add(m);
+    const a = (i - 2) * .42, sky = P.clone().addScaledVector(f, -1.2 + Math.abs(i - 2) * .3).addScaledVector(rt, Math.sin(a) * 3); sky.y = 3.1 + Math.cos(a) * .8;
+    const gnd = P.clone().addScaledVector(f, 2.6 + i * 1.15).addScaledVector(rt, (i % 2 ? 1 : -1) * (i === 2 ? 0 : 1.1)); gnd.y = .95;
+    return { m, mat, sky, gnd, a, slam: false };
+  });
+  fRoyals.push({ A, local, t: 0, cards, yaw: A.yaw, mid: P.clone().addScaledVector(f, 4.9), done: false });
+  groundRing(P, 5, .9, FCOL.gold); groundRing(P, 3, .7, FCOL.violet); burst(new THREE.Vector3(P.x, 1.4, P.z), 40, 4, 4, 1.4, FCOL.gold);
+  sfxAt('karen_awaken', P, local ? 1 : .7);
+  if (local) { CB.awakenT = 12; CB.charged = false; for (const id in CB.cd) CB.cd[id] = 0; }
+  else { A.awakenT = 12; A.charged = false; netToast(`${A.name} さんが ${SK_NAMES.fortuna.awaken}！`); }
+}
+function fRoyalTick(dt) {
+  for (let i = fRoyals.length - 1; i >= 0; i--) {
+    const R = fRoyals[i]; R.t += dt;
+    R.cards.forEach((c, j) => {
+      const appear = .15 + j * .1, slam = 1.05 + j * .28;
+      if (R.t < slam) { c.m.scale.setScalar(Math.max(.01, 1 - Math.pow(1 - Math.min(1, Math.max(0, (R.t - appear) / .35)), 3))); c.m.position.copy(c.sky); c.m.position.y += Math.sin(R.t * 3 + j) * .05; c.m.rotation.set(0, R.yaw + Math.PI, -c.a * .8); }
+      else {
+        const u = Math.min(1, (R.t - slam) / .18); c.m.position.lerpVectors(c.sky, c.gnd, u * u); c.m.rotation.set(.25 * u, R.yaw + Math.PI, lerp(-c.a * .8, (j - 2) * .12, u));
+        if (u >= 1 && !c.slam) {
+          c.slam = true; fArea(R.A, c.gnd.x, c.gnd.z, 2.1, FORT.slam, { big: true });
+          groundRing(new THREE.Vector3(c.gnd.x, 0, c.gnd.z), 2.6, .5, FCOL.gold); burst(new THREE.Vector3(c.gnd.x, .3, c.gnd.z), 18, 3, 2.5, 1.2, FCOL.gold);
+          sfxAt('golem_slam', c.gnd, R.local ? .8 : .5, 1.2);
+        }
+      }
+      if (R.t > 2.55) c.mat.emissiveIntensity = .25 + Math.min(2.5, (R.t - 2.55) * 6) * (.6 + .4 * Math.sin(R.t * 40));
+      if (R.t > 3.05) { const u = Math.min(1, (R.t - 3.05) / .5); c.m.scale.setScalar(Math.max(.01, 1 - u)); c.m.position.y += dt * 2; }
+    });
+    if (R.t > 2.95 && !R.done) {              // 5枚そろって、一斉に弾ける
+      R.done = true; const M = R.mid;
+      fArea(R.A, M.x, M.z, 6.5, FORT.finale, { big: true, crit: true });
+      groundRing(new THREE.Vector3(M.x, 0, M.z), 7, .9, FCOL.gold); groundRing(new THREE.Vector3(M.x, 0, M.z), 5, .7, FCOL.violet);
+      burst(new THREE.Vector3(M.x, 1, M.z), 60, 6, 5, 1.6, FCOL.gold); confettiBurst(new THREE.Vector3(M.x, 1.5, M.z), 60, 4, 4);
+      sfxAt('karen_finale', M, R.local ? 1 : .7);
+      if (R.local) { showSkillName('ROYAL FLUSH', true, '役完成'); }
+    }
+    if (R.t > 3.7) { for (const c of R.cards) { scene.remove(c.m); c.m.geometry.dispose(); c.mat.dispose(); } fRoyals.splice(i, 1); }
+  }
+}
+
+/* ---- 技の途中で起きること ---- */
+function fAct(dt, A, a, def, k0, k, local) {
+  const t = a.t, t0 = t - dt, at = x => t0 < x && t >= x;
+  if (a.seed === undefined) a.seed = local ? (myAct.n || 0) : 0;
+  const aw = awOf(A);
+  if (a.name.startsWith('atk')) {
+    const n = +a.name[3];
+    if (at(def.dur * (n === 3 ? .56 : .32))) {
+      const from = fHand(A), tq = kNearest(A, from, 14, A.yaw, 140), yaw = tq ? Math.atan2(tq.x - from.x, tq.z - from.z) : A.yaw;
+      if (n < 3) kShoot(A, from, yaw, { dmg: FORT.atk[n], color: FCOL.card, size: .42, speed: 19, range: 14, homing: 3, aimAt: tq, cone: 140, tex: fCardTex, flat: true });
+      else for (let i = -2; i <= 2; i++) kShoot(A, from, yaw + i * .17, { dmg: FORT.atk[3], color: FCOL.card, size: .42, speed: 17, range: 12, tex: fCardTex, flat: true });
+      sfxAt('shino_slash', A.pos, local ? .55 : .35, 1.6);
+    }
+  } else if (a.name === 's1') { if (at(.2)) fSpawnTurret(A, a, aw); }
+  else if (a.name === 's2') { if (at(HAT_OUT)) fHatStart(A, a); }
+  else if (a.name === 's3') fCoin(dt, A, a, t, at);
+  else if (a.name === 'charge') {
+    for (let l = 1; l <= 3; l++) if (at(l * .25)) { fChipStack(A, l); sfxAt('ui_coin', A.pos, local ? .5 : .3, 1 + l * .15); }
+    if (at(.85)) { if (local) CB.charged = true; else A.charged = true; groundRing(A.pos, 2.4, .6, FCOL.gold); burst(new THREE.Vector3(A.pos.x, 1.2, A.pos.z), 12, 1.6, 2, 1, FCOL.gold); }
+  } else if (a.name === 'awaken') { if (at(.15)) fRoyal(A, local); }
+}
+
+/* ---- 技を出す（自分） ---- */
+const F_LINES = { s1: ['さあ、運試しよ。', 'ルーレットショット！'], s2: ['ハットトリック！', 'ほら、帽子に注目。'], s3: ['表か、裏か――！'], charge: ['レイズ。', '賭け金、上げるわよ。'] };
+function fUseSkill(id) {
+  const cur = player.act;
+  if (cur && !cur.name.startsWith('atk')) return;
+  if (CB.cd[id] > 0) return;
+  CB.cd[id] = FORT.cd[id] * cdMul();
+  const enh = id !== 'charge' && CB.charged;
+  if (enh) CB.charged = false;
+  if (id !== 's3' || true) autoAim(12);
+  player.act = null;
+  startAct(id, { enh });
+  showSkillName(SK[id].name, enh, 'レイズ');
+  fVoice(id);
+  say(pick(F_LINES[id]), { happy_eye: .3, brow_happy: .4, happy_mouth: .4 });
+}
+function fFrame(dt) {
+  fTurretTick(dt); fHatTick(dt); fBombTick(dt); fChipTick(dt); fRoyalTick(dt);
+  for (const A of [player, ...remotes.values()]) {       // 覚醒中：金と紫の光が立ちのぼる
+    if (!isF(A) || !(awOf(A))) continue;
+    if (Math.random() < dt * 10) fSpark(new THREE.Vector3(A.pos.x + rand(-.6, .6), rand(.2, 1.8), A.pos.z + rand(-.6, .6)), Math.random() < .5 ? FCOL.gold : FCOL.violet, .3, .7);
+  }
+}
+
 /* ---------- 毎フレーム ---------- */
 function kFrame(dt, t) {
   for (const A of [player, ...remotes.values()]) {
@@ -3243,7 +3711,7 @@ function kFrame(dt, t) {
     CB.kqT -= dt / cdMul();
     if (CB.kqT <= 0) { CB.kq++; CB.kqT = CB.kq < KAREN.step.max ? KAREN.step.cd : 0; }
   }
-  kShotsTick(dt); kClonesTick(dt); kTrailsTick(dt);
+  kShotsTick(dt); kClonesTick(dt); kTrailsTick(dt); fFrame(dt);
   for (const m of confetti) if (m.visible) {
     const u = m.userData; u.life += dt; u.v.y -= 5 * dt; u.v.multiplyScalar(1 - dt * 1.6); m.position.addScaledVector(u.v, dt);
     m.rotation.x += u.w.x * dt; m.rotation.y += u.w.y * dt; m.rotation.z += u.w.z * dt;
@@ -3290,8 +3758,8 @@ function combatTick(dt, t) {
   // 覚醒のオーラ
   aura.material.opacity = damp(aura.material.opacity, CB.awakenT > 0 ? .3 + Math.sin(t * 6) * .06 : CB.charged ? .16 : 0, 5, dt);
   aura.position.set(P.x, 1.1, P.z);
-  if (CB.awakenT > 0 && PARTNER !== 'karen' && Math.random() < dt * 14) { const s = shards[shardIdx++ % SH]; s.visible = true; s.position.set(P.x + rand(-.6, .6), rand(.1, .6), P.z + rand(-.6, .6)); s.scale.setScalar(rand(.6, 1.1)); s.userData.v.set(rand(-.3, .3), rand(1.2, 2.2), rand(-.3, .3)); s.userData.life = 0; s.userData.max = rand(.8, 1.2); }
-  updateClaws((DUNGEON || P.z > TRAIN.z0 - .4 || !!player.act) && PARTNER !== 'karen');
+  if (CB.awakenT > 0 && PARTNER === 'shino' && Math.random() < dt * 14) { const s = shards[shardIdx++ % SH]; s.visible = true; s.position.set(P.x + rand(-.6, .6), rand(.1, .6), P.z + rand(-.6, .6)); s.scale.setScalar(rand(.6, 1.1)); s.userData.v.set(rand(-.3, .3), rand(1.2, 2.2), rand(-.3, .3)); s.userData.life = 0; s.userData.max = rand(.8, 1.2); }
+  updateClaws((DUNGEON || P.z > TRAIN.z0 - .4 || !!player.act) && PARTNER === 'shino');
   // 人形
   for (const d of dummies) {
     if (d.golem) { golemTick(d, dt, t); continue; }
@@ -3844,7 +4312,7 @@ function dBuild() {
   dWall(-1.75, 0, -1.75, 6.6); dWall(1.75, 0, 1.75, 6.6); dWall(-1.8, 6.6, 1.8, 6.6);     // 地上へ続く階段の壁
   const portal = new THREE.Mesh(new THREE.RingGeometry(.6, 1.1, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.5, 2.2), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   portal.rotation.x = -Math.PI / 2; portal.position.set(DX, .03, -1); scene.add(portal); DG.portalA = portal;
-  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127232220', 350); } });
+  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127234038', 350); } });
   dCorridor(-18, -10);
   // 戦闘の部屋1
   dRoom(-9, 9, -36, -18, { n: true, s: true }); for (const [x, z] of [[-5, -23], [5, -23], [-5, -31], [5, -31]]) dPillar(x, z);
@@ -4005,6 +4473,19 @@ const D_LINES_K = {      // カレンのセリフ（しののセリフ → カ�
   '勝った……！ おつかれさま。いっしょに帰ろ。': '天才って、こういうこと！ 拍手お願いしまーす！',
 };
 if (typeof KAREN_LINES === 'object') Object.assign(KAREN_LINES, D_LINES_K);
+Object.assign(FORTUNA_LINES, {
+  "ここが地下迷宮……。ひんやりしとるね。気をつけて進も。": "ここが地下迷宮……。ひんやりしているわね。気をつけて進みましょう。",
+  "奥の扉、閉まっとる……。部屋の敵を倒せば開くみたい。": "奥の扉は閉まっている……。部屋の敵を倒せば開くみたいね。",
+  "閉じ込められた……！ 来るよ。": "閉じ込められた……。いいわ、ここが勝負の場ね。",
+  "今度は数が多か……。背中、任せたけん。": "今度は数が多いわね。背中は任せたわよ。",
+  "宝物庫みたい……。泉の水で、少し休んでいこ。": "宝物庫みたい。泉の水で、少し休んでいきましょう。",
+  "……冷たくて、気持ちよか。": "……冷たくて、気持ちいいわ。",
+  "この扉の向こう……すごい冷気。覚悟はよか？": "この扉の向こう……大勝負の気配ね。覚悟はいい？",
+  "……でっかい。でも、うちらなら勝てる。": "大きいわね。……相手にとって不足なし。",
+  "氷霊を呼んだ……！ 先に数を減らそ。": "氷霊を呼んだわ……！ 先に数を減らしましょう。",
+  "ふう……片付いたね。先へ進も。": "ふう……片付いたわね。先へ進みましょう。",
+  "勝った……！ おつかれさま。いっしょに帰ろ。": "勝ったわ……！ おつかれさま。一緒に帰りましょう。",
+});
 function dIntro() {
   showTitle('AREA 02 // UNDERGROUND', '氷晶の地下迷宮', '── 凍てつく聖堂の奥へ ──');
   setTimeout(() => say('ここが地下迷宮……。ひんやりしとるね。気をつけて進も。', { relaxed_eye: .3, brow_relaxed: .4 }), 3400);
@@ -4091,7 +4572,7 @@ function dClear() {
   // 帰り道のポータル
   const p = new THREE.Mesh(new THREE.RingGeometry(.8, 1.4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.4, .6), transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   p.rotation.x = -Math.PI / 2; p.position.set(DX, .04, -104); scene.add(p); DG.portalB = p;
-  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127232220', 350); } });
+  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127234038', 350); } });
   dChest(0, -112, 5000, 'boss');
   setTimeout(() => {
     $('dresTime').textContent = fmt(sec); $('dresBest').textContent = nb ? 'ベスト更新！' : `ベスト ${fmt(best)}`; $('dresCoin').textContent = `+${reward.toLocaleString()}円`;
@@ -4162,6 +4643,9 @@ function tick(dt) {
   drawMap();
   composer.render(dt);
 }
+// 確認用：画面が隠れていても、決まった刻みで進めて1コマ描く（__step(コマ数, 幅, 高さ)）
+window.__step = (n, w, h) => { if (w) { camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); composer.setSize(w, h); } for (let i = 0; i < n; i++) tick(1 / 60); return renderer.domElement.toDataURL('image/jpeg', .8); };
+
 loop();
 window.__walk = { player, keys, wallet, chests, interact: () => interact(), near: () => near?.label, openShop, closeShop, SHOPS, step: s => { for (let i = 0; i < s * 60; i++) tick(1 / 60); }, cam: () => ({ camYaw, camPitch }), setCam: (y, p, d) => { camYaw = y; camPitch = p; camDist = d; camInit = false; }, lockCam: v => { camLock = v; }, CB, PV, dummies, golem, attack, useSkill, net: NET, remotes, dg: DG, dn: DN, soc: SOC, fakePeers: list => { NET.status = { available: true, connected: true }; NET.peers = list; syncRemotes(); updateNetUI(); }, vrm: () => vrm };
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); sizeBulbs(); });

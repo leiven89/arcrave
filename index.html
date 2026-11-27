@@ -56,11 +56,11 @@
     <label class="name">プレイヤー名 <input id="name" maxlength="12" autocomplete="nickname"></label>
     <button id="start" type="button">TAP TO START</button>
     <nav aria-label="画面へ直接移動">
-      <a href="lobby.html?v=20261127232220">ロビー</a>
-      <a href="walk.html?v=20261127232220">出撃：ノエルベルク</a>
-      <a href="gacha.html?v=20261127232220">ガチャ</a>
-      <a href="select.html?v=20261127232220">キャラ選択</a>
-      <a href="fortuna.html?v=20261127232220">新キャラPV</a>
+      <a href="lobby.html?v=20261127234038">ロビー</a>
+      <a href="walk.html?v=20261127234038">出撃：ノエルベルク</a>
+      <a href="gacha.html?v=20261127234038">ガチャ</a>
+      <a href="select.html?v=20261127234038">キャラ選択</a>
+      <a href="fortuna.html?v=20261127234038">新キャラPV</a>
     </nav>
     <p class="note">初回はキャラクターデータ（約12MB）の読み込みに少し時間がかかります。出撃中は、同じ時間に出撃しているプレイヤーと一緒に街を歩けます。名前はほかのプレイヤーに表示されます。</p>
     <div id="online">オンライン：準備中</div>
@@ -78,7 +78,7 @@ const CHANNEL = 'noelberg-v1' + ((new URLSearchParams(location.search).get('ch')
 const $ = id => document.getElementById(id);
 const game = $('game');
 function play(href) { game.src = href; document.body.classList.add('playing'); }
-$('start').addEventListener('click', () => play('lobby.html?v=20261127232220'));
+$('start').addEventListener('click', () => play('lobby.html?v=20261127234038'));
 document.querySelectorAll('nav a').forEach(a => a.addEventListener('click', e => { e.preventDefault(); play(a.getAttribute('href')); }));
 
 /* ---- プレイヤー名（この端末に保存） ---- */
@@ -174,7 +174,7 @@ async function join() {
       if (id === myId || !Array.isArray(metas) || !metas.length) continue;
       const m = metas[metas.length - 1] || {}; seen.add(id);
       const old = peers.get(id); if (!old || !old.present) fresh = true;
-      peers.set(id, { st: old?.st || null, stAt: old?.stAt || 0, pv: old?.pv || null, act: old?.act || null, name: clean(m.name) || old?.name || 'プレイヤー', area: validArea(m.area), ch: m.ch === 'karen' ? 'karen' : 'shino', x: jsonCap(m.x, 3000), dg: old?.dg || null, say: validSay(m.say), present: true, goneAt: 0 });
+      peers.set(id, { st: old?.st || null, stAt: old?.stAt || 0, pv: old?.pv || null, act: old?.act || null, name: clean(m.name) || old?.name || 'プレイヤー', area: validArea(m.area), ch: m.ch === 'karen' || m.ch === 'fortuna' ? m.ch : 'shino', x: jsonCap(m.x, 3000), dg: old?.dg || null, say: validSay(m.say), present: true, goneAt: 0 });
     }
     for (const [id, p] of peers) if (!seen.has(id) && p.present) { p.present = false; p.goneAt = now; }
     if (fresh) sendSt(true);          // 新しく来た人に自分の位置をすぐ届ける
@@ -230,7 +230,7 @@ addEventListener('message', e => {
     const p = m.patch, area = validArea(p.area), say = validSay(p.area ? p.say : null), x = jsonCap(p.x, 3000);
     if (validSt(p.st)) pendingSt = p.st.map(v => Math.round(v * 100) / 100);
     pendingPv = validPv(p.pv);
-    const chr = p.ch === 'karen' ? 'karen' : 'shino';           // 使っているキャラ（しの／カレン）
+    const chr = p.ch === 'karen' || p.ch === 'fortuna' ? p.ch : 'shino';           // 使っているキャラ（しの／カレン）
     const changed = area !== me.area || chr !== me.ch || JSON.stringify(say) !== JSON.stringify(me.say) || JSON.stringify(x) !== JSON.stringify(me.x);
     me.ch = chr; me.x = x;
     pendingDg = area && area.startsWith('dg:') ? jsonCap(p.dg, 6000) : null;
@@ -276,6 +276,26 @@ function draw(t) {
 }
 requestAnimationFrame(draw);
 window.__shell = { peers, me, setStatus, sendPeers, myId, netLog, get sb() { return sb; }, get live() { return live; } };
+
+/* ---------- 招待コード（フォルトゥナ・レイズの使用権） ----------
+   コードそのものは載せず、SHA-256 の値だけを照らし合わせる。受け取ると、この端末のブラウザに記録される */
+const INVITES = {"1362674e7ddd750293090aa677e29de270dc6ebd5cc6fdcf618d1ba8e96b845b": "レイブン", "e42a893134b8df414af91697d6a453dc5f3771ac3e567292d7ee471dbf04ba46": "レイたそ", "0394dee641660c0d7e33c254321e803589329d5bfb50c41dbe055cafeef31113": "はるさーめん"};
+async function redeemInvite(code) {
+  const c = String(code || '').trim().toUpperCase(); if (!c) return null;
+  try {
+    const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(c)))].map(b => b.toString(16).padStart(2, '0')).join('');
+    const who = INVITES[h]; if (who) { localStorage.setItem('unlock_fortuna', who); return who; }
+  } catch (e) {}
+  return null;
+}
+(async () => {
+  const q = new URLSearchParams(location.search).get('invite'); if (!q) return;
+  const who = await redeemInvite(q);
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;left:50%;top:max(16px,env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:20;padding:12px 18px;max-width:calc(100vw - 32px);box-sizing:border-box;text-align:center;font:700 14px/1.6 sans-serif;color:#1a0d02;background:linear-gradient(120deg,#fff1c4,#ffd77a);border-radius:4px;box-shadow:0 0 24px rgba(255,215,122,.6)';
+  el.textContent = who ? `${who} さん、フォルトゥナ・レイズの使用権を受け取りました！ キャラ選択で選べます。` : '招待コードが違うようです。キャラ選択画面の「招待コード」から入力してください。';
+  document.body.appendChild(el); setTimeout(() => el.remove(), 9000);
+})();
 </script>
 </body>
 </html>
