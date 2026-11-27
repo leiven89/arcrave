@@ -255,7 +255,7 @@
       <h2>ネオン・ナイトパレード</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261127183352">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261127184531">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
@@ -264,11 +264,11 @@
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261127183352">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261127183352">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127184531">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261127184531">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261127183352">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127184531">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -326,7 +326,7 @@ const SFX = (() => {
     if (S.buf[n]) return Promise.resolve(S.buf[n]);
     if (S.loading[n]) return S.loading[n];
     const c = ctx(); if (!c) return Promise.resolve(null);
-    return S.loading[n] = fetch('sfx/' + n + '.mp3').then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status))
+    return S.loading[n] = fetch((n.includes('/') ? '' : 'sfx/') + n + '.mp3').then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status))
       .then(a => new Promise((res, rej) => c.decodeAudioData(a, res, rej))).then(b => (S.buf[n] = b)).catch(() => null);
   }
   function play(n, vol = 1, rate = 1) {
@@ -348,7 +348,19 @@ const SFX = (() => {
     }
   }
   function setOn(v) { S.on = v; try { localStorage.setItem('arc_sfx', v ? '1' : '0'); } catch (e) {} if (S.master) S.master.gain.value = v ? .7 : 0; }
-  return { play, loop, preload: list => { ctx(); list.forEach(load); }, setOn, isOn: () => S.on, _s: S, _ctx: ctx };
+  // ボイス（voice/…）：前のボイスを止めて鳴らす。鳴らせたら音源を返す（終わりを知るため）。skip 秒ぶん頭の無音を飛ばす
+  function voice(n, vol = 1, skip = 0) {
+    stopVoice();
+    if (!S.on) return null;
+    const c = ctx(); if (!c || c.state !== 'running') return null;
+    const b = S.buf[n]; if (!b) { load(n); return null; }
+    const src = c.createBufferSource(), g = c.createGain();
+    src.buffer = b; g.gain.value = vol; src.connect(g); g.connect(S.master); src.start(0, Math.min(skip, b.duration * .5));
+    S.vsrc = src; src.addEventListener('ended', () => { if (S.vsrc === src) S.vsrc = null; });
+    return src;
+  }
+  function stopVoice() { try { S.vsrc?.stop(); } catch (e) {} S.vsrc = null; }
+  return { play, voice, stopVoice, loop, preload: list => { ctx(); list.forEach(load); }, setOn, isOn: () => S.on, _s: S, _ctx: ctx };
 })();
 window.__sfx = SFX;
 
@@ -1041,17 +1053,34 @@ function pickVoice() {
 }
 if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
 
+// しのの収録ボイス（セリフ → [ファイル名, 音量, 頭の無音を飛ばす秒]）。音量はファイルごとにそろえてある
+const SHINO_VOICE = {
+  '……おかえり。今夜も、街がきれいやね。': ['lobby_01', 1.15, .12],
+  'わ……っ。急につつかんで。びっくりするけん。': ['lobby_02', .9, .05],
+  'イベントの報酬、まだ残っとるみたいよ。': ['lobby_03', 1.45, .1],
+  '……そろそろ、出撃する？ ノエルベルク、雪が降っとるって。': ['lobby_04', 1.07, .14],
+  'あの車、どこまで飛んでいくっちゃろうね。': ['lobby_05', 1.27, .11],
+  '呼んでくれたと？……ん、ちょっと嬉しい。': ['lobby_06', 1.9, .16],
+  'この前の任務、ちょっと手強かったね……。次は、うちが守るけん。': ['lobby_07', .95, .09],
+  '屋上の風、けっこう冷たかよ。……うちは平気やけど。': ['lobby_08', 1.6, .18],
+};
+if (PARTNER === 'shino') SFX.preload(Object.values(SHINO_VOICE).map(v => 'voice/shino/' + v[0]));
 function say(text, emo = 'happy') {
   [text, emo] = partnerLine(text, emo);
   clearTimeout(bubbleTimer);
   if (speech?.utter) speechSynthesis.cancel();
+  SFX.stopVoice();
   const chars = [...text];
   speech = { chars, mora: toMora(text), i: 0, t: 0, shown: -1, utter: null, ttsDone: true, wait: 0 };
+  // 収録ボイスがあるセリフはそれを鳴らす（効果音ONのとき）。口パクは声が終わるまで続ける
+  const rv = PARTNER === 'shino' && SHINO_VOICE[text];
+  const src = rv && SFX.voice('voice/shino/' + rv[0], rv[1], rv[2]);
+  if (src) { const s = speech; s.ttsDone = false; src.addEventListener('ended', () => { s.ttsDone = true; }); }
   bubble.textContent = ''; bubble.classList.add('show');
   setEmotion(emo, 2 + chars.length * 0.12);
   if (camMode === 'auto' && shot !== 'close' && !document.body.classList.contains('plobby')) cutTo('close');      // 喋るときは顔アップへ（パーティのロビーでは引きのまま）
   shotT = 0;
-  if (voiceOn && jaVoice) {
+  if (voiceOn && jaVoice && !src) {
     const u = new SpeechSynthesisUtterance(text.replace(/[♪〜～]/g, 'ー'));
     u.voice = jaVoice; u.lang = 'ja-JP'; u.rate = PARTNER === 'karen' ? 1.25 : 1.15; u.pitch = PARTNER === 'karen' ? 1.7 : 1.45;
     const s = speech; s.utter = u; s.ttsDone = false; s.wait = 1.0;
