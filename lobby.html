@@ -236,6 +236,7 @@
     <button class="lm panel tap" id="friendBtn"><span class="hx">⚇</span><span><b>フレンド</b><small>FRIEND</small></span></button>
     <button class="lm panel tap" data-msg="お知らせ（デモ）"><span class="hx">!</span><span><b>お知らせ</b><small>NEWS</small></span></button>
     <button class="lm panel tap" id="sfxBtn"><span class="hx">♪</span><span><b>効果音</b><small>SFX ON</small></span></button>
+    <button class="lm panel tap" id="bgmBtn"><span class="hx">♫</span><span><b>BGM</b><small>BGM ON</small></span></button>
     <button class="lm panel tap" id="voiceBtn"><span class="hx">🔇</span><span><b>ボイス</b><small>VOICE OFF</small></span></button>
   </nav>
 
@@ -254,7 +255,7 @@
       <h2>ネオン・ナイトパレード</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261127131339">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261127141500">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
@@ -263,11 +264,11 @@
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261127131339">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261127131339">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127141500">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261127141500">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261127131339">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127141500">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -347,9 +348,46 @@ const SFX = (() => {
     }
   }
   function setOn(v) { S.on = v; try { localStorage.setItem('arc_sfx', v ? '1' : '0'); } catch (e) {} if (S.master) S.master.gain.value = v ? .7 : 0; }
-  return { play, loop, preload: list => { ctx(); list.forEach(load); }, setOn, isOn: () => S.on, _s: S };
+  return { play, loop, preload: list => { ctx(); list.forEach(load); }, setOn, isOn: () => S.on, _s: S, _ctx: ctx };
 })();
 window.__sfx = SFX;
+
+/* ---------- BGM（bgm/*.mp3 を少しずつ読みながら鳴らす。曲の切りかえはクロスフェード） ----------
+   曲が無ければ鳴らないだけ。ロビーの「BGM」ボタンで ON/OFF（この端末に保存）。 */
+const BGM = (() => {
+  const B = { on: true, want: null, els: {}, vol: .42 };
+  try { B.on = localStorage.getItem('arc_bgm') !== '0'; } catch (e) {}
+  function node(n) {
+    if (B.els[n]) return B.els[n];
+    const c = SFX._ctx(); if (!c) return null;
+    const a = new Audio('bgm/' + n + '.mp3'); a.loop = true; a.preload = 'auto';
+    const e = { a, g: c.createGain(), bad: false };
+    try { c.createMediaElementSource(a).connect(e.g); e.g.gain.value = 0; e.g.connect(c.destination); } catch (err) { e.bad = true; }
+    a.addEventListener('error', () => { e.bad = true; });
+    return B.els[n] = e;
+  }
+  function fade(e, to, sec = 1.6) {
+    const c = SFX._ctx(), t = c.currentTime;
+    e.g.gain.cancelScheduledValues(t); e.g.gain.setValueAtTime(e.g.gain.value, t); e.g.gain.linearRampToValueAtTime(to, t + sec);
+  }
+  function apply() {
+    const c = SFX._ctx(); if (!c) return;
+    for (const k in B.els) if (k !== B.want || !B.on) { const e = B.els[k]; fade(e, 0); setTimeout(() => { if (B.want !== k || !B.on) e.a.pause(); }, 1800); }
+    if (!B.want || !B.on) return;
+    const e = node(B.want); if (!e || e.bad) return;
+    if (e.a.paused) e.a.play().catch(() => {});
+    fade(e, B.vol);
+  }
+  const kick = () => { if (B.want && B.on) { const e = node(B.want); if (e && !e.bad && e.a.paused) apply(); } };
+  addEventListener('pointerdown', kick, true); addEventListener('keydown', kick, true); addEventListener('touchend', kick, true);
+  return {
+    play(n) { if (B.want === n) return; B.want = n; apply(); },
+    setOn(v) { B.on = v; try { localStorage.setItem('arc_bgm', v ? '1' : '0'); } catch (e) {} apply(); },
+    isOn: () => B.on, _b: B,
+  };
+})();
+window.__bgm = BGM;
+BGM.play('lobby');
 SFX.preload(['ui_tap', 'ui_open', 'ui_notify', 'ui_coin']);
 const SOC = (() => {
   const L = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
@@ -1190,6 +1228,8 @@ document.querySelectorAll('[data-msg]').forEach(el => el.addEventListener('click
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.tap, #soc button, #invPop button')) SFX.play('ui_tap', .6); }, true);     // ボタンの音
 { const b = document.getElementById('sfxBtn'), show = () => { b.querySelector('.hx').textContent = SFX.isOn() ? '♪' : '×'; b.querySelector('small').textContent = SFX.isOn() ? 'SFX ON' : 'SFX OFF'; b.classList.toggle('on', SFX.isOn()); };
   show(); b.addEventListener('click', ev => { ev.stopPropagation(); SFX.setOn(!SFX.isOn()); show(); toast(SFX.isOn() ? '効果音をONにしました' : '効果音をOFFにしました'); }); }
+{ const b = document.getElementById('bgmBtn'), show = () => { b.querySelector('.hx').textContent = BGM.isOn() ? '♫' : '×'; b.querySelector('small').textContent = BGM.isOn() ? 'BGM ON' : 'BGM OFF'; b.classList.toggle('on', BGM.isOn()); };
+  show(); b.addEventListener('click', ev => { ev.stopPropagation(); BGM.setOn(!BGM.isOn()); show(); toast(BGM.isOn() ? 'BGMをONにしました' : 'BGMをOFFにしました'); }); }
 document.querySelectorAll('[data-href]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); location.href = el.dataset.href; }));
 document.querySelectorAll('.plus').forEach(el => el.addEventListener('click', () => toast('ショップ（デモ）')));
 
