@@ -87,7 +87,7 @@
   <button id="snd" type="button" aria-pressed="true">音：ON</button>
   <button id="replay" type="button" hidden>PVを見る</button>
   <button id="skip" type="button" hidden>スキップ</button>
-  <a href="lobby.html?v=20261127215119">ロビーへ</a>
+  <a href="lobby.html?v=20261127222454">ロビーへ</a>
 </div>
 <div id="gate" class="layer">
   <div class="gbox">
@@ -478,6 +478,24 @@ for (let i = 0; i < NC; i++) {
 /* =====================================================================
    音：BGM（ラウンジ風）と効果音は、その場で合成する
    ===================================================================== */
+// フォルトゥナのボイス（ElevenLabs：tools/gen_fortuna_voice.py）[音量, 頭の無音を飛ばす秒]
+const VOICES = { pv_01: [.85, .15], pv_02: [1, .13], pv_03: [.95, .09], pv_04: [.85, 0] };
+let vBus = null, vAn = null, vSrc = null, mouthOpen = 0;
+const vData = new Uint8Array(256);
+function voice(name, cap) {
+  showCap('「' + cap + '」');
+  const b = bufs[name], [vol, skip] = VOICES[name];
+  if (!AC || !b) return;
+  try { vSrc?.stop(); } catch (e) {}
+  const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = b; g.gain.value = vol; s.connect(g); g.connect(vBus); s.start(AC.currentTime, skip); vSrc = s;
+  bgmBus.gain.setTargetAtTime(.22, AC.currentTime, .08);
+  s.onended = () => { if (vSrc === s) { vSrc = null; bgmBus.gain.setTargetAtTime(.5, AC.currentTime, .3); setTimeout(() => { if (!vSrc) hideCap(); }, 500); } };
+}
+function mouthLevel(dt) {      // 声の大きさで口を動かす
+  let v = 0;
+  if (vAn && vSrc) { vAn.getByteTimeDomainData(vData); let e = 0; for (const x of vData) e += (x - 128) * (x - 128); v = clamp(Math.sqrt(e / vData.length) / 22, 0, 1); }
+  mouthOpen = lerp(mouthOpen, v * .8, 1 - Math.exp(-dt * 25));
+}
 let AC = null, master = null, bgmBus = null, sfxBus = null, noiseBuf = null, soundOn = true;
 const bufs = {};
 function initAudio() {
@@ -488,6 +506,8 @@ function initAudio() {
   bgmBus = AC.createGain(); bgmBus.gain.value = .5; bgmBus.connect(comp);
   sfxBus = AC.createGain(); sfxBus.gain.value = .9; sfxBus.connect(comp);
   const n = AC.sampleRate * 2; noiseBuf = AC.createBuffer(1, n, AC.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  vBus = AC.createGain(); vBus.connect(master); vAn = AC.createAnalyser(); vAn.fftSize = 512; vBus.connect(vAn);
+  for (const k of Object.keys(VOICES)) fetch('voice/fortuna/' + k + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).then(b => b && AC.decodeAudioData(b)).then(b => { if (b) bufs[k] = b; }).catch(() => {});
   for (const k of ['karen_snap', 'ui_coin', 'karen_star']) fetch('sfx/' + k + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).then(b => b && AC.decodeAudioData(b)).then(b => { if (b) bufs[k] = b; }).catch(() => {});
 }
 const at = d => AC.currentTime + Math.max(0, d);
@@ -648,10 +668,16 @@ function num(keys, t) {
   return keys[keys.length - 1][1];
 }
 /* PVの段取り（秒） */
-const TL = { spot: 2.3, grab: 5.05, release: 6.3, catch: 8.7, flip0: 8.95, flip1: 9.45, cards: 9.6, fan: 12.4, ret0: 12.45, ret1: 13.1, logo: 13.6, end: 18.6 };
+const TL = { spot: 2.3, grab: 5.05, release: 6.3, catch: 8.7, flip0: 8.95, flip1: 9.45, cards: 9.6, fan: 12.4, ret0: 12.45, ret1: 13.1, logo: 16.3, end: 19.0 };
+// 3.9秒目に、1枚目の絵の「ようこそ」のポーズを3秒差し込む。TL・R_KEYS などは差し込む前の時刻で書いてある
+const INS_A = 3.9, INS_D = 3.0, real = t => t < INS_A ? t : t + INS_D;
+const tt = T => T < INS_A ? T : T < INS_A + INS_D ? INS_A : T - INS_D;
+const P1 = [3.3, 6.4], P2 = 16.2;          // ポーズ1（ようこそ）・ポーズ2（手を差し出す）の時刻（実時間）
 const R_KEYS = [[0, -.24, .84, .1], [4.1, -.24, .84, .1], [4.85, -.27, 1.6, .1], [5.15, -.27, 1.62, .1], [5.75, -.34, 1.3, .3], [6.3, -.2, 1.98, .2], [6.7, -.26, 1.82, .26], [8.1, -.33, 1.7, .28], [8.7, -.27, 1.84, .22], [9.4, -.14, 1.22, .36], [12.45, -.14, 1.22, .36], [13.05, -.27, 1.62, .12], [99, -.27, 1.62, .12]];
 const L_KEYS = [[0, .2, .98, .22], [12.9, .2, .98, .22], [13.6, .26, 1.42, .26], [99, .26, 1.42, .26]];
 const HINT_R = new THREE.Vector3(-.6, -.35, -.25), HINT_L = new THREE.Vector3(.6, -.4, -.2);
+const P1R = new THREE.Vector3(-.58, 1.0, .3), P1L = new THREE.Vector3(.27, 1.42, .14);      // ようこそ
+const P2R = new THREE.Vector3(-.2, 1.36, .56), P2L = new THREE.Vector3(.24, .9, -.04);      // 手を差し出す
 const BASE = {
   spine: [.02, 0, 0], chest: [0, 0, 0], neck: [0, 0, 0], head: [0, 0, 0],
   leftUpperLeg: [0, .06, -.05], leftLowerLeg: [.05, 0, 0], rightUpperLeg: [-.06, -.1, .07], rightLowerLeg: [.16, 0, 0], leftFoot: [0, -.12, 0], rightFoot: [-.06, .25, 0],
@@ -684,7 +710,8 @@ function blink(dt, allow) {
 
 /* PVの1コマ分のポーズ */
 const hatPos = new THREE.Vector3(), camPos = new THREE.Vector3(), camTgt = new THREE.Vector3();
-function posePV(T, dt) {
+function posePV(T, dt, RT = T) {
+  const w1 = smooth((RT - P1[0]) / .6) * (1 - smooth((RT - P1[1]) / .5)), w2 = smooth((RT - P2) / .6);
   setBase(BASE);
   const hp = bone('hips'); hp.position.y = baseHipsY + Math.sin(T * 1.7) * .004; hp.rotation.set(0, .08, 0);
   bone('spine').rotation.x += Math.sin(T * 1.7) * .012;
@@ -697,12 +724,20 @@ function posePV(T, dt) {
   // カードを出す間は体を少しひねる／最後は斜めに構える
   const fin = smooth((T - TL.ret0) / 1);
   hp.rotation.y += -.25 * fin; bone('chest').rotation.y += .12 * fin; bone('head').rotation.z += .08 * fin;
-  armIK('right', track(R_KEYS, T), HINT_R);
-  armIK('left', track(L_KEYS, T), HINT_L);
+  // 1枚目の絵：右手を横へ広げて迎え、左手のカードを顔の横に。脚は軽く交差
+  bone('rightUpperLeg').rotation.z += .15 * w1; bone('rightUpperLeg').rotation.x -= .06 * w1; bone('rightLowerLeg').rotation.x += .08 * w1;
+  bone('leftUpperLeg').rotation.z += .04 * w1; hp.rotation.y += .12 * w1; bone('head').rotation.z += .13 * w1; bone('chest').rotation.z -= .04 * w1;
+  // 2枚目の絵：こちらへ手を差し出し、少し前へ乗り出す
+  hp.rotation.y += .2 * w2; bone('spine').rotation.x += .1 * w2; bone('chest').rotation.x += .06 * w2; bone('head').rotation.z += .1 * w2;
+  const rT = track(R_KEYS, T).lerp(P1R, w1).lerp(P2R, w2), lT = track(L_KEYS, T).lerp(P1L, w1).lerp(P2L, w2);
+  armIK('right', rT, HINT_R);
+  armIK('left', lT, HINT_L);
   // 手首の向き：左手のカードを正面へ見せる
   bone('leftHand').rotation.set(num([[0, .2], [12.9, .2], [13.6, -.3]], T), num([[0, -.9], [12.9, -.9], [13.6, -1.35]], T), num([[0, .25], [12.9, .25], [13.6, .5]], T));
   bone('rightHand').rotation.set(0, 0, num([[0, .2], [4.6, .2], [5, -.5], [6.3, .3], [8.6, -.3], [9.3, .4], [12.45, .4], [13.05, -.5]], T));
-  fingers('right', num([[0, .25], [4.8, .25], [5.05, .9], [6.25, .9], [6.4, .1], [8.6, .1], [8.72, .95], [99, .95]], T));
+  if (w1 + w2 > .001) { const rh = bone('rightHand').rotation, k = Math.max(w1, w2); rh.x = lerp(rh.x, -1.1, k); rh.z = lerp(rh.z, .35, k); }   // 手のひらを上へ
+  if (w2 > .001) { const lh = bone('leftHand').rotation; lh.set(lerp(lh.x, .2, w2), lerp(lh.y, -.9, w2), lerp(lh.z, .25, w2)); }
+  fingers('right', lerp(num([[0, .25], [4.8, .25], [5.05, .9], [6.25, .9], [6.4, .1], [8.6, .1], [8.72, .95], [99, .95]], T), .12, Math.max(w1, w2)));
   fingers('left', .7);
   // 視線
   let lp;
@@ -715,7 +750,8 @@ function posePV(T, dt) {
   // 表情
   const wink = smooth((T - TL.catch) / .15) * (1 - smooth((T - TL.catch - .6) / .2)) + smooth((T - TL.logo + .4) / .3);
   expr('blinkLeft', Math.min(1, wink));
-  expr('happy_mouth', .35 + .5 * smooth((T - TL.catch) / .3));
+  expr('happy_mouth', Math.max(.35 + .5 * smooth((T - TL.catch) / .3), .75 * w1));
+  expr('aa', mouthOpen);
   expr('relaxed_eye', .25 * (1 - Math.min(1, wink)));
   expr('blink', wink > .05 ? 0 : blink(dt, true));
 }
@@ -799,7 +835,7 @@ function updateCards(T, dt, emit) {
 }
 
 /* カメラ割り */
-function cameraPV(T) {
+function cameraPV(T, RT = T) {
   const B = vrm.scene.position; let fov = 38;
   const set = (p, t) => { camPos.set(p[0] + B.x, p[1] + B.y, p[2] + B.z); camTgt.set(t[0] + B.x, t[1] + B.y, t[2] + B.z); };
   const L = (a, b, u) => a.map((v, i) => lerp(v, b[i], u));
@@ -813,6 +849,8 @@ function cameraPV(T) {
   else if (T < TL.cards - .05) { const u = smooth((T - TL.catch) / .9); set(L([-1.25, 1.55, 2.3], [-1.0, 1.5, 2.0], u), L([-.12, 1.62, .05], [-.08, 1.38, .1], u)); fov = 38 - u * 2; }
   else if (T < TL.fan - .05) { const u = (T - TL.cards) / (TL.fan - TL.cards), a = lerp(.5, -1.15, smooth(u)), r = lerp(3.1, 2.5, u); set([Math.sin(a) * r, 1.25 + u * .2, Math.cos(a) * r], [0, 1.25, 0]); fov = 42; }
   else { const u = smooth((T - TL.fan) / 4); set(L([.2, 1.35, 3.6], [-.05, 1.42, 2.75], u), L([-.35, 1.32, 0], [-.42, 1.36, 0], u)); fov = 40; }
+  if (RT >= 3.2 && RT < INS_A + INS_D + .1) { const u = smooth((RT - 3.2) / 3.6); set(L([-.4, 1.15, 3.5], [-.28, 1.25, 2.95], u), L([.05, 1.0, 0], [.05, 1.08, 0], u)); fov = 38; }
+  if (RT >= P2 + .1) { const u = smooth((RT - P2) / 4.5); set(L([.2, 2.0, 1.95], [.08, 1.92, 1.55], u), L([-.2, 1.32, .15], [-.18, 1.36, .15], u)); fov = 46; }
   // 縦長の画面では少し引く
   if (camera.aspect < 1) { camPos.sub(camTgt).multiplyScalar(lerp(1.7, 1, clamp(camera.aspect, .5, 1) * 2 - 1)).add(camTgt); fov += 6; }
   camera.position.copy(camPos); camera.lookAt(camTgt);
@@ -824,18 +862,20 @@ const CUES = [
   [0.0, () => { SFX.thunk(); }],
   [0.4, () => { $('place').classList.add('on'); SFX.coin(0); SFX.coin(.35); SFX.coin(.9); }],
   [2.3, () => { SFX.thunk(); $('place').classList.remove('on'); }],
-  [3.5, () => showCap('「ようこそ、わたしのカジノへ。」')],
-  [5.4, () => showCap('「――今宵のショーを、始めましょう。」')],
-  [6.15, () => { hideCap(); SFX.whoosh(0, 1); duck = .35; }],
-  [6.6, () => { SFX.kuru(0, 1); ono('くるっ', -18); }],
-  [7.25, () => { SFX.kuru(0, 1.12); ono('くるっ', 10); }],
-  [7.9, () => { SFX.kuru(0, 1.26); ono('くるっ！', -6); }],
-  [TL.catch, () => { SFX.catch(); flash(); for (let i = 0; i < 70; i++) SP.emit(hatPos.x, hatPos.y, hatPos.z, (rnd() - .5) * 3, (rnd() - .2) * 3, (rnd() - .5) * 3, .7 + rnd() * .5, i % 4 === 0); ono('パシッ', 8, 1.25); }],
-  [TL.cards - .05, () => { SFX.flutter(0, 1.9); duck = 1; }],
-  [TL.cards + .2, () => SFX.chime(0)],
-  [TL.fan, () => SFX.whoosh(0, -1)],
-  [TL.logo, () => { SFX.hit(); $('logo').classList.add('on'); for (let i = 0; i < 120; i++) { const a = rnd() * 6.283, B = vrm.scene.position; SP.emit(B.x + Math.sin(a) * 1.1, B.y + 1.35 + Math.cos(a) * .9, B.z - .4, Math.sin(a) * .8, Math.cos(a) * .8, .3, 1 + rnd(), i % 3 === 0); } }],
-  [TL.end - 1.2, () => $('endmenu').classList.add('on')],
+  [3.45, () => voice('pv_01', 'ようこそ、ルーチェ・ドーロへ。')],
+  [5.3, () => voice('pv_02', '今宵の運命――わたしに賭けてみない？')],
+  [real(6.15), () => { SFX.whoosh(0, 1); duck = .35; }],
+  [real(6.6), () => { SFX.kuru(0, 1); ono('くるっ', -18); }],
+  [real(7.25), () => { SFX.kuru(0, 1.12); ono('くるっ', 10); }],
+  [real(7.9), () => { SFX.kuru(0, 1.26); ono('くるっ！', -6); }],
+  [real(TL.catch), () => { SFX.catch(); flash(); for (let i = 0; i < 70; i++) SP.emit(hatPos.x, hatPos.y, hatPos.z, (rnd() - .5) * 3, (rnd() - .2) * 3, (rnd() - .5) * 3, .7 + rnd() * .5, i % 4 === 0); ono('パシッ', 8, 1.25); }],
+  [real(TL.catch) + .3, () => voice('pv_03', 'ふふっ、当たり。')],
+  [real(TL.cards) - .05, () => { SFX.flutter(0, 1.9); duck = 1; }],
+  [real(TL.cards) + .2, () => SFX.chime(0)],
+  [real(TL.fan), () => SFX.whoosh(0, -1)],
+  [P2 + .4, () => voice('pv_04', 'さあ――次は、あなたの番よ。')],
+  [real(TL.logo), () => { hideCap(); SFX.hit(); $('logo').classList.add('on'); for (let i = 0; i < 120; i++) { const a = rnd() * 6.283, B = vrm.scene.position; SP.emit(B.x + Math.sin(a) * 1.1, B.y + 1.35 + Math.cos(a) * .9, B.z - .4, Math.sin(a) * .8, Math.cos(a) * .8, .3, 1 + rnd(), i % 3 === 0); } }],
+  [real(TL.end) - 1.2, () => $('endmenu').classList.add('on')],
 ];
 function showCap(s) { const c = $('cap'); c.textContent = s; c.classList.add('on'); }
 function hideCap() { $('cap').classList.remove('on'); }
@@ -938,6 +978,7 @@ canvas.addEventListener('pointerup', endJoy); canvas.addEventListener('pointerca
    ===================================================================== */
 let mode = 'idle', T = 0, prevT = -1, clock = new THREE.Clock(), wallT = 0;
 function resetPV() {
+  try { vSrc?.stop(); } catch (e) {} vSrc = null; mouthOpen = 0;
   T = 0; prevT = -1; hat.rel = null; cardOrigin = null; SP.clear(); seed = 99; duck = 1;
   for (const c of cards) c.m.visible = false;
   vrm.scene.position.set(0, DAIS_Y, 0); vrm.scene.rotation.y = 0;
@@ -962,7 +1003,7 @@ function startWalk() {
   camera.position.set(0, 4, 9);
 }
 $('go').onclick = startPV; $('again').onclick = startPV; $('replay').onclick = startPV; $('towalk').onclick = startWalk;
-$('skip').onclick = () => { if (mode === 'pv') { T = TL.logo + .01; prevT = T - .001; } };
+$('skip').onclick = () => { if (mode === 'pv') { T = real(TL.logo) + .01; prevT = T - .001; } };
 
 function update(dt) {
   wallT += dt;
@@ -987,13 +1028,14 @@ function update(dt) {
     // 照明：最初は暗く、スポットが点いて主役が浮かぶ
     spot.intensity = T < TL.spot ? 0 : lerp(0, SPOT_I, smooth((T - TL.spot) / .25));
     keyLight.intensity = T < TL.spot ? .1 : .8;
-    rimLight.intensity = 3 + 4 * smooth((T - TL.logo) / .6);
+    rimLight.intensity = 3 + 4 * smooth((tt(T) - TL.logo) / .6);
     keyLight.position.set(-2.5, 6, 6); keyLight.target.position.set(0, 0, 0);
-    posePV(T, dt);
+    mouthLevel(dt);
+    posePV(tt(T), dt, T);
     vrm.update(dt); vrm.scene.updateMatrixWorld(true);
-    updateHat(T);
-    cameraPV(T);
-    updateCards(T, dt, true);
+    updateHat(tt(T));
+    cameraPV(tt(T), T);
+    updateCards(tt(T), dt, true);
       } else if (mode === 'walk') {
     if (AC) bgmTick(wallT);
     updateWalk(dt, wallT);
