@@ -281,7 +281,7 @@
 <div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
 <div id="bossHud"><small>BOSS</small><b>氷殻の守護者グラキエス</b><div class="bb"><i id="bossBar"></i></div><span id="bossNum"></span></div>
-<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261127141500">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261127141500">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
+<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261127183352">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261127183352">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
   <header><div class="logo" id="shopLogo">夜</div><div class="nm"><b id="shopName">ヨルマート</b><small id="shopEn">YORU MART</small></div><button class="close tap" id="shopClose">✕ 店を出る</button></header>
@@ -401,7 +401,7 @@ const SFX = (() => {
     if (S.buf[n]) return Promise.resolve(S.buf[n]);
     if (S.loading[n]) return S.loading[n];
     const c = ctx(); if (!c) return Promise.resolve(null);
-    return S.loading[n] = fetch('sfx/' + n + '.mp3').then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status))
+    return S.loading[n] = fetch((n.includes('/') ? '' : 'sfx/') + n + '.mp3').then(r => r.ok ? r.arrayBuffer() : Promise.reject(r.status))
       .then(a => new Promise((res, rej) => c.decodeAudioData(a, res, rej))).then(b => (S.buf[n] = b)).catch(() => null);
   }
   function play(n, vol = 1, rate = 1) {
@@ -423,7 +423,17 @@ const SFX = (() => {
     }
   }
   function setOn(v) { S.on = v; try { localStorage.setItem('arc_sfx', v ? '1' : '0'); } catch (e) {} if (S.master) S.master.gain.value = v ? .7 : 0; }
-  return { play, loop, preload: list => { ctx(); list.forEach(load); }, setOn, isOn: () => S.on, _s: S, _ctx: ctx };
+  // ボイス（voice/…）：前のボイスが鳴っていたら止めて、新しいほうを鳴らす。skip 秒ぶん頭の無音を飛ばす
+  function voice(n, vol = 1, skip = 0) {
+    if (!S.on) return;
+    const c = ctx(); if (!c || c.state !== 'running') return;
+    const b = S.buf[n]; if (!b) { load(n); return; }
+    try { S.vsrc?.stop(); } catch (e) {}
+    const src = c.createBufferSource(), g = c.createGain();
+    src.buffer = b; g.gain.value = vol; src.connect(g); g.connect(S.master); src.start(0, Math.min(skip, b.duration * .5));
+    S.vsrc = src; src.onended = () => { if (S.vsrc === src) S.vsrc = null; };
+  }
+  return { play, voice, loop, preload: list => { ctx(); list.forEach(load); }, setOn, isOn: () => S.on, _s: S, _ctx: ctx };
 })();
 window.__sfx = SFX;
 
@@ -464,6 +474,16 @@ const BGM = (() => {
 window.__bgm = BGM;
 BGM.play(DUNGEON ? 'explore' : 'city');
 SFX.preload(['ui_tap', 'ui_open', 'ui_notify', 'ui_coin', 'ui_clear', 'step_snow', 'step_stone', 'shino_slash', 'shino_skill1', 'shino_wall', 'shino_step', 'shino_charge', 'shino_awaken', 'karen_snap', 'karen_note', 'karen_star', 'karen_step', 'karen_clone', 'karen_boom', 'karen_arpeggio', 'karen_awaken', 'karen_finale', 'hit_enemy', 'hurt_player', 'golem_step', 'golem_punch', 'golem_slam', 'golem_die', 'boss_roar', 'ice_spikes', 'wisp_cast', 'wisp_bolt', 'wisp_die', 'gate', 'chest', 'heal', 'portal']);
+// しののボイス（技名の掛け声）。音量はファイルごとにそろえ、頭の無音を少し飛ばす
+const VOICE = {
+  s1:     { f: 'voice/shino/call_s1',     vol: .95, skip: 0 },
+  s2:     { f: 'voice/shino/call_s2',     vol: 1.4, skip: .2 },
+  s3:     { f: 'voice/shino/call_s3',     vol: 1.15, skip: .14 },
+  charge: { f: 'voice/shino/call_charge', vol: 1.1, skip: .22 },
+  awaken: { f: 'voice/shino/call_awaken', vol: 1.8, skip: .2 },
+};
+if (PARTNER === 'shino') SFX.preload(Object.values(VOICE).map(v => v.f));
+function shinoVoice(id) { const v = VOICE[id]; if (v && PARTNER === 'shino') SFX.voice(v.f, v.vol, v.skip); }
 // 位置つきの音：自分から遠いほど小さく
 function sfxAt(n, pos, vol = 1, rate = 1) { const d = Math.hypot(pos.x - player.pos.x, pos.z - player.pos.z); SFX.play(n, vol * Math.max(0, 1 - d / 24), rate); }
 // 技が始まった時の音
@@ -1506,7 +1526,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127141500');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127183352');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -2487,6 +2507,7 @@ function useSkill(id) {
   if (id !== 's2' && id !== 'charge') autoAim(id === 's3' ? 7 : 5);
   startAct(id, { enh, yaw0: player.yaw });
   showSkillName(SK[id].name, enh);
+  shinoVoice(id);
   const lines = {
     s1: enh ? ['……凍りついて。', '逃がさんけん。'] : ['……凍って。', 'いくよ。'],
     s2: enh ? ['うちの後ろに。……誰も、通さん。'] : ['うちの後ろに。', '守るけん。'],
@@ -2498,7 +2519,7 @@ function useSkill(id) {
 function useAwaken() {
   if (CB.awakenT > 0 || CB.gauge < CB.GAUGE_MAX) { if (CB.gauge < CB.GAUGE_MAX) showSkillName(`覚醒ゲージ ${Math.floor(CB.gauge / CB.GAUGE_MAX * 100)}%`); return; }
   if (player.act) player.act = null;
-  CB.gauge = 0; startAct('awaken');
+  CB.gauge = 0; startAct('awaken'); shinoVoice('awaken');
   const c = $('awk'); c.classList.remove('on'); void c.offsetWidth; c.classList.add('on'); setTimeout(() => c.classList.remove('on'), 1700);
   say('白夜に咲け……氷の約束。', { relaxed_eye: .1, brow_relaxed: .1 });
 }
@@ -3771,7 +3792,7 @@ function dBuild() {
   dWall(-1.75, 0, -1.75, 6.6); dWall(1.75, 0, 1.75, 6.6); dWall(-1.8, 6.6, 1.8, 6.6);     // 地上へ続く階段の壁
   const portal = new THREE.Mesh(new THREE.RingGeometry(.6, 1.1, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.5, 2.2), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   portal.rotation.x = -Math.PI / 2; portal.position.set(DX, .03, -1); scene.add(portal); DG.portalA = portal;
-  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127141500', 350); } });
+  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127183352', 350); } });
   dCorridor(-18, -10);
   // 戦闘の部屋1
   dRoom(-9, 9, -36, -18, { n: true, s: true }); for (const [x, z] of [[-5, -23], [5, -23], [-5, -31], [5, -31]]) dPillar(x, z);
@@ -4018,7 +4039,7 @@ function dClear() {
   // 帰り道のポータル
   const p = new THREE.Mesh(new THREE.RingGeometry(.8, 1.4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.4, .6), transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   p.rotation.x = -Math.PI / 2; p.position.set(DX, .04, -104); scene.add(p); DG.portalB = p;
-  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127141500', 350); } });
+  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127183352', 350); } });
   dChest(0, -112, 5000, 'boss');
   setTimeout(() => {
     $('dresTime').textContent = fmt(sec); $('dresBest').textContent = nb ? 'ベスト更新！' : `ベスト ${fmt(best)}`; $('dresCoin').textContent = `+${reward.toLocaleString()}円`;
