@@ -56,10 +56,10 @@
     <label class="name">プレイヤー名 <input id="name" maxlength="12" autocomplete="nickname"></label>
     <button id="start" type="button">TAP TO START</button>
     <nav aria-label="画面へ直接移動">
-      <a href="lobby.html?v=20261126233022">ロビー</a>
-      <a href="walk.html?v=20261126233022">出撃：ノエルベルク</a>
-      <a href="gacha.html?v=20261126233022">ガチャ</a>
-      <a href="select.html?v=20261126233022">キャラ選択</a>
+      <a href="lobby.html?v=20261127124223">ロビー</a>
+      <a href="walk.html?v=20261127124223">出撃：ノエルベルク</a>
+      <a href="gacha.html?v=20261127124223">ガチャ</a>
+      <a href="select.html?v=20261127124223">キャラ選択</a>
     </nav>
     <p class="note">初回はキャラクターデータ（約12MB）の読み込みに少し時間がかかります。出撃中は、同じ時間に出撃しているプレイヤーと一緒に街を歩けます。名前はほかのプレイヤーに表示されます。</p>
     <div id="online">オンライン：準備中</div>
@@ -77,7 +77,7 @@ const CHANNEL = 'noelberg-v1' + ((new URLSearchParams(location.search).get('ch')
 const $ = id => document.getElementById(id);
 const game = $('game');
 function play(href) { game.src = href; document.body.classList.add('playing'); }
-$('start').addEventListener('click', () => play('lobby.html?v=20261126233022'));
+$('start').addEventListener('click', () => play('lobby.html?v=20261127124223'));
 document.querySelectorAll('nav a').forEach(a => a.addEventListener('click', e => { e.preventDefault(); play(a.getAttribute('href')); }));
 
 /* ---- プレイヤー名（この端末に保存） ---- */
@@ -98,7 +98,7 @@ const netLog = [];
 let reconnects = 0;
 function logNet(msg) { const d = new Date(); netLog.push(`${d.toTimeString().slice(0, 8)} ${msg}`); if (netLog.length > 8) netLog.shift(); }
 function setStatus(available, connected) {
-  status = { type: 'net:status', available, connected, reconnects, log: netLog.slice() }; post(status);
+  status = { type: 'net:status', available, connected, reconnects, log: netLog.slice(), name: myName }; post(status);
   const el = $('online'); el.classList.toggle('live', connected);
   el.textContent = !available ? 'オンライン：オフライン（一人で探索）' : connected ? 'オンライン：つながりました' : 'オンライン：つないでいます…';
 }
@@ -107,7 +107,10 @@ function setStatus(available, connected) {
    presence：名前・いる場所・セリフ（出入りがわかる）
    broadcast：位置・向き・速さ（1秒に5回まで） */
 const myId = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)).replace(/-/g, '').slice(0, 16);
-const me = { name: myName, area: null, say: null };
+const me = { name: myName, area: null, say: null, ch: 'shino', x: null };
+const validArea = a => (a === 'noelberg' || a === 'lobby' || (typeof a === 'string' && /^dg:[a-z0-9]{4,12}$/.test(a))) ? a : null;   // 街・ロビー・パーティのダンジョン
+const jsonCap = (v, max) => { if (!v || typeof v !== 'object') return null; try { const s = JSON.stringify(v); return s.length <= max ? JSON.parse(s) : null; } catch (e) { return null; } };   // フレンド・パーティ・ダンジョンの同期（大きさだけ確かめて中継）
+let pendingDg = null, lastDgSent = '', dgT = 0;
 /* ほかのプレイヤー：presence が一瞬抜けたり遅れたりしても消さない。
    位置の通信（broadcast）にも名前と場所を載せて、どちらか一方が届けば表示できるようにする。 */
 const peers = new Map();         // id → {name, area, say, st, stAt, present, goneAt}
@@ -123,18 +126,18 @@ const validPv = v => Array.isArray(v) && v.length === 3 && v.every(x => typeof x
 let pendingPv = null;
 function visiblePeers() {
   const now = Date.now();
-  return [...peers].filter(([, p]) => p.area === 'noelberg' && p.st && (p.present || now - p.stAt < GRACE));
+  return [...peers].filter(([, p]) => p.area && (p.present || now - p.stAt < GRACE));
 }
 function sendPeers() {
   clearTimeout(peersT);
-  peersT = setTimeout(() => post({ type: 'net:peers', peers: visiblePeers().map(([id, p]) => ({ peer: id, name: p.name, guest: false, presence: { area: p.area, ch: p.ch || 'shino', st: p.st, say: p.say, act: p.act || null, pv: p.pv || null } })) }), 30);
+  peersT = setTimeout(() => post({ type: 'net:peers', peers: visiblePeers().map(([id, p]) => ({ peer: id, name: p.name, guest: false, presence: { area: p.area, ch: p.ch || 'shino', st: p.st || null, say: p.say, act: p.act || null, pv: p.pv || null, x: p.x || null, dg: p.dg || null } })) }), 30);
 }
 setInterval(() => {               // しばらく音沙汰のない人だけを片付ける
   const now = Date.now(); let ch2 = false;
   for (const [id, p] of peers) if (!p.present && now - Math.max(p.goneAt || 0, p.stAt || 0) > GRACE) { peers.delete(id); ch2 = true; }
   if (ch2) sendPeers();
 }, 1000);
-function track() { if (ch && live) ch.track({ name: me.name, area: me.area, say: me.say, ch: me.ch || 'shino' }).catch(() => {}); }
+function track() { if (ch && live) ch.track({ name: me.name, area: me.area, say: me.say, ch: me.ch || 'shino', x: me.x }).catch(() => {}); }
 function sendSt(force) {
   if (!ch || !live || !me.area || !pendingSt) return;
   const key = JSON.stringify([pendingSt, pendingPv]);
@@ -144,6 +147,8 @@ function sendSt(force) {
 }
 function sendBye() { if (ch && live) ch.send({ type: 'broadcast', event: 'st', payload: { id: myId, a: null } }).catch(() => {}); }
 setInterval(() => { stKeep--; sendSt(false); }, 200);
+// パーティのダンジョン：変わった時だけ、1秒に10回まで送る
+setInterval(() => { if (!pendingDg || !ch || !live) return; const dk = JSON.stringify(pendingDg); if (dk === lastDgSent) return; lastDgSent = dk; ch.send({ type: 'broadcast', event: 'dg', payload: { id: myId, d: pendingDg } }).catch(() => {}); }, 100);
 
 // 画面表示は、2秒以上つながらない時だけ「つないでいます…」にする（一瞬の切断で表示がちらつかない）
 function setLive(v, why) {
@@ -168,7 +173,7 @@ async function join() {
       if (id === myId || !Array.isArray(metas) || !metas.length) continue;
       const m = metas[metas.length - 1] || {}; seen.add(id);
       const old = peers.get(id); if (!old || !old.present) fresh = true;
-      peers.set(id, { st: old?.st || null, stAt: old?.stAt || 0, pv: old?.pv || null, act: old?.act || null, name: clean(m.name) || old?.name || 'プレイヤー', area: m.area === 'noelberg' ? 'noelberg' : null, ch: m.ch === 'karen' ? 'karen' : 'shino', say: validSay(m.say), present: true, goneAt: 0 });
+      peers.set(id, { st: old?.st || null, stAt: old?.stAt || 0, pv: old?.pv || null, act: old?.act || null, name: clean(m.name) || old?.name || 'プレイヤー', area: validArea(m.area), ch: m.ch === 'karen' ? 'karen' : 'shino', x: jsonCap(m.x, 3000), dg: old?.dg || null, say: validSay(m.say), present: true, goneAt: 0 });
     }
     for (const [id, p] of peers) if (!seen.has(id) && p.present) { p.present = false; p.goneAt = now; }
     if (fresh) sendSt(true);          // 新しく来た人に自分の位置をすぐ届ける
@@ -182,9 +187,14 @@ async function join() {
     if (!p) { p = { name: 'プレイヤー', area: null, say: null, present: false, goneAt: Date.now() }; peers.set(id, p); }
     p.st = payload.st; p.stAt = Date.now();
     const pv = validPv(payload.pv); if (pv) p.pv = pv;
-    if (payload.a === 'noelberg') p.area = 'noelberg';
+    if (validArea(payload.a)) p.area = validArea(payload.a);
     if (!p.present && clean(payload.n)) p.name = clean(payload.n);
     sendPeers();
+  });
+  c.on('broadcast', { event: 'dg' }, ({ payload }) => {        // パーティのダンジョン：敵の状態・攻撃
+    if (c !== ch || !payload || typeof payload.id !== 'string' || payload.id === myId) return;
+    const p = peers.get(payload.id.slice(0, 40)); if (!p) return;
+    p.dg = jsonCap(payload.d, 6000); sendPeers();
   });
   c.on('broadcast', { event: 'act' }, ({ payload }) => {
     if (c !== ch || !payload || typeof payload.id !== 'string') return;
@@ -216,12 +226,14 @@ addEventListener('message', e => {
   const m = e.data || {};
   if (m.type === 'net:hello') { post(status); sendPeers(); }
   else if (m.type === 'net:presence' && m.patch && typeof m.patch === 'object') {
-    const p = m.patch, area = p.area === 'noelberg' ? 'noelberg' : null, say = validSay(p.say);
+    const p = m.patch, area = validArea(p.area), say = validSay(p.area ? p.say : null), x = jsonCap(p.x, 3000);
     if (validSt(p.st)) pendingSt = p.st.map(v => Math.round(v * 100) / 100);
     pendingPv = validPv(p.pv);
     const chr = p.ch === 'karen' ? 'karen' : 'shino';           // 使っているキャラ（しの／カレン）
-    const changed = area !== me.area || chr !== me.ch || JSON.stringify(say) !== JSON.stringify(me.say);
-    me.ch = chr;
+    const changed = area !== me.area || chr !== me.ch || JSON.stringify(say) !== JSON.stringify(me.say) || JSON.stringify(x) !== JSON.stringify(me.x);
+    me.ch = chr; me.x = x;
+    pendingDg = area && area.startsWith('dg:') ? jsonCap(p.dg, 6000) : null;
+
     const act = validAct(p.act);
     if (act && act.n !== lastActN) { lastActN = act.n; if (ch && live && area) ch.send({ type: 'broadcast', event: 'act', payload: { id: myId, act } }).catch(() => {}); }
     const left = me.area && !area;
@@ -231,7 +243,7 @@ addEventListener('message', e => {
   }
 });
 // 出撃画面を離れたら、ほかのプレイヤーの画面から消える
-game.addEventListener('load', () => { if (me.area) sendBye(); me.area = null; me.say = null; pendingSt = null; track(); });
+game.addEventListener('load', () => { if (me.area) sendBye(); me.area = null; me.say = null; me.x = null; pendingSt = null; pendingDg = null; track(); });
 
 /* ---- 夜空と雪 ---- */
 const cv = $('sky'), g = cv.getContext('2d');

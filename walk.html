@@ -281,7 +281,7 @@
 <div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
 <div id="bossHud"><small>BOSS</small><b>氷殻の守護者グラキエス</b><div class="bb"><i id="bossBar"></i></div><span id="bossNum"></span></div>
-<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261126233022">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261126233022">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
+<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261127124223">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261127124223">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
   <header><div class="logo" id="shopLogo">夜</div><div class="nm"><b id="shopName">ヨルマート</b><small id="shopEn">YORU MART</small></div><button class="close tap" id="shopClose">✕ 店を出る</button></header>
@@ -323,6 +323,67 @@ document.documentElement.classList.toggle('karen', PARTNER === 'karen');
 // ダンジョン：walk.html?area=dungeon で開くと、街の代わりに地下迷宮になる
 const DUNGEON = new URLSearchParams(location.search).get('area') === 'dungeon';
 document.documentElement.classList.toggle('dungeon', DUNGEON);
+
+/* ---------- オンライン共通：プレイヤーID・フレンド・パーティ・メッセージ ----------
+   通信はタイトル画面（親フレーム）が受け持つ。ここでは自分の状態 x を presence に載せ、
+   ほかの人の x を読む。メッセージ（フレンド申請・パーティ招待など）は x.mb に宛先つきで並べて渡す。
+   フレンドはこの端末に保存する（相手の ID と名前）。 */
+const SOC = (() => {
+  const L = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+  const SS = { get(k, d) { try { const v = sessionStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+  const rid = n => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
+  let pid = SS.get('arc_pid', null) || L.get('arc_pid', null);
+  if (!pid) { pid = rid(8); L.set('arc_pid', pid); }
+  return { L, SS, rid, pid, tab: SS.get('arc_tab', null) || (() => { const t = rid(6); SS.set('arc_tab', t); return t; })(),
+    friends: L.get('arc_friends', {}), party: SS.get('arc_party', null), mb: SS.get('arc_mb', []), mbN: SS.get('arc_mbN', Date.now() % 1e6),
+    seen: new Set(SS.get('arc_seen', [])), myName: '', peers: [], status: { available: false, connected: false } };
+})();
+const PID_RE = /^[a-z0-9]{6,12}$/;
+const socName = s => (typeof s === 'string' ? s : '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 16);
+function socSave() { SOC.L.set('arc_friends', SOC.friends); SOC.SS.set('arc_party', SOC.party); SOC.SS.set('arc_mb', SOC.mb); SOC.SS.set('arc_mbN', SOC.mbN); SOC.SS.set('arc_seen', [...SOC.seen].slice(-200)); }
+// 自分の公開情報（presence の x）
+function socX() {
+  const p = SOC.party, now = Date.now();
+  SOC.mb = SOC.mb.filter(m => now - m.at < 90000).slice(-8);          // 古いメッセージは片付ける
+  return { pid: SOC.pid, t: SOC.tab, nm: SOC.myName.slice(0, 16), pt: p ? { id: p.id, lead: p.lead, ...(p.lead === SOC.pid ? { m: p.m, go: p.go || 0 } : {}) } : null, mb: SOC.mb };
+}
+function socSend(to, k, p = {}) { SOC.mb.push({ n: ++SOC.mbN, to, k, p, at: Date.now() }); socSave(); }
+// ほかのプレイヤー（x を持つ人だけ。同じ人が重なったら新しい方）
+function socPlayers() {
+  const out = new Map();
+  for (const peer of SOC.peers) {
+    const x = peer.presence && peer.presence.x;
+    if (!x || typeof x !== 'object' || !PID_RE.test(x.pid) || x.pid === SOC.pid) continue;
+    out.set(x.pid, { pid: x.pid, name: socName(peer.name) || socName(x.nm) || 'プレイヤー', area: peer.presence.area || '', ch: peer.presence.ch === 'karen' ? 'karen' : 'shino', x, peer });
+  }
+  return out;
+}
+// 届いたメッセージを一度ずつ処理する
+const SOC_KINDS = new Set(['fq', 'fa', 'pi', 'pj', 'pk']);
+function socInbox(handler) {
+  for (const pl of socPlayers().values()) {
+    const mb = Array.isArray(pl.x.mb) ? pl.x.mb.slice(-8) : [];
+    for (const m of mb) {
+      if (!m || m.to !== SOC.pid || !SOC_KINDS.has(m.k) || !Number.isFinite(m.n)) continue;
+      const key = pl.pid + ':' + m.n; if (SOC.seen.has(key)) continue;
+      SOC.seen.add(key); socSave();
+      handler(pl, m.k, m.p && typeof m.p === 'object' ? m.p : {});
+    }
+  }
+}
+// 同じ ID のタブが別にあったら、このタブだけ別の ID にする（同じ端末で2つ開いた時）
+function socDupCheck() {
+  for (const peer of SOC.peers) {
+    const x = peer.presence && peer.presence.x;
+    if (x && x.pid === SOC.pid && x.t && x.t !== SOC.tab && x.t < SOC.tab) { SOC.pid = SOC.rid(8); SOC.SS.set('arc_pid', SOC.pid); SOC.party = null; socSave(); return true; }
+  }
+  return false;
+}
+const areaLabel = a => a === 'lobby' ? 'ロビー' : a === 'noelberg' ? '出撃中' : /^dg:/.test(a) ? 'ダンジョン' : '';
+// パーティで来たダンジョン（ロビーから walk.html?area=dungeon&party=..&lead=..&m=.. で来る）
+const DPARTY = DUNGEON ? (() => { const q = new URLSearchParams(location.search), id = q.get('party') || ''; if (!/^[a-z0-9]{4,12}$/.test(id)) return null;
+  return { id, lead: PID_RE.test(q.get('lead') || '') ? q.get('lead') : SOC.pid, m: (q.get('m') || '').split(',').filter(v => PID_RE.test(v)).slice(0, 4) }; })() : null;
+const MYAREA = DUNGEON ? (DPARTY ? 'dg:' + DPARTY.id : null) : 'noelberg';      // 同じ場所の人だけ表示する
 /*MODEL_FETCH*/
 // モデルを ArrayBuffer で読む（公開版では、この部分が Base64 テキストの分割読み込みに置き換わる）
 const MODEL_URL = { shino: './shino_lite.vrm', karen: './karen.vrm' };
@@ -1357,7 +1418,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261126233022');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127124223');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -1609,14 +1670,16 @@ const num = (v, lo, hi) => (typeof v === 'number' && isFinite(v)) ? Math.min(hi,
 addEventListener('message', e => {
   if (!IN_FRAME || e.source !== window.parent) return;
   const m = e.data || {};
+  if (m.type === 'net:status' && typeof m.name === 'string') SOC.myName = socName(m.name);
   if (m.type === 'net:status') { NET.status = { available: !!m.available, connected: !!m.connected, reconnects: Number(m.reconnects) || 0, log: Array.isArray(m.log) ? m.log.filter(x => typeof x === 'string').slice(-8) : [] }; updateNetUI(); }
   else if (m.type === 'net:peers' && Array.isArray(m.peers)) {
-    NET.peers = m.peers.filter(p => p && typeof p.peer === 'string' && p.presence && p.presence.area === 'noelberg' && Array.isArray(p.presence.st));
+    SOC.peers = m.peers.filter(p => p && typeof p.peer === 'string' && p.presence && typeof p.presence === 'object'); socDupCheck();
+    NET.peers = SOC.peers.filter(p => MYAREA && p.presence.area === MYAREA && Array.isArray(p.presence.st));
     syncRemotes(); updateNetUI();
   }
 });
-netPost({ type: 'net:hello', area: 'noelberg' });
-addEventListener('pagehide', () => netPost({ type: 'net:presence', patch: { area: null, st: null, say: null } }));
+netPost({ type: 'net:hello', area: MYAREA });
+addEventListener('pagehide', () => netPost({ type: 'net:presence', patch: { area: null, st: null, say: null, x: null, dg: null } }));
 
 let netToastT;
 function netToast(text, ms = 2600) { const e = $('netToast'); e.textContent = text; e.classList.add('on'); clearTimeout(netToastT); netToastT = setTimeout(() => e.classList.remove('on'), ms); }
@@ -1634,7 +1697,7 @@ const peerName = p => (typeof p.name === 'string' && p.name.trim()) ? p.name.tri
 /* ---- ほかのプレイヤーのしの ---- */
 function getVrmBuf(ch) { return getModelBuf(ch === 'karen' ? 'karen' : 'shino'); }
 function syncRemotes() {
-  if (DUNGEON) return;            // ダンジョンはひとりで
+  if (DUNGEON && !DPARTY) return;            // ひとりのダンジョンでは、ほかの人を出さない
   if (!vrm) return;            // 自分のモデルを読み終えてから
   const seen = new Set();
   for (const p of NET.peers) {
@@ -1678,7 +1741,7 @@ function makeRemote(p) {
 }
 function applyPresence(r, p) {
   const [x, z, yaw, sp] = p.presence.st;
-  const X = num(x, -80, 80), Z = num(z, -80, 20), Y = num(yaw, -100, 100), S = num(sp, 0, 8);
+  const X = num(x, -80, 260), Z = num(z, -130, 30), Y = num(yaw, -100, 100), S = num(sp, 0, 8);
   if (X === null || Z === null) return;
   const first = !r.tgt;
   if (first || r.tgt.x !== X || r.tgt.z !== Z || r.tgt.speed !== (S ?? 0)) r.tgtAt = performance.now();
@@ -1719,10 +1782,10 @@ function placeTag(el, pos, y) {
 function netTick(dt, t) {
   // 自分の状態を送る（変わった時だけ・1秒に10回まで）
   netSendT -= dt;
-  if (IN_FRAME && NET.status.available && netSendT <= 0 && !DUNGEON) {
+  if (IN_FRAME && NET.status.available && netSendT <= 0 && MYAREA) {
     netSendT = .1;
     const r2 = v => Math.round(v * 100) / 100;
-    const patch = { area: 'noelberg', ch: PARTNER, st: [r2(player.pos.x), r2(player.pos.z), r2(Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw))), r2(player.speed)], say: mySay.n ? mySay : null, act: myAct.n ? myAct : null, pv: [Math.round(PV.hp), PV.koN, (PV.freezeT > 0 ? 1 : 0) | (PV.invT > 0 ? 2 : 0)] };
+    const patch = { area: MYAREA, ch: PARTNER, x: socX(), dg: DUNGEON ? dNetOut() : null, st: [r2(player.pos.x), r2(player.pos.z), r2(Math.atan2(Math.sin(player.yaw), Math.cos(player.yaw))), r2(player.speed)], say: mySay.n ? mySay : null, act: myAct.n ? myAct : null, pv: [Math.round(PV.hp), PV.koN, (PV.freezeT > 0 ? 1 : 0) | (PV.invT > 0 ? 2 : 0)] };
     const key = JSON.stringify(patch);
     netKeepT -= .1;
     if (key !== lastSent || netKeepT <= 0) { lastSent = key; netKeepT = 3; netPost({ type: 'net:presence', patch }); }   // 3秒ごとに念のため送り直す
@@ -1905,6 +1968,7 @@ function makeGolem(o = {}) {
   if (o.rise) { body.position.y = -2.4 * k; groundRing(g.position, 2.6 * k, 1, [.8, 1.6, 2.4]); }
   g.rotation.y = d.yaw;
   colliders.push(d.col); drawHp(d); dummies.push(d);
+  if (DUNGEON) dRegister(d);
   golemSrc().then(src => {
     const m = SkeletonUtils.clone(src);
     m.updateMatrixWorld(true);
@@ -1941,6 +2005,7 @@ function golemHurtPlayer(d, base, opt, test) {
 }
 function golemTick(d, dt, t) {
   const g = d.g, P = player.pos;
+  const pspd = d.puppet ? dPuppet(d, dt) : 0;            // パーティのダンジョンで、ホストでない時
   d.confT = Math.max(0, (d.confT || 0) - dt); d.defT = Math.max(0, (d.defT || 0) - dt);
   const fr = d.freezeT > 0, mul = fr || d.confT > 0 ? 0 : d.slowT > 0 ? .55 : 1;
   d.hitT = Math.max(0, d.hitT - dt);
@@ -1974,12 +2039,14 @@ function golemTick(d, dt, t) {
   const tint = d.slowT > 0 || fr ? 1 : 0;
   const tc = d.tint, ec = d.emi;
   for (const m of d.mats) { m.color.setRGB(lerp(1, .7, tint) * tc[0], lerp(1, .88, tint) * tc[1], tc[2]); m.emissive.setRGB(ec[0] + d.hitT * 3, ec[1] + d.hitT * 3, ec[2] + d.hitT * 3.4); }
-  // 考える
-  const decoy = kDecoy(g.position), T = decoy || P;              // カレンの分身があれば、そっちをねらう
-  const dx = T.x - g.position.x, dz = T.z - g.position.z, dist = Math.hypot(dx, dz);
-  const foe = !!decoy || (PV.hp > 0 && PV.downT <= 0 && inArena(P.x, P.z));
-  d.atkCD = Math.max(0, d.atkCD - dt * mul);
+  // 考える（あやつり人形の時は、ホストの動きに従う）
   let move = 0, face = null;
+  if (d.puppet) move = pspd > .3 ? 1 : 0;
+  else {
+  const decoy = kDecoy(g.position), T = decoy || (DUNGEON ? dNearestFoe(g.position) : null) || P;      // カレンの分身があれば、そっちをねらう
+  const dx = T.x - g.position.x, dz = T.z - g.position.z, dist = Math.hypot(dx, dz);
+  const foe = !!decoy || (DUNGEON ? !!dNearestFoe(g.position) : (PV.hp > 0 && PV.downT <= 0 && inArena(P.x, P.z)));
+  d.atkCD = Math.max(0, d.atkCD - dt * mul);
   if (d.state === 'idle' || d.state === 'chase') {
     if (foe && dist < d.aggro) {
       if (!d.seen) { d.seen = true; say(pick(['……動いた？ 気をつけて、来るよ。', 'あの石の……こっち見とる。']), { brow_relaxed: .1 }); }
@@ -2006,6 +2073,7 @@ function golemTick(d, dt, t) {
     }
     const pr = .55 + d.col.r, pe = Math.hypot(nx - P.x, nz - P.z); if (pe < pr && pe > 1e-4) { nx = P.x + (nx - P.x) / pe * pr; nz = P.z + (nz - P.z) / pe * pr; }
     const B = d.bounds; g.position.x = THREE.MathUtils.clamp(nx, B.x0, B.x1); g.position.z = THREE.MathUtils.clamp(nz, B.z0, B.z1);
+  }
   }
   d.walkW = damp(d.walkW, move && mul > 0 ? 1 : 0, 6, dt); d.ph += dt * mul * (move ? 5.2 : 2);
   g.rotation.y = d.yaw; d.col.x = g.position.x; d.col.z = g.position.z;
@@ -2062,9 +2130,11 @@ function golemTick(d, dt, t) {
     R.upperarm_l = [-a * 2.6, 0, .3 * a]; R.upperarm_r = [-a * 2.6, 0, -.3 * a]; R.spine_03 = [.08 - a * .25, 0, 0]; R.head = [-.1 - a * .25, 0, 0];
     if (!d.hitDone && k >= .3) {
       d.hitDone = true;
-      const tq = kDecoy(g.position) || P, pts = [{ x: tq.x, z: tq.z }];
-      for (let i = 0; i < 3; i++) { const an = rand(0, Math.PI * 2), r = rand(2, 3.5); pts.push({ x: tq.x + Math.cos(an) * r, z: tq.z + Math.sin(an) * r }); }
-      dSpikes(d, pts);
+      if (!d.puppet) {                    // あやつり人形の時は、ホストから届く
+        const tq = kDecoy(g.position) || dNearestFoe(g.position) || P, pts = [{ x: tq.x, z: tq.z }];
+        for (let i = 0; i < 3; i++) { const an = rand(0, Math.PI * 2), r = rand(2, 3.5); pts.push({ x: tq.x + Math.cos(an) * r, z: tq.z + Math.sin(an) * r }); }
+        dSpikes(d, pts); dEvent('k', d, pts.flatMap(p => [p.x, p.z]));
+      }
     }
     if (k >= 1) { d.state = 'chase'; d.atkCD = 1.6; d.spCD = rand(6, 8); }
   } else d.warn.visible = false;
@@ -2132,8 +2202,11 @@ const aliveDummies = () => dummies.filter(d => d.deadT <= 0);
 function dmgMul() { return CB.awakenT > 0 ? 1.3 : 1; }
 function hit(d, dmg, opt = {}) {
   if (d.deadT > 0) return;
-  dmg = Math.round(dmg * (opt.mul ?? dmgMul()) * (d.defT > 0 ? 1.1 : 1) * rand(.92, 1.08));
-  d.hp -= dmg; d.hitT = .25;
+  if (DPARTY && opt.remote && !opt.net) return;          // 仲間の攻撃は、その人の画面で判定して送られてくる
+  dmg = opt.raw ? Math.round(dmg) : Math.round(dmg * (opt.mul ?? dmgMul()) * (d.defT > 0 ? 1.1 : 1) * rand(.92, 1.08));
+  const toHost = DPARTY && !dIsHost() && !opt.net && d.idx !== undefined;
+  if (toHost) dQueueHit(d, dmg, opt); else d.hp -= dmg;
+  d.hitT = .25;
   if (opt.def) d.defT = Math.max(d.defT || 0, opt.defT || 3);
   if (opt.conf) d.confT = Math.max(d.confT || 0, opt.conf);
   if (!opt.remote) CB.gauge = Math.min(CB.GAUGE_MAX, CB.gauge + dmg * (CB.awakenT > 0 ? 0 : 1));
@@ -2146,7 +2219,7 @@ function hit(d, dmg, opt = {}) {
   if (opt.slow && !opt.freeze) dmgText(p.clone().add(new THREE.Vector3(0, .35, 0)), '鈍足', 'tag');
   if (opt.freeze) dmgText(p.clone().add(new THREE.Vector3(0, .35, 0)), '凍結', 'tag');
   burst(p, opt.big ? 18 : 8, opt.big ? 3.5 : 2.2, 2.4, 1, opt.kc ? KBURST : ICE_COL);
-  if (d.hp <= 0) { d.hp = 0; d.deadT = 3; burst(p, 26, 4, 3.5, 1.4); d.block.visible = false; }
+  if (!toHost && d.hp <= 0) { d.hp = 0; d.deadT = 3; burst(p, 26, 4, 3.5, 1.4); d.block.visible = false; }
   drawHp(d);
 }
 // 前方の扇形
@@ -2452,6 +2525,7 @@ const inArena = (x, z) => DUNGEON || (z > TRAIN.z0 + .1 && z < TRAIN.z1 && Math.
 const guardedBy = (who, q) => walls.some(w => w.owner === who && w.t < w.life && w.panels.some(p => Math.hypot(p.position.x - q.x, p.position.z - q.z) < 3.2));
 const pvDmg = (base, aw, guarded) => Math.round(base * (aw === true ? 1.3 : aw || 1) * (guarded ? .6 : 1));
 function pvp(A, test, base, opt = {}) {
+  if (DUNGEON) return 0;                       // ダンジョンでは仲間どうしで当たらない
   const src = opt.at || A.pos;                 // 弾や分身の爆発は、その場所で判定する
   if (!inArena(src.x, src.z)) return 0;
   const aw = awMul(A);
@@ -3145,11 +3219,119 @@ addEventListener('keydown', e => {
    街とは離れた場所（x = DX）に作り、街の建物は隠す。
    ===================================================================== */
 const DX = 200;
+
+/* ---------- パーティでのダンジョン：敵と部屋の進み具合を、ホスト（リーダー）の画面にそろえる ----------
+   ホスト：敵を動かし、状態（位置・HP・動き・部屋・できごと）を 1秒に8回くらい送る。
+   ほかの人：敵はホストの状態どおりに動かす（あやつり人形）。自分の攻撃が当たったら、ダメージをホストへ送る。
+   敵の攻撃が自分に当たったかは、それぞれの画面で決める（いままでの対戦と同じ考え方）。 */
+// 敵の番号：部屋ごとに決める（部屋1は10〜、部屋2は20〜、ボスの間は40〜、召喚は50〜）。画面ごとに作る順番がずれても合う
+function dRegister(d) { d.idx = DG.spawnBase + DG.spawnN++; DG.enemies.push(d); DG.byId[d.idx] = d; }
+const DN = { evN: 0, lastEv: null, hits: [], hitN: 0, seenHit: {}, snapT: 0, snap: null, snapQ: 0, gotQ: -1, hostPid: null, wasHost: true };
+const DSTATES = ['idle', 'chase', 'punch', 'slam', 'spikes', 'rise', 'dead'];
+function dHostPid() {
+  if (!DPARTY) return SOC.pid;
+  const here = new Set([SOC.pid]);
+  for (const p of SOC.peers) { const x = p.presence && p.presence.x; if (x && PID_RE.test(x.pid) && p.presence.area === MYAREA) here.add(x.pid); }
+  return here.has(DPARTY.lead) ? DPARTY.lead : [...here].sort()[0];
+}
+const dIsHost = () => !DPARTY || DN.hostPid === SOC.pid;
+function dEvent(k, d, nums) { if (!DPARTY || !dIsHost()) return; DG.ev.push([++DN.evN, k, d.idx, ...nums.map(v => Math.round(v * 100) / 100)]); if (DG.ev.length > 10) DG.ev.shift(); }
+// 狙う相手：分身 → いちばん近い仲間（自分も含む）
+function dNearestFoe(from) {
+  let best = null, bd = 1e9;
+  const cand = []; if (PV.hp > 0 && PV.downT <= 0) cand.push(player.pos);
+  if (DPARTY) for (const r of remotes.values()) if (r.vrm && r.pvH > 0) cand.push(r.pos);
+  for (const q of cand) { const d = Math.hypot(q.x - from.x, q.z - from.z); if (d < bd) { bd = d; best = q; } }
+  return best;
+}
+// 自分の攻撃が当たった（ホストでない時はホストへ送る）
+function dQueueHit(d, dmg, opt) {
+  const fl = (opt.freeze ? 1 : 0) | (opt.slow ? 2 : 0) | (opt.conf ? 4 : 0) | (opt.def ? 8 : 0) | (opt.crit ? 16 : 0) | (opt.big ? 32 : 0);
+  DN.hits.push([++DN.hitN, d.idx, dmg, fl]); if (DN.hits.length > 24) DN.hits.shift();
+}
+// 送る中身
+function dNetOut() {
+  if (!DPARTY) return null;
+  if (!dIsHost()) return DN.hits.length ? { h: DN.hits } : null;
+  if (!DN.snap || wallT - DN.snapT > .12) {
+    DN.snapT = wallT;
+    DN.snap = { s: { q: ++DN.snapQ, r: DG.rooms.map(R => (R.started ? 1 : 0) | (R.cleared ? 2 : 0)), sm: DG.summoned ? 1 : 0, ev: DG.ev,
+      e: DG.enemies.map(d => [d.idx, Math.round(d.g.position.x * 10) / 10, Math.round(d.g.position.z * 10) / 10, Math.round((d.yaw || 0) * 100) / 100, Math.max(0, Math.round(d.hp)),
+        Math.max(0, DSTATES.indexOf(d.state)), Math.round((d.st || 0) * 100) / 100, (d.freezeT > 0 ? 1 : 0) | (d.slowT > 0 ? 2 : 0) | (d.confT > 0 ? 4 : 0) | (d.gone ? 8 : 0)]) } };
+  }
+  return DN.snap;
+}
+const num2 = (v, lo, hi) => typeof v === 'number' && isFinite(v) ? Math.min(hi, Math.max(lo, v)) : null;
+// 毎フレーム（dTick から）
+function dNetTick(dt) {
+  if (!DPARTY) return;
+  const prevHost = DN.hostPid; DN.hostPid = dHostPid();
+  if (prevHost && prevHost !== DN.hostPid && DN.hostPid === SOC.pid) { DN.evN = Math.max(DN.evN, DN.lastEv || 0); netToast('ホストを引き継ぎました'); }
+  const host = dIsHost();
+  for (const d of DG.enemies) d.puppet = !host;
+  const peerOf = pid => SOC.peers.find(p => p.presence && p.presence.area === MYAREA && p.presence.x && p.presence.x.pid === pid);
+  if (host) {
+    // 仲間の攻撃を受け取る
+    for (const p of SOC.peers) {
+      if (!p.presence || p.presence.area !== MYAREA) continue;
+      const x = p.presence.x, g = p.presence.dg; if (!x || !PID_RE.test(x.pid) || x.pid === SOC.pid || !g || !Array.isArray(g.h)) continue;
+      const seen = DN.seenHit[x.pid] ?? -1; let mx = seen;
+      for (const h of g.h.slice(-24)) {
+        if (!Array.isArray(h) || h.length < 4) continue;
+        const n = num2(h[0], 0, 1e9), i = num2(h[1], 0, 999), dmg = num2(h[2], 0, 5000), fl = num2(h[3], 0, 63);
+        if (n === null || i === null || dmg === null || n <= seen) continue;
+        mx = Math.max(mx, n);
+        const d = DG.byId[i | 0]; if (!d || d.deadT > 0) continue;
+        hit(d, dmg, { raw: true, net: true, remote: true, freeze: fl & 1 ? 1.5 : 0, slow: fl & 2 ? 3 : 0, conf: fl & 4 ? .6 : 0, def: fl & 8 ? .1 : 0, crit: !!(fl & 16), big: !!(fl & 32) });
+      }
+      DN.seenHit[x.pid] = mx;
+    }
+    return;
+  }
+  // ホストの状態に合わせる
+  const hp = peerOf(DN.hostPid), S = hp && hp.presence.dg && hp.presence.dg.s;
+  if (!S || typeof S !== 'object' || !Number.isFinite(S.q) || S.q === DN.gotQ) return;
+  DN.gotQ = S.q;
+  if (Array.isArray(S.r)) S.r.forEach((f, i) => { const R = DG.rooms[i]; if (!R || !Number.isFinite(f)) return; if (f & 1 && !R.started) dStartRoom(R, true); if (f & 2 && R.started && !R.cleared) dClearRoom(R); });
+  if (S.sm && !DG.summoned && DG.boss) dSummon();
+  if (Array.isArray(S.e)) S.e.forEach(a => {
+    if (!Array.isArray(a) || a.length < 8 || !a.every(v => typeof v === 'number' && isFinite(v))) return;
+    const d = DG.byId[a[0]]; if (!d) return;
+    d.net = { x: a[1], z: a[2], yaw: a[3], hp: a[4], state: DSTATES[a[5]] || 'idle', st: a[6], fl: a[7] };
+  });
+  if (Array.isArray(S.ev)) {
+    const evs = S.ev.filter(e => Array.isArray(e) && Number.isFinite(e[0]));
+    if (DN.lastEv === null) DN.lastEv = evs.reduce((m, e) => Math.max(m, e[0]), 0);       // 来る前のできごとは見ない
+    for (const e of evs) {
+      if (e[0] <= DN.lastEv) continue; DN.lastEv = e[0];
+      const d = DG.byId[e[2]]; if (!d || !e.slice(3).every(v => typeof v === 'number' && isFinite(v))) continue;
+      if (e[1] === 's' && e.length >= 8) dShot(d, new THREE.Vector3(e[3], e[4], e[5]), new THREE.Vector3(e[6], 0, e[7]).normalize(), 115);
+      else if (e[1] === 'k') { const pts = []; for (let j = 3; j + 1 < e.length && pts.length < 6; j += 2) pts.push({ x: e[j], z: e[j + 1] }); dSpikes(d, pts); }
+    }
+  }
+}
+// あやつり人形：ホストから届いた位置・向き・HP・動きにそろえる
+function dPuppet(d, dt) {
+  const n = d.net; if (!n) return 0;
+  const g = d.g, ox = g.position.x, oz = g.position.z;
+  const far = Math.hypot(n.x - ox, n.z - oz) > 4;
+  g.position.x = far ? n.x : damp(ox, n.x, 10, dt); g.position.z = far ? n.z : damp(oz, n.z, 10, dt);
+  let a = n.yaw - (d.yaw || 0); a = Math.atan2(Math.sin(a), Math.cos(a)); d.yaw = (d.yaw || 0) + a * (1 - Math.exp(-dt * 12));
+  d.col.x = g.position.x; d.col.z = g.position.z;
+  if (d.hp !== n.hp) { d.hp = n.hp; drawHp(d); }
+  if (d.hp <= 0 && d.deadT <= 0) { d.hp = 0; d.deadT = d.golem ? 1 : .01; return 0; }
+  d.freezeT = n.fl & 1 ? .3 : 0; d.block.visible = d.freezeT > 0; d.slowT = n.fl & 2 ? .3 : Math.min(d.slowT, .3); d.confT = n.fl & 4 ? .3 : 0;
+  if (d.golem && d.state !== 'dead') {
+    if (n.state !== d.state && n.state !== 'dead') { d.state = n.state; d.st = n.st; d.hitDone = n.st > .35; }
+    else if (Math.abs(n.st - d.st) > .3) d.st = n.st;
+  }
+  return Math.hypot(g.position.x - ox, g.position.z - oz) / Math.max(dt, 1e-3);      // 移動の速さ（歩きの姿勢に使う）
+}
 const DG = {
   regions: [            // 歩ける四角（ローカル座標 [x0, x1, z0, z1]）。通路は部屋に1mずつ食い込ませてつなぐ
     [-5, 5, -10, 0], [-1.8, 1.8, -19, -9], [-9, 9, -36, -18], [-1.8, 1.8, -45, -35], [-10, 10, -64, -44],
     [-1.8, 1.8, -73, -63], [-6, 6, -84, -72], [-1.8, 1.8, -93, -83], [-13, 13, -120, -92]],
-  gates: [], rooms: [], eShots: [], startT: 0, cleared: false, boss: null, checkpoint: { x: DX, z: -3, yaw: Math.PI }, summoned: false,
+  gates: [], rooms: [], eShots: [], enemies: [], byId: {}, spawnBase: 90, spawnN: 0, ev: [], startT: 0, cleared: false, boss: null, checkpoint: { x: DX, z: -3, yaw: Math.PI }, summoned: false,
 };
 function dInside(x, z, skip) {
   const lx = x - DX, m = .35;
@@ -3249,7 +3431,7 @@ function dBuild() {
   dRoom(-5, 5, -10, 0, { s: true }); dCrystals(-3.5, -5, 4, 1.3); dCrystals(3.5, -5, 4, 1.3);
   const portal = new THREE.Mesh(new THREE.RingGeometry(.6, 1.1, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.5, 2.2), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   portal.rotation.x = -Math.PI / 2; portal.position.set(DX, .03, -1); scene.add(portal); DG.portalA = portal;
-  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { location.href = 'lobby.html?v=20261126233022'; } });
+  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { location.href = 'lobby.html?v=20261127124223'; } });
   dCorridor(-18, -10);
   // 戦闘の部屋1
   dRoom(-9, 9, -36, -18, { n: true, s: true }); for (const [x, z] of [[-5, -23], [5, -23], [-5, -31], [5, -31]]) dPillar(x, z);
@@ -3316,6 +3498,7 @@ function makeWisp(x, z, bounds) {
   const d = { wisp: true, enemy: true, name: '氷霊', g, body, core, coreM, orbit, glow, block, bar, hpTex: tex, mats: [], hp: 800, max: 800, slowT: 0, freezeT: 0, hitT: 0, deadT: 0,
     col: { x: g.position.x, z, r: .45 }, bounds, castT: rand(1.6, 2.6), ph: rand(0, 6), side: Math.random() < .5 ? 1 : -1, rise: 0 };
   colliders.push(d.col); drawHp(d); dummies.push(d);
+  dRegister(d);
   burst(new THREE.Vector3(g.position.x, 1.6, z), 14, 2, 2);
   return d;
 }
@@ -3328,8 +3511,9 @@ function wispTick(d, dt, t) {
     d.st += dt; d.body.scale.setScalar(Math.max(.01, 1 - d.st * 2)); if (d.st > .6) { d.gone = true; g.visible = false; }
     return;
   }
+  if (d.puppet) { dPuppet(d, dt); d.body.position.y = 1.6 + Math.sin(t * 2 + d.ph) * .15; d.core.rotation.y += dt * 1.8; d.orbit.rotation.y += dt * 3; d.coreM.emissiveIntensity = 1.4 + d.hitT * 6; return; }
   const mul = d.freezeT > 0 || d.confT > 0 ? 0 : d.slowT > 0 ? .5 : 1, P = player.pos;
-  const T = kDecoy(g.position) || P, dx = T.x - g.position.x, dz = T.z - g.position.z, dist = Math.hypot(dx, dz) || 1;
+  const T = kDecoy(g.position) || dNearestFoe(g.position) || P, dx = T.x - g.position.x, dz = T.z - g.position.z, dist = Math.hypot(dx, dz) || 1;
   // 6m くらいの間合いを保ちながら、横へ回り込む
   const want = dist > 7.5 ? 1 : dist < 4.5 ? -1 : 0, sp = 2.3 * mul;
   let vx = dx / dist * want * sp + (-dz / dist) * d.side * sp * .55, vz = dz / dist * want * sp + (dx / dist) * d.side * sp * .55;
@@ -3345,7 +3529,7 @@ function wispTick(d, dt, t) {
   if (d.castT <= 0) {
     d.castT = rand(2.3, 3.2);
     const from = new THREE.Vector3(g.position.x, d.body.position.y, g.position.z), dir = new THREE.Vector3(T.x - from.x, 0, T.z - from.z).normalize();
-    dShot(d, from, dir, 115);
+    dEvent('s', d, [from.x, from.y, from.z, dir.x, dir.z]); dShot(d, from, dir, 115);
   }
 }
 // 敵の飛び道具（氷の矢）
@@ -3426,22 +3610,14 @@ function dTick(dt, t) {
   DG.portalA.rotation.z = t * .5; DG.spring.material.opacity = .6 + Math.sin(t * 2) * .12;
   // 扉の上げ下げ
   for (const g of DG.gates) { g.k = damp(g.k, g.closed ? 1 : 0, 5, dt); g.m.position.y = -1.9 + g.k * 3.7; g.m.visible = g.k > .02; }
-  // 部屋に入った
-  for (const R of DG.rooms) {
-    const [x0, x1, z0, z1] = R.rect, inR = lx > x0 + 1.5 && lx < x1 - 1.5 && P.z > z0 + 1.5 && P.z < z1 - 2.2;
-    if (inR && !R.started) {
-      R.started = true; DG.checkpoint = R.at; DG.lightR.position.set(DX + (x0 + x1) / 2, 5, (z0 + z1) / 2); DG.lightR.color.set(R.light); DG.lightR.intensity = R.boss ? 18 : 10;
-      showTitle(R.sm, R.name, R.safe ? '── ひと休み ──' : R.boss ? '── 氷殻の守護者 ──' : '── 敵をすべて倒せ ──');
-      if (!R.safe) { for (const g of R.entry) dSetGate(g, true); R.enemies = R.spawn(); }
-      else R.cleared = true;
-      setTimeout(() => say(R.lock, { surprised_eye: .2, brow_relaxed: .2 }), 700);
-      if (R.boss) $('bossHud').classList.add('on');
-    }
-    if (R.started && !R.cleared && R.enemies && R.enemies.every(e => e.deadT > 0 || e.gone)) {
-      R.cleared = true;
-      for (const g of [...(R.entry || []), ...(R.exit || [])]) dSetGate(g, false);
-      if (R.boss) dClear();
-      else { netToast('部屋を制圧した！ 扉が開いた'); showSkillName('CLEAR!'); setTimeout(() => say('ふう……片付いたね。先へ進も。', { happy_eye: .4, brow_happy: .4, happy_mouth: .4 }), 600); }
+  // 部屋に入った（パーティでは、ホストがだれかの入室を見て決める）
+  dNetTick(dt);
+  if (dIsHost()) {
+    const who = [P, ...(DPARTY ? [...remotes.values()].filter(r => r.vrm).map(r => r.pos) : [])];
+    for (const R of DG.rooms) {
+      const [x0, x1, z0, z1] = R.rect;
+      if (!R.started && DG.rooms.slice(0, DG.rooms.indexOf(R)).every(Q => Q.cleared) && who.some(q => q.x - DX > x0 + 1.5 && q.x - DX < x1 - 1.5 && q.z > z0 + 1.5 && q.z < z1 - 2.2)) dStartRoom(R);
+      if (R.started && !R.cleared && R.enemies && R.enemies.every(e => e.deadT > 0 || e.gone)) dClearRoom(R);
     }
   }
   if (!dBossDoorSaid && P.z < -85 && P.z > -91) { dBossDoorSaid = true; say('この扉の向こう……すごい冷気。覚悟はよか？', { brow_relaxed: .2 }); }
@@ -3450,11 +3626,7 @@ function dTick(dt, t) {
   if (B && !B.gone) {
     const k = Math.max(0, B.hp / B.max);
     $('bossBar').style.width = (k * 100) + '%'; $('bossNum').textContent = `${Math.ceil(B.hp)} / ${B.max}`;
-    if (!DG.summoned && k < .5 && B.deadT <= 0) {
-      DG.summoned = true; const R = DG.rooms[3], b = R.enemies[0].bounds;
-      R.enemies.push(makeWisp(-8, -100, b), makeWisp(8, -100, b), makeWisp(0, -116, b));
-      showSkillName('氷霊召喚'); setTimeout(() => say('氷霊を呼んだ……！ 先に数を減らそ。', { surprised_eye: .3 }), 300);
-    }
+    if (!DG.summoned && k < .5 && B.deadT <= 0 && dIsHost()) dSummon();
     if (B.deadT > 0) $('bossHud').classList.remove('on');
   }
   dShotsTick(dt);
@@ -3462,6 +3634,29 @@ function dTick(dt, t) {
   for (let i = dummies.length - 1; i >= 0; i--) { const d = dummies[i]; if (d.gone) { dummies.splice(i, 1); const j = colliders.indexOf(d.col); if (j >= 0) colliders.splice(j, 1); scene.remove(d.g); if (d.warn) scene.remove(d.warn); } }
   // クリア後：出口
   if (DG.portalB) DG.portalB.rotation.z = t * .7;
+}
+function dStartRoom(R, net) {
+  const [x0, x1, z0, z1] = R.rect;
+  R.started = true; DG.checkpoint = R.at; DG.lightR.position.set(DX + (x0 + x1) / 2, 5, (z0 + z1) / 2); DG.lightR.color.set(R.light); DG.lightR.intensity = R.boss ? 18 : 10;
+  showTitle(R.sm, R.name, R.safe ? '── ひと休み ──' : R.boss ? '── 氷殻の守護者 ──' : '── 敵をすべて倒せ ──');
+  if (!R.safe) { for (const g of R.entry) dSetGate(g, true); DG.spawnBase = (DG.rooms.indexOf(R) + 1) * 10; DG.spawnN = 0; R.enemies = R.spawn(); }
+  else R.cleared = true;
+  setTimeout(() => say(R.lock, { surprised_eye: .2, brow_relaxed: .2 }), 700);
+  if (R.boss) $('bossHud').classList.add('on');
+  // 仲間が先に入った：部屋の外にいたら、入口へ移る
+  const P = player.pos, lx = P.x - DX;
+  if (!R.safe && !(lx > x0 + .5 && lx < x1 - .5 && P.z > z0 + .5 && P.z < z1 - .5)) { P.set(R.at.x + rand(-1.5, 1.5), 0, R.at.z - rand(0, 1)); player.yaw = R.at.yaw; camInit = false; if (net) netToast('仲間が部屋に入りました'); }
+}
+function dClearRoom(R) {
+  R.cleared = true;
+  for (const g of [...(R.entry || []), ...(R.exit || [])]) dSetGate(g, false);
+  if (R.boss) dClear();
+  else { netToast('部屋を制圧した！ 扉が開いた'); showSkillName('CLEAR!'); setTimeout(() => say('ふう……片付いたね。先へ進も。', { happy_eye: .4, brow_happy: .4, happy_mouth: .4 }), 600); }
+}
+function dSummon() {
+  DG.summoned = true; const R = DG.rooms[3], b = DG.boss.bounds; DG.spawnBase = 50; DG.spawnN = 0;
+  (R.enemies ||= []).push(makeWisp(-8, -100, b), makeWisp(8, -100, b), makeWisp(0, -116, b));
+  showSkillName('氷霊召喚'); setTimeout(() => say('氷霊を呼んだ……！ 先に数を減らそ。', { surprised_eye: .3 }), 300);
 }
 function dClear() {
   DG.cleared = true;
@@ -3474,7 +3669,7 @@ function dClear() {
   // 帰り道のポータル
   const p = new THREE.Mesh(new THREE.RingGeometry(.8, 1.4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.4, .6), transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   p.rotation.x = -Math.PI / 2; p.position.set(DX, .04, -104); scene.add(p); DG.portalB = p;
-  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { location.href = 'lobby.html?v=20261126233022'; } });
+  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { location.href = 'lobby.html?v=20261127124223'; } });
   dChest(0, -112, 5000, 'boss');
   setTimeout(() => {
     $('dresTime').textContent = fmt(sec); $('dresBest').textContent = nb ? 'ベスト更新！' : `ベスト ${fmt(best)}`; $('dresCoin').textContent = `+${reward.toLocaleString()}円`;
@@ -3500,6 +3695,7 @@ function drawDungeonMap() {
 }
 if (DUNGEON) dInit();
 $('dresClose').addEventListener('click', () => $('dres').classList.remove('on'));
+if (DPARTY) document.querySelector('#dres a[href*="area=dungeon"]').remove();
 
 const clock = new THREE.Clock();
 let wallT = 0;
@@ -3545,7 +3741,7 @@ function tick(dt) {
   composer.render(dt);
 }
 loop();
-window.__walk = { player, keys, wallet, chests, interact: () => interact(), near: () => near?.label, openShop, closeShop, SHOPS, step: s => { for (let i = 0; i < s * 60; i++) tick(1 / 60); }, cam: () => ({ camYaw, camPitch }), setCam: (y, p, d) => { camYaw = y; camPitch = p; camDist = d; camInit = false; }, lockCam: v => { camLock = v; }, CB, PV, dummies, golem, attack, useSkill, net: NET, remotes, dg: DG, fakePeers: list => { NET.status = { available: true, connected: true }; NET.peers = list; syncRemotes(); updateNetUI(); }, vrm: () => vrm };
+window.__walk = { player, keys, wallet, chests, interact: () => interact(), near: () => near?.label, openShop, closeShop, SHOPS, step: s => { for (let i = 0; i < s * 60; i++) tick(1 / 60); }, cam: () => ({ camYaw, camPitch }), setCam: (y, p, d) => { camYaw = y; camPitch = p; camDist = d; camInit = false; }, lockCam: v => { camLock = v; }, CB, PV, dummies, golem, attack, useSkill, net: NET, remotes, dg: DG, dn: DN, soc: SOC, fakePeers: list => { NET.status = { available: true, connected: true }; NET.peers = list; syncRemotes(); updateNetUI(); }, vrm: () => vrm };
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); sizeBulbs(); });
 </script>
 </body>

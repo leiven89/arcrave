@@ -233,7 +233,7 @@
   <nav id="left" class="tiltL">
     <button class="lm panel tap" data-msg="ミッション報酬を受け取りました"><span class="hx">◎</span><span><b>ミッション</b><small>MISSION</small></span><span class="dot"></span></button>
     <button class="lm panel tap" data-msg="イベント画面（デモ）"><span class="hx">★</span><span><b>イベント</b><small>EVENT</small></span><span class="dot"></span></button>
-    <button class="lm panel tap" data-msg="フレンド申請はありません"><span class="hx">⚇</span><span><b>フレンド</b><small>FRIEND</small></span></button>
+    <button class="lm panel tap" id="friendBtn"><span class="hx">⚇</span><span><b>フレンド</b><small>FRIEND</small></span></button>
     <button class="lm panel tap" data-msg="お知らせ（デモ）"><span class="hx">!</span><span><b>お知らせ</b><small>NEWS</small></span></button>
     <button class="lm panel tap" id="voiceBtn"><span class="hx">🔇</span><span><b>ボイス</b><small>VOICE OFF</small></span></button>
   </nav>
@@ -253,20 +253,20 @@
       <h2>ネオン・ナイトパレード</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261126233022">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261127124223">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
     </button>
-    <button id="dungeon" class="panel tap" data-href="walk.html?area=dungeon&v=20261126233022">
+    <button id="dungeon" class="panel tap">
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261126233022">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261126233022">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127124223">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261127124223">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261126233022">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261127124223">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -301,6 +301,63 @@ import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 /* ---------- パートナー：キャラ選択画面で選んだキャラ（shino / karen）を使う ---------- */
 const PARTNER = (() => { try { return localStorage.getItem('partner') === 'karen' ? 'karen' : 'shino'; } catch (e) { return 'shino'; } })();
 document.documentElement.classList.toggle('karen', PARTNER === 'karen');
+
+/* ---------- オンライン共通：プレイヤーID・フレンド・パーティ・メッセージ ----------
+   通信はタイトル画面（親フレーム）が受け持つ。ここでは自分の状態 x を presence に載せ、
+   ほかの人の x を読む。メッセージ（フレンド申請・パーティ招待など）は x.mb に宛先つきで並べて渡す。
+   フレンドはこの端末に保存する（相手の ID と名前）。 */
+const SOC = (() => {
+  const L = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+  const SS = { get(k, d) { try { const v = sessionStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+  const rid = n => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
+  let pid = SS.get('arc_pid', null) || L.get('arc_pid', null);
+  if (!pid) { pid = rid(8); L.set('arc_pid', pid); }
+  return { L, SS, rid, pid, tab: SS.get('arc_tab', null) || (() => { const t = rid(6); SS.set('arc_tab', t); return t; })(),
+    friends: L.get('arc_friends', {}), party: SS.get('arc_party', null), mb: SS.get('arc_mb', []), mbN: SS.get('arc_mbN', Date.now() % 1e6),
+    seen: new Set(SS.get('arc_seen', [])), myName: '', peers: [], status: { available: false, connected: false } };
+})();
+const PID_RE = /^[a-z0-9]{6,12}$/;
+const socName = s => (typeof s === 'string' ? s : '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 16);
+function socSave() { SOC.L.set('arc_friends', SOC.friends); SOC.SS.set('arc_party', SOC.party); SOC.SS.set('arc_mb', SOC.mb); SOC.SS.set('arc_mbN', SOC.mbN); SOC.SS.set('arc_seen', [...SOC.seen].slice(-200)); }
+// 自分の公開情報（presence の x）
+function socX() {
+  const p = SOC.party, now = Date.now();
+  SOC.mb = SOC.mb.filter(m => now - m.at < 90000).slice(-8);          // 古いメッセージは片付ける
+  return { pid: SOC.pid, t: SOC.tab, nm: SOC.myName.slice(0, 16), pt: p ? { id: p.id, lead: p.lead, ...(p.lead === SOC.pid ? { m: p.m, go: p.go || 0 } : {}) } : null, mb: SOC.mb };
+}
+function socSend(to, k, p = {}) { SOC.mb.push({ n: ++SOC.mbN, to, k, p, at: Date.now() }); socSave(); }
+// ほかのプレイヤー（x を持つ人だけ。同じ人が重なったら新しい方）
+function socPlayers() {
+  const out = new Map();
+  for (const peer of SOC.peers) {
+    const x = peer.presence && peer.presence.x;
+    if (!x || typeof x !== 'object' || !PID_RE.test(x.pid) || x.pid === SOC.pid) continue;
+    out.set(x.pid, { pid: x.pid, name: socName(peer.name) || socName(x.nm) || 'プレイヤー', area: peer.presence.area || '', ch: peer.presence.ch === 'karen' ? 'karen' : 'shino', x, peer });
+  }
+  return out;
+}
+// 届いたメッセージを一度ずつ処理する
+const SOC_KINDS = new Set(['fq', 'fa', 'pi', 'pj', 'pk']);
+function socInbox(handler) {
+  for (const pl of socPlayers().values()) {
+    const mb = Array.isArray(pl.x.mb) ? pl.x.mb.slice(-8) : [];
+    for (const m of mb) {
+      if (!m || m.to !== SOC.pid || !SOC_KINDS.has(m.k) || !Number.isFinite(m.n)) continue;
+      const key = pl.pid + ':' + m.n; if (SOC.seen.has(key)) continue;
+      SOC.seen.add(key); socSave();
+      handler(pl, m.k, m.p && typeof m.p === 'object' ? m.p : {});
+    }
+  }
+}
+// 同じ ID のタブが別にあったら、このタブだけ別の ID にする（同じ端末で2つ開いた時）
+function socDupCheck() {
+  for (const peer of SOC.peers) {
+    const x = peer.presence && peer.presence.x;
+    if (x && x.pid === SOC.pid && x.t && x.t !== SOC.tab && x.t < SOC.tab) { SOC.pid = SOC.rid(8); SOC.SS.set('arc_pid', SOC.pid); SOC.party = null; socSave(); return true; }
+  }
+  return false;
+}
+const areaLabel = a => a === 'lobby' ? 'ロビー' : a === 'noelberg' ? '出撃中' : /^dg:/.test(a) ? 'ダンジョン' : '';
 /*MODEL_FETCH*/
 // モデルを ArrayBuffer で読む（公開版では、この部分が Base64 テキストの分割読み込みに置き換わる）
 const MODEL_URL = { shino: './shino_lite.vrm', karen: './karen.vrm' };
@@ -1185,6 +1242,239 @@ addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight);
 });
+
+/* =====================================================================
+   ロビー：フレンドとパーティ（ダンジョンはパーティを組んでから）
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+document.head.insertAdjacentHTML('beforeend', `<style>
+  #toast{z-index:25}
+  #soc{position:fixed;inset:0;z-index:20;display:none;place-items:center;background:rgba(2,4,12,.55)}
+  #soc.on{display:grid}
+  #soc .win{width:min(560px,94vw);max-height:min(560px,92vh);display:flex;flex-direction:column;padding:14px 16px 16px}
+  #soc header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  #soc header .tabs{display:flex;gap:4px;flex-wrap:wrap}
+  #soc header .tabs button{padding:6px 12px;font-size:13px;font-weight:700;box-shadow:inset 0 0 0 1px rgba(63,240,255,.35);position:relative}
+  #soc header .tabs button.on{background:linear-gradient(120deg,#8fe9ff,var(--cy));color:#03101c}
+  #soc header .tabs button i{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;border-radius:8px;background:var(--mg);color:#fff;font:700 10px/16px var(--en);font-style:normal;text-align:center;padding:0 3px}
+  #soc header .x{margin-left:auto;font-size:20px;width:34px;height:34px;text-align:center}
+  #soc .body{overflow:auto;padding-right:4px;user-select:text;-webkit-user-select:text}
+  #soc h3{font-size:12px;font-weight:700;letter-spacing:.12em;color:var(--cy);margin:10px 0 6px}
+  #soc .row{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:6px;background:rgba(20,40,80,.45);box-shadow:inset 0 0 0 1px rgba(63,240,255,.18)}
+  #soc .row .nm{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #soc .row .sub{font-size:11px;color:#9fc2e8}
+  #soc .row .grow{flex:1;min-width:0}
+  #soc .dot{width:8px;height:8px;border-radius:50%;background:#55607a;flex:none}
+  #soc .dot.on{background:#4dff9a;box-shadow:0 0 8px #4dff9a}
+  #soc .btn{padding:7px 12px;font-size:12px;font-weight:700;background:linear-gradient(120deg,#8fe9ff,var(--cy));color:#03101c;flex:none}
+  #soc .btn.sub2{background:rgba(160,230,255,.16);color:#e8fbff;box-shadow:inset 0 0 0 1px rgba(160,230,255,.4)}
+  #soc .btn:disabled{opacity:.4;cursor:default}
+  #soc .big{display:block;width:100%;padding:12px;font-size:16px;letter-spacing:.2em;text-align:center;margin-top:10px}
+  #soc .note{font-size:12px;color:#9fc2e8;line-height:1.7}
+  #soc .me{font-family:var(--en);font-size:16px;letter-spacing:.15em;color:#fff}
+  #soc input{flex:1;min-width:0;padding:8px 10px;background:rgba(0,0,0,.35);color:#fff;border:1px solid rgba(63,240,255,.45);font:700 14px var(--en);letter-spacing:.1em;user-select:text;-webkit-user-select:text;touch-action:auto}
+  #soc .crown{color:var(--yl)}
+  #invPop{position:fixed;left:50%;top:14px;transform:translate(-50%,-140%);z-index:21;display:flex;align-items:center;gap:10px;padding:10px 14px;transition:transform .3s;max-width:94vw}
+  #invPop.on{transform:translate(-50%,0)}
+  #invPop .t{font-size:13px;font-weight:700}
+  #invPop .btn{padding:7px 12px;font-size:12px;font-weight:700;background:linear-gradient(120deg,#8fe9ff,var(--cy));color:#03101c}
+  #invPop .btn.no{background:rgba(160,230,255,.16);color:#e8fbff}
+  #partyChip{display:none;font-size:11px;font-weight:700;color:#bfefff;margin-top:4px;text-align:right}
+  #partyChip.on{display:block}
+  .lm .badge{position:absolute;top:4px;right:6px;min-width:16px;height:16px;border-radius:8px;background:var(--mg);color:#fff;font:700 10px/16px var(--en);text-align:center;padding:0 3px}
+</style>`);
+document.body.insertAdjacentHTML('beforeend', `
+<div id="soc"><div class="win panel">
+  <header><div class="tabs"><button data-t="party">パーティ</button><button data-t="friends">フレンド</button><button data-t="req">申請</button><button data-t="online">オンライン</button></div><button class="x" aria-label="閉じる">×</button></header>
+  <div class="body" id="socBody"></div>
+</div></div>
+<div id="invPop" class="panel"><span class="t" id="invText"></span><button class="btn" id="invYes">参加</button><button class="btn no" id="invNo">断る</button></div>`);
+$('dungeon').insertAdjacentHTML('afterend', '<div id="partyChip"></div>');
+
+const LN = { inFrame: window.parent !== window, tab: 'party', freq: SOC.SS.get('arc_freq', []), fout: SOC.L.get('arc_fout', {}), invites: [], miss: {}, lastX: '', keep: 0 };
+const lpost = m => { if (LN.inFrame) try { window.parent.postMessage(m, '*'); } catch (e) {} };
+addEventListener('message', e => {
+  if (!LN.inFrame || e.source !== window.parent) return;
+  const m = e.data || {};
+  if (m.type === 'net:status') { SOC.status = { available: !!m.available, connected: !!m.connected }; if (typeof m.name === 'string' && m.name) SOC.myName = socName(m.name); renderSoc(); }
+  else if (m.type === 'net:peers' && Array.isArray(m.peers)) { SOC.peers = m.peers.filter(p => p && typeof p.peer === 'string' && p.presence && typeof p.presence === 'object'); onPeers(); }
+});
+lpost({ type: 'net:hello', area: 'lobby' });
+function publish(force) {
+  const x = socX(), key = JSON.stringify(x);
+  if (force || key !== LN.lastX) { LN.lastX = key; lpost({ type: 'net:presence', patch: { area: 'lobby', ch: PARTNER, x } }); }
+}
+setInterval(() => { LN.keep++; partyTick(); publish(LN.keep % 6 === 0); }, 500);
+addEventListener('pagehide', () => lpost({ type: 'net:presence', patch: { area: null, x: null } }));
+const online = () => LN.inFrame && SOC.status.available;
+const nameOf = pid => pid === SOC.pid ? (SOC.myName || 'あなた') : (socPlayers().get(pid)?.name || SOC.friends[pid]?.nm || 'プレイヤー');
+
+/* ---------- メッセージ ---------- */
+function onPeers() {
+  if (socDupCheck()) publish(true);
+  socInbox((pl, k, p) => {
+    if (k === 'fq') {                                     // フレンド申請
+      if (SOC.friends[pl.pid] || LN.fout[pl.pid]) { addFriend(pl.pid, pl.name); socSend(pl.pid, 'fa'); return; }
+      if (!LN.freq.some(r => r.pid === pl.pid)) { LN.freq.push({ pid: pl.pid, name: pl.name }); SOC.SS.set('arc_freq', LN.freq); toast(`${pl.name} さんからフレンド申請`); }
+    } else if (k === 'fa') { addFriend(pl.pid, pl.name); toast(`${pl.name} さんとフレンドになりました`); }
+    else if (k === 'pi' && typeof p.id === 'string' && PID_RE.test(p.id)) {        // パーティ招待
+      if (SOC.party && SOC.party.id === p.id) return;
+      LN.invites = LN.invites.filter(v => v.pid !== pl.pid); LN.invites.push({ pid: pl.pid, name: pl.name, id: p.id }); showInvite();
+    } else if (k === 'pj' && SOC.party && SOC.party.lead === SOC.pid && p.id === SOC.party.id) {     // 参加したい
+      if (SOC.party.m.includes(pl.pid)) return;
+      if (SOC.party.m.length >= 4) { socSend(pl.pid, 'pk', { id: SOC.party.id, why: 'full' }); return; }
+      SOC.party.m.push(pl.pid); socSave(); publish(true); toast(`${pl.name} さんがパーティに参加しました`);
+    } else if (k === 'pk' && SOC.party && SOC.party.id === p.id && SOC.party.lead === pl.pid) {
+      SOC.party = null; socSave(); toast(p.why === 'full' ? 'パーティが満員でした' : 'パーティから外れました');
+    }
+  });
+  partyTick(); publish(); renderSoc();
+}
+function addFriend(pid, name) { SOC.friends[pid] = { nm: name, at: Date.now() }; delete LN.fout[pid]; LN.freq = LN.freq.filter(r => r.pid !== pid); SOC.L.set('arc_fout', LN.fout); SOC.SS.set('arc_freq', LN.freq); socSave(); renderSoc(); }
+function requestFriend(pid) {
+  if (!PID_RE.test(pid) || pid === SOC.pid) { toast('IDが正しくありません'); return; }
+  if (SOC.friends[pid]) { toast('すでにフレンドです'); return; }
+  LN.fout[pid] = Date.now(); SOC.L.set('arc_fout', LN.fout); socSend(pid, 'fq'); publish(true);
+  toast(socPlayers().has(pid) ? 'フレンド申請を送りました' : '申請を送りました（相手がオンラインになると届きます）'); renderSoc();
+}
+
+/* ---------- パーティ ---------- */
+function createParty() { SOC.party = { id: SOC.rid(6), lead: SOC.pid, m: [SOC.pid], go: 0 }; socSave(); publish(true); renderSoc(); }
+function leaveParty() { SOC.party = null; socSave(); publish(true); renderSoc(); }
+function invite(pid) { if (!SOC.party) createParty(); if (SOC.party.lead !== SOC.pid) return; socSend(pid, 'pi', { id: SOC.party.id }); publish(true); toast(`${nameOf(pid)} さんを招待しました`); }
+function acceptInvite(v) {
+  LN.invites = LN.invites.filter(x => x !== v); hideInvite();
+  SOC.party = { id: v.id, lead: v.pid, m: [], go: 0, goSeen: null, joinT: Date.now() }; socSave();
+  socSend(v.pid, 'pj', { id: v.id }); publish(true); renderSoc(); toast(`${v.name} さんのパーティに参加します`);
+}
+function partyTick() {
+  const P = SOC.party; if (!P) return updateChip();
+  const pls = socPlayers(), now = Date.now();
+  if (P.lead === SOC.pid) {                     // リーダー：いなくなったメンバーを外す
+    let ch = false;
+    P.m = P.m.filter(id => {
+      if (id === SOC.pid) return true;
+      const pl = pls.get(id), ok = pl && pl.x.pt && pl.x.pt.id === P.id;
+      if (ok) { delete LN.miss[id]; return true; }
+      LN.miss[id] ||= now; if (now - LN.miss[id] > 12000) { ch = true; delete LN.miss[id]; return false; } return true;
+    });
+    if (ch) { socSave(); publish(true); renderSoc(); }
+  } else if (online()) {                         // メンバー：リーダーの名簿と出発の合図を見る
+    const L = pls.get(P.lead), lp = L && L.x.pt;
+    if (!L) { LN.miss.lead ||= now; if (now - LN.miss.lead > 15000) { delete LN.miss.lead; SOC.party = null; socSave(); toast('リーダーがいなくなったので、パーティを解散しました'); renderSoc(); } return updateChip(); }
+    delete LN.miss.lead;
+    if (!lp || lp.id !== P.id) { if (L.area === 'lobby' && now - (P.joinT || 0) > 6000) { SOC.party = null; socSave(); toast('パーティが解散しました'); renderSoc(); } return updateChip(); }
+    const m = Array.isArray(lp.m) ? lp.m.filter(id => PID_RE.test(id)).slice(0, 4) : [];
+    if (JSON.stringify(m) !== JSON.stringify(P.m)) { P.m = m; socSave(); renderSoc(); }
+    if (!m.includes(SOC.pid) && now - (P.joinT || 0) > 9000) { SOC.party = null; socSave(); toast('パーティに参加できませんでした'); renderSoc(); return updateChip(); }
+    const go = Number(lp.go) || 0;
+    if (P.goSeen === null || P.goSeen === undefined) { P.goSeen = go; socSave(); }
+    else if (go > P.goSeen && m.includes(SOC.pid)) { P.goSeen = go; socSave(); toast('リーダーが出発しました！'); setTimeout(goDungeon, 600); }
+  }
+  updateChip();
+}
+function startDungeon() {
+  const P = SOC.party; if (!P || P.lead !== SOC.pid) return;
+  P.go = Date.now(); P.goSeen = P.go; socSave(); publish(true);
+  toast('ダンジョンへ出発します！'); setTimeout(goDungeon, 1400);
+}
+function goDungeon() {
+  const P = SOC.party; if (!P) return;
+  location.href = `walk.html?area=dungeon&party=${P.id}&lead=${P.lead}&m=${P.m.join(',')}`;
+}
+function updateChip() {
+  const c = $('partyChip'), P = SOC.party;
+  c.classList.toggle('on', !!P); if (P) c.textContent = `パーティ ${P.m.length}/4 ${P.lead === SOC.pid ? '（リーダー）' : ''}`;
+  const fb = $('friendBtn'); let b = fb.querySelector('.badge'); const n = LN.freq.length;
+  if (n && !b) { b = document.createElement('span'); b.className = 'badge'; fb.appendChild(b); }
+  if (b) { if (n) b.textContent = n; else b.remove(); }
+}
+function showInvite() { const v = LN.invites[LN.invites.length - 1]; if (!v) return hideInvite(); $('invText').textContent = `${v.name} さんからパーティに招待されました`; $('invPop').classList.add('on'); }
+function hideInvite() { $('invPop').classList.remove('on'); }
+$('invYes').addEventListener('click', e => { e.stopPropagation(); const v = LN.invites[LN.invites.length - 1]; if (v) acceptInvite(v); });
+$('invNo').addEventListener('click', e => { e.stopPropagation(); LN.invites.pop(); LN.invites.length ? showInvite() : hideInvite(); renderSoc(); });
+
+/* ---------- 画面 ---------- */
+function openSoc(tab) { LN.tab = tab; $('soc').classList.add('on'); renderSoc(); }
+$('soc').addEventListener('click', e => { e.stopPropagation(); if (e.target.id === 'soc') $('soc').classList.remove('on'); });
+$('soc').addEventListener('pointerdown', e => e.stopPropagation());
+document.querySelector('#soc .x').addEventListener('click', () => $('soc').classList.remove('on'));
+document.querySelectorAll('#soc .tabs button').forEach(b => b.addEventListener('click', () => { LN.tab = b.dataset.t; renderSoc(); }));
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+function btn(text, fn, cls = 'btn', dis = false) { const b = el('button', cls, text); b.disabled = dis; b.addEventListener('click', e => { e.stopPropagation(); fn(); }); return b; }
+function row(name, sub, on, ...right) {
+  const r = el('div', 'row'); if (on !== null) r.appendChild(el('span', 'dot' + (on ? ' on' : '')));
+  const g = el('div', 'grow'); g.appendChild(el('div', 'nm', name)); if (sub) g.appendChild(el('div', 'sub', sub)); r.appendChild(g);
+  for (const x of right) if (x) r.appendChild(x); return r;
+}
+function renderSoc() {
+  updateChip();
+  if (!$('soc').classList.contains('on')) return;
+  document.querySelectorAll('#soc .tabs button').forEach(b => {
+    b.classList.toggle('on', b.dataset.t === LN.tab);
+    const n = b.dataset.t === 'req' ? LN.freq.length : b.dataset.t === 'party' ? LN.invites.length : 0;
+    let i = b.querySelector('i'); if (n && !i) { i = el('i'); b.appendChild(i); } if (i) { if (n) i.textContent = n; else i.remove(); }
+  });
+  const B = $('socBody'); B.innerHTML = ''; const pls = socPlayers(), P = SOC.party, lead = P && P.lead === SOC.pid;
+  if (!online()) B.appendChild(el('p', 'note', LN.inFrame ? 'オンラインにつないでいます…（つながらない時は、ひとりでパーティを組んで出発できます）' : 'オフラインです。ひとりでパーティを組んで出発できます。'));
+  const charName = c => c === 'karen' ? 'カレン' : 'しの';
+  if (LN.tab === 'party') {
+    if (!P) {
+      B.appendChild(el('p', 'note', 'ダンジョンへは、パーティを組んでから出発します（最大4人・ひとりでもOK）。'));
+      B.appendChild(btn('パーティを作る', createParty, 'btn big'));
+      if (LN.invites.length) { B.appendChild(el('h3', '', '届いている招待')); for (const v of LN.invites) B.appendChild(row(`${v.name} さんのパーティ`, '', null, btn('参加', () => acceptInvite(v)), btn('断る', () => { LN.invites = LN.invites.filter(x => x !== v); hideInvite(); renderSoc(); }, 'btn sub2'))); }
+    } else {
+      B.appendChild(el('h3', '', `パーティ（${P.m.length}/4）`));
+      for (const id of P.m) { const pl = pls.get(id); B.appendChild(row((id === P.lead ? '♛ ' : '') + nameOf(id) + (id === SOC.pid ? '（あなた）' : ''), id === SOC.pid ? charName(PARTNER) : pl ? `${charName(pl.ch)}・${areaLabel(pl.area)}` : '通信待ち', id === SOC.pid || !!pl)); }
+      if (!P.m.includes(SOC.pid)) B.appendChild(el('p', 'note', 'リーダーに参加を伝えています…'));
+      if (lead) {
+        B.appendChild(btn('ダンジョンへ出発', startDungeon, 'btn big'));
+        const cands = [...pls.values()].filter(pl => pl.area === 'lobby' && !P.m.includes(pl.pid));
+        B.appendChild(el('h3', '', '招待する（ロビーにいる人）'));
+        if (!cands.length) B.appendChild(el('p', 'note', online() ? 'いまロビーにいるプレイヤーはいません。' : '—'));
+        cands.sort((a, b) => !!SOC.friends[b.pid] - !!SOC.friends[a.pid]);
+        for (const pl of cands) B.appendChild(row(pl.name, (SOC.friends[pl.pid] ? 'フレンド・' : '') + charName(pl.ch), true, btn('招待', () => invite(pl.pid), 'btn', P.m.length >= 4)));
+        B.appendChild(btn('パーティを解散', leaveParty, 'btn sub2 big'));
+      } else {
+        B.appendChild(el('p', 'note', 'リーダーが出発すると、いっしょにダンジョンへ向かいます。'));
+        B.appendChild(btn('パーティを抜ける', leaveParty, 'btn sub2 big'));
+      }
+    }
+  } else if (LN.tab === 'friends') {
+    const me = el('div', 'row'); const g = el('div', 'grow'); g.appendChild(el('div', 'sub', 'あなたのID（フレンドに教えてね）')); g.appendChild(el('div', 'me', SOC.pid)); me.appendChild(g);
+    me.appendChild(btn('コピー', () => { navigator.clipboard?.writeText(SOC.pid).then(() => toast('IDをコピーしました'), () => toast(SOC.pid)); }, 'btn sub2')); B.appendChild(me);
+    const add = el('div', 'row'); const inp = el('input'); inp.placeholder = 'フレンドのIDを入力'; inp.maxLength = 12; inp.addEventListener('keydown', e => e.stopPropagation());
+    add.appendChild(inp); add.appendChild(btn('申請', () => requestFriend(inp.value.trim().toLowerCase()))); B.appendChild(add);
+    const ids = Object.keys(SOC.friends);
+    B.appendChild(el('h3', '', `フレンド（${ids.length}）`));
+    if (!ids.length) B.appendChild(el('p', 'note', 'まだフレンドがいません。「オンライン」から申請するか、IDで申請できます。'));
+    ids.sort((a, b) => !!pls.get(b) - !!pls.get(a));
+    for (const id of ids) {
+      const pl = pls.get(id);
+      B.appendChild(row(pl ? pl.name : SOC.friends[id].nm || 'プレイヤー', pl ? `オンライン・${areaLabel(pl.area)}` : 'オフライン', !!pl,
+        pl && pl.area === 'lobby' && (!P || lead) && !(P && P.m.includes(id)) ? btn('招待', () => invite(id)) : null,
+        btn('×', () => { delete SOC.friends[id]; socSave(); renderSoc(); }, 'btn sub2')));
+    }
+    const outs = Object.keys(LN.fout);
+    if (outs.length) { B.appendChild(el('h3', '', '申請中')); for (const id of outs) B.appendChild(row(nameOf(id), id, null, btn('取り消す', () => { delete LN.fout[id]; SOC.L.set('arc_fout', LN.fout); renderSoc(); }, 'btn sub2'))); }
+  } else if (LN.tab === 'req') {
+    B.appendChild(el('h3', '', 'フレンド申請'));
+    if (!LN.freq.length) B.appendChild(el('p', 'note', '届いている申請はありません。'));
+    for (const r of LN.freq) B.appendChild(row(r.name, r.pid, !!pls.get(r.pid),
+      btn('承認', () => { addFriend(r.pid, r.name); socSend(r.pid, 'fa'); publish(true); toast(`${r.name} さんとフレンドになりました`); }),
+      btn('拒否', () => { LN.freq = LN.freq.filter(x => x !== r); SOC.SS.set('arc_freq', LN.freq); renderSoc(); }, 'btn sub2')));
+  } else {
+    B.appendChild(el('h3', '', `オンラインのプレイヤー（${pls.size}）`));
+    if (!pls.size) B.appendChild(el('p', 'note', online() ? 'いまはほかにだれもいません。' : '—'));
+    for (const pl of pls.values()) B.appendChild(row(pl.name, `${charName(pl.ch)}・${areaLabel(pl.area)}`, true,
+      SOC.friends[pl.pid] ? el('span', 'sub', 'フレンド') : btn(LN.fout[pl.pid] ? '申請中' : 'フレンド申請', () => requestFriend(pl.pid), 'btn', !!LN.fout[pl.pid]),
+      pl.area === 'lobby' && (!P || lead) && !(P && P.m.includes(pl.pid)) ? btn('招待', () => invite(pl.pid), 'btn sub2') : null));
+  }
+}
+// ボタン
+$('friendBtn').addEventListener('click', e => { e.stopPropagation(); openSoc(LN.freq.length ? 'req' : 'friends'); });
+$('dungeon').addEventListener('click', e => { e.stopPropagation(); e.stopImmediatePropagation(); openSoc('party'); }, true);
+updateChip();
 </script>
 </body>
 </html>
