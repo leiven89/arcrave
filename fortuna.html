@@ -87,7 +87,7 @@
   <button id="snd" type="button" aria-pressed="true">音：ON</button>
   <button id="replay" type="button" hidden>PVを見る</button>
   <button id="skip" type="button" hidden>スキップ</button>
-  <a href="lobby.html?v=20261127222454">ロビーへ</a>
+  <a href="lobby.html?v=20261127225147">ロビーへ</a>
 </div>
 <div id="gate" class="layer">
   <div class="gbox">
@@ -491,10 +491,23 @@ function voice(name, cap) {
   bgmBus.gain.setTargetAtTime(.22, AC.currentTime, .08);
   s.onended = () => { if (vSrc === s) { vSrc = null; bgmBus.gain.setTargetAtTime(.5, AC.currentTime, .3); setTimeout(() => { if (!vSrc) hideCap(); }, 500); } };
 }
-function mouthLevel(dt) {      // 声の大きさで口を動かす
+let talking = false, vowelT = 0, vowel = 0, vowelPrev = 0, vowelMix = 1, lastLv = 0;
+function mouthLevel(dt) {      // 声の大きさで口の開きを決める（リップシンク）
   let v = 0;
-  if (vAn && vSrc) { vAn.getByteTimeDomainData(vData); let e = 0; for (const x of vData) e += (x - 128) * (x - 128); v = clamp(Math.sqrt(e / vData.length) / 22, 0, 1); }
-  mouthOpen = lerp(mouthOpen, v * .8, 1 - Math.exp(-dt * 25));
+  if (vAn && vSrc) { vAn.getByteTimeDomainData(vData); let e = 0; for (const x of vData) e += (x - 128) * (x - 128); v = clamp((Math.sqrt(e / vData.length) - 1.5) / 16, 0, 1); }
+  talking = !!vSrc;
+  mouthOpen = lerp(mouthOpen, v, 1 - Math.exp(-dt * (v > mouthOpen ? 30 : 14)));
+  // 音が強まった瞬間（音節の頭）ごとに、口の形（あ・い・う・え・お）を変える
+  vowelT -= dt;
+  if (v > lastLv + .12 && vowelT <= 0) { vowelPrev = vowel; vowel = Math.floor(rnd() * 5); vowelMix = 0; vowelT = .09; }
+  lastLv = lerp(lastLv, v, .5); vowelMix = Math.min(1, vowelMix + dt * 12);
+}
+const VOWELS = ['aa', 'ih', 'ou', 'ee', 'oh'], VW = [1, .55, .7, .65, .85];   // 形ごとの開きの強さ
+function lipSync() {
+  for (let i = 0; i < 5; i++) {
+    const w = (i === vowel ? vowelMix : 0) + (i === vowelPrev && vowelPrev !== vowel ? 1 - vowelMix : 0);
+    expr(VOWELS[i], clamp(mouthOpen * w * VW[i] * 1.1, 0, 1));
+  }
 }
 let AC = null, master = null, bgmBus = null, sfxBus = null, noiseBuf = null, soundOn = true;
 const bufs = {};
@@ -750,10 +763,14 @@ function posePV(T, dt, RT = T) {
   // 表情
   const wink = smooth((T - TL.catch) / .15) * (1 - smooth((T - TL.catch - .6) / .2)) + smooth((T - TL.logo + .4) / .3);
   expr('blinkLeft', Math.min(1, wink));
-  expr('happy_mouth', Math.max(.35 + .5 * smooth((T - TL.catch) / .3), .75 * w1));
-  expr('aa', mouthOpen);
-  expr('relaxed_eye', .25 * (1 - Math.min(1, wink)));
-  expr('blink', wink > .05 ? 0 : blink(dt, true));
+  // 笑顔の口（happy_mouth）は口パクを打ち消す設定なので、しゃべっている間は外して眉で笑顔を残す
+  const smile = Math.max(.35 + .5 * smooth((T - TL.catch) / .3), .75 * w1);
+  expr('happy_mouth', talking ? 0 : smile);
+  expr('brow_happy', talking ? .6 : 0);
+  lipSync(dt);
+  const bl = wink > .05 ? 0 : blink(dt, true);
+  expr('relaxed_eye', bl > 0 ? 0 : .25 * (1 - Math.min(1, wink)));      // relaxed_eye もまばたきを打ち消すので、閉じる間は外す
+  expr('blink', bl);
 }
 
 /* 帽子：頭 → 右手 → 空中でくるくる → キャッチ → 口を前へ → 頭へ戻す */
@@ -937,7 +954,7 @@ function updateWalk(dt, t) {
   armIK('left', new THREE.Vector3(.2, .98, .22), HINT_L, 1 - w);
   bone('leftHand').rotation.set(.2, -.9, .25);
   fingers('right', .25); fingers('left', .7);
-  expr('happy_mouth', .35); expr('relaxed_eye', .25); expr('blinkLeft', 0); expr('blink', blink(dt, true));
+  const bl = blink(dt, true); expr('happy_mouth', .35); expr('relaxed_eye', bl > 0 ? 0 : .25); expr('blinkLeft', 0); expr('blink', bl);
   if (vrm.lookAt) lookObj.position.copy(camera.position);
   keyLight.position.copy(vrm.scene.position).add(_v.set(-2.5, 6, 6)); keyLight.target.position.copy(vrm.scene.position);   // 影はキャラについていく
   // カメラは後ろ上から追う
@@ -978,7 +995,7 @@ canvas.addEventListener('pointerup', endJoy); canvas.addEventListener('pointerca
    ===================================================================== */
 let mode = 'idle', T = 0, prevT = -1, clock = new THREE.Clock(), wallT = 0;
 function resetPV() {
-  try { vSrc?.stop(); } catch (e) {} vSrc = null; mouthOpen = 0;
+  try { vSrc?.stop(); } catch (e) {} vSrc = null; mouthOpen = 0; talking = false;
   T = 0; prevT = -1; hat.rel = null; cardOrigin = null; SP.clear(); seed = 99; duck = 1;
   for (const c of cards) c.m.visible = false;
   vrm.scene.position.set(0, DAIS_Y, 0); vrm.scene.rotation.y = 0;
@@ -1062,6 +1079,7 @@ function snapshot(t) {
   render(); window.__ready = true; document.title = 'READY ' + t;
 }
 window.__snap = snapshot;
+window.__dbg = { get ac() { return AC; }, get mouth() { return mouthOpen; }, get talking() { return talking; }, get vrm() { return vrm; }, bufs, voice, get vSrc() { return vSrc; } };   // 確認用
 window.__step = n => { for (let i = 0; i < n; i++) update(1 / 60); render(); };   // 確認用
 if (SNAP_T === null && !SNAP_WALK) requestAnimationFrame(loop);
 </script>
