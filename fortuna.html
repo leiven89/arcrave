@@ -58,10 +58,38 @@
   #place small{display:block;font:700 12px var(--en);letter-spacing:.5em;color:var(--gold)}
   #place b{font:800 clamp(20px,4.4vw,36px) var(--min);letter-spacing:.14em;text-shadow:0 2px 10px #000}
   /* 歩くモード */
-  #help{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-size:12px;color:var(--mute);background:rgba(10,4,8,.6);padding:6px 12px;border-radius:4px;opacity:0;transition:opacity .5s;white-space:nowrap}
+  #help{position:fixed;left:max(12px,env(safe-area-inset-left,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));max-width:calc(100vw - 260px);white-space:normal !important;font-size:12px;color:var(--mute);background:rgba(10,4,8,.6);padding:6px 12px;border-radius:4px;opacity:0;transition:opacity .5s;white-space:nowrap}
   body.walk #help{opacity:1}
   #joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid rgba(255,215,122,.35);background:rgba(20,8,14,.25);display:none}
   #joy i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(255,215,122,.55)}
+  /* 技名の帯・出目・ダメージ */
+  #skb{position:fixed;right:0;top:calc(min(9vh,9vw) + 4vh);padding:10px max(5vw,18px) 12px 40px;background:linear-gradient(90deg,transparent,rgba(20,6,14,.85) 30%);border-top:1px solid rgba(255,215,122,.6);border-bottom:1px solid rgba(255,215,122,.6);text-align:right;transform:translateX(110%);transition:transform .45s cubic-bezier(.2,.9,.2,1);pointer-events:none}
+  #skb.on{transform:none}
+  #skb small{display:block;font:700 12px var(--en);letter-spacing:.45em;color:var(--violet)}
+  #skb b{font:800 clamp(20px,4.2vw,38px) var(--min);letter-spacing:.1em;background:linear-gradient(180deg,#fffbe8,var(--gold) 60%,#b07a25);-webkit-background-clip:text;background-clip:text;color:transparent}
+  body.walk #skb{top:max(56px,env(safe-area-inset-top,0px));}
+  .res{position:absolute;left:50%;top:34%;font:400 clamp(30px,7vw,72px)/1 var(--pop);-webkit-text-stroke:2px #3a1200;paint-order:stroke fill;text-shadow:0 0 18px rgba(255,200,90,.9);white-space:nowrap;transform:translate(-50%,-50%);animation:res 1.4s cubic-bezier(.2,1.5,.4,1) forwards}
+  @keyframes res{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}25%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%) scale(.95)}}
+  .dmg{position:absolute;transform:translate(-50%,-50%);font:700 clamp(16px,2.6vw,24px) var(--en);color:#fff2c4;-webkit-text-stroke:1px #4a1800;paint-order:stroke fill;text-shadow:0 2px 4px #000}
+  .dmg.crit{font-size:clamp(22px,3.8vw,36px);color:#ffe066}
+  .dmg.heal{color:#9dffb8}
+  /* 歩くモード：技のボタン */
+  #skills{position:fixed;right:max(12px,env(safe-area-inset-right,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));display:none;grid-template-columns:repeat(3,auto);gap:8px;align-items:end;justify-items:center}
+  body.walk #skills{display:grid}
+  #skills .sk{--cd:0deg;position:relative;width:58px;height:58px;border-radius:50%;border:2px solid rgba(255,215,122,.7);background:radial-gradient(circle at 50% 35%,#4a1424,#1a0810);color:var(--ink);font:700 12px var(--jp);cursor:pointer;touch-action:none;overflow:hidden;padding:0}
+  #skills .sk small{display:block;font:600 10px var(--en);color:var(--mute)}
+  #skills .sk.big{width:76px;height:76px;font-size:14px}
+  #skills .sk::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(0,0,0,.65) var(--cd),transparent 0);pointer-events:none}
+  #skills .sk.cool{color:var(--mute)}
+  #skills .sk.on{border-color:#fff;box-shadow:0 0 14px rgba(255,215,122,.8)}
+  #skills .sk.aw.ready{border-color:#ffe066;box-shadow:0 0 18px rgba(255,224,102,.9);animation:pulse 1s infinite}
+  #skills .sk:focus-visible{outline:3px solid #fff}
+  #luck{grid-column:1/-1;justify-self:stretch;display:flex;align-items:center;gap:6px;font:700 11px var(--jp);color:var(--gold)}
+  #luck i{flex:1;height:6px;background:rgba(255,215,122,.18);border-radius:3px;overflow:hidden}
+  #luck i b{display:block;height:100%;width:0;background:linear-gradient(90deg,#9b6bff,#ffd77a)}
+  #luck.full i b{background:#ffe066;box-shadow:0 0 8px #ffe066}
+  #raiseTag{grid-column:1/-1;font:700 11px var(--en);letter-spacing:.2em;color:#ffe066;min-height:13px}
+  @keyframes pulse{50%{filter:brightness(1.3)}}
   @media (prefers-reduced-motion:reduce){.ono{animation-duration:.01s}}
 </style>
 </head>
@@ -81,13 +109,24 @@
 <div id="flash" class="layer"></div>
 <div id="fade" class="layer"></div>
 <div id="joy"><i></i></div>
-<div id="help">床をタップした場所へ歩きます（キーボードは WASD / 矢印キー）</div>
+<div id="skb"><small></small><b></b></div>
+<div id="skills" aria-label="技">
+  <div id="raiseTag"></div>
+  <div id="luck"><span>ツキ</span><i><b id="luckbar"></b></i></div>
+  <button class="sk aw" data-k="awaken" type="button">覚醒<small>L</small></button>
+  <button class="sk" data-k="charge" type="button">溜め<small>K</small></button>
+  <button class="sk" data-k="s3" type="button">技3<small>O</small></button>
+  <button class="sk" data-k="s2" type="button">技2<small>I</small></button>
+  <button class="sk" data-k="s1" type="button">技1<small>U</small></button>
+  <button class="sk big" data-k="atk" type="button">攻撃<small>J</small></button>
+</div>
+<div id="help">移動：床タップ・ドラッグ・WASD　技：右下のボタン（J 攻撃 / U I O 技 / K 長押しで溜め / L 覚醒）</div>
 <div id="endmenu"><button class="btn" id="again" type="button">もう一度見る</button><button class="btn sub" id="towalk" type="button">カジノを歩く</button></div>
 <div id="hud">
   <button id="snd" type="button" aria-pressed="true">音：ON</button>
   <button id="replay" type="button" hidden>PVを見る</button>
   <button id="skip" type="button" hidden>スキップ</button>
-  <a href="lobby.html?v=20261127225147">ロビーへ</a>
+  <a href="lobby.html?v=20261127232220">ロビーへ</a>
 </div>
 <div id="gate" class="layer">
   <div class="gbox">
@@ -479,7 +518,7 @@ for (let i = 0; i < NC; i++) {
    音：BGM（ラウンジ風）と効果音は、その場で合成する
    ===================================================================== */
 // フォルトゥナのボイス（ElevenLabs：tools/gen_fortuna_voice.py）[音量, 頭の無音を飛ばす秒]
-const VOICES = { pv_01: [.85, .15], pv_02: [1, .13], pv_03: [.95, .09], pv_04: [.85, 0] };
+const VOICES = { pv_01: [.85, .15], pv_02: [1, .13], pv_03: [.95, .09], pv_04: [.85, 0], pv_05: [1, 0], call_s1: [.85, .15], jackpot: [1, .13], miss: [.9, .15], call_s2: [.75, .15], call_s3: [.9, .17], call_charge: [.95, .13], call_awaken: [.75, .33] };
 let vBus = null, vAn = null, vSrc = null, mouthOpen = 0;
 const vData = new Uint8Array(256);
 function voice(name, cap) {
@@ -683,9 +722,13 @@ function num(keys, t) {
 /* PVの段取り（秒） */
 const TL = { spot: 2.3, grab: 5.05, release: 6.3, catch: 8.7, flip0: 8.95, flip1: 9.45, cards: 9.6, fan: 12.4, ret0: 12.45, ret1: 13.1, logo: 16.3, end: 19.0 };
 // 3.9秒目に、1枚目の絵の「ようこそ」のポーズを3秒差し込む。TL・R_KEYS などは差し込む前の時刻で書いてある
-const INS_A = 3.9, INS_D = 3.0, real = t => t < INS_A ? t : t + INS_D;
-const tt = T => T < INS_A ? T : T < INS_A + INS_D ? INS_A : T - INS_D;
-const P1 = [3.3, 6.4], P2 = 16.2;          // ポーズ1（ようこそ）・ポーズ2（手を差し出す）の時刻（実時間）
+// さらに 13.15秒目（帽子を頭に戻した後）に、技紹介を17秒差し込む
+const INS_A = 3.9, INS_D = 3.0, INS_B = 13.15, INS_S = 17;
+const real = t => t < INS_A ? t : t < INS_B ? t + INS_D : t + INS_D + INS_S;
+const tt = T => { if (T < INS_A) return T; if (T < INS_A + INS_D) return INS_A; const u = T - INS_D; return u < INS_B ? u : u < INS_B + INS_S ? INS_B : u - INS_S; };
+const SHOW0 = INS_B + INS_D, SHOW1 = SHOW0 + INS_S;      // 技紹介の始まりと終わり（実時間）
+const inShow = T => T >= SHOW0 && T < SHOW1;
+const P1 = [3.3, 6.4], P2 = real(13.2);          // ポーズ1（ようこそ）・ポーズ2（手を差し出す）の時刻（実時間）
 const R_KEYS = [[0, -.24, .84, .1], [4.1, -.24, .84, .1], [4.85, -.27, 1.6, .1], [5.15, -.27, 1.62, .1], [5.75, -.34, 1.3, .3], [6.3, -.2, 1.98, .2], [6.7, -.26, 1.82, .26], [8.1, -.33, 1.7, .28], [8.7, -.27, 1.84, .22], [9.4, -.14, 1.22, .36], [12.45, -.14, 1.22, .36], [13.05, -.27, 1.62, .12], [99, -.27, 1.62, .12]];
 const L_KEYS = [[0, .2, .98, .22], [12.9, .2, .98, .22], [13.6, .26, 1.42, .26], [99, .26, 1.42, .26]];
 const HINT_R = new THREE.Vector3(-.6, -.35, -.25), HINT_L = new THREE.Vector3(.6, -.4, -.2);
@@ -742,7 +785,10 @@ function posePV(T, dt, RT = T) {
   bone('leftUpperLeg').rotation.z += .04 * w1; hp.rotation.y += .12 * w1; bone('head').rotation.z += .13 * w1; bone('chest').rotation.z -= .04 * w1;
   // 2枚目の絵：こちらへ手を差し出し、少し前へ乗り出す
   hp.rotation.y += .2 * w2; bone('spine').rotation.x += .1 * w2; bone('chest').rotation.x += .06 * w2; bone('head').rotation.z += .1 * w2;
-  const rT = track(R_KEYS, T).lerp(P1R, w1).lerp(P2R, w2), lT = track(L_KEYS, T).lerp(P1L, w1).lerp(P2L, w2);
+  const wS = smooth((RT - SHOW0) / .4) * (1 - smooth((RT - SHOW1 + .3) / .3));
+  hp.rotation.y += .25 * wS; bone('head').rotation.z -= .08 * wS;
+  const rT = track(R_KEYS, T).lerp(P1R, w1).lerp(V(-.3, 1.0, .25), wS).lerp(P2R, w2), lT = track(L_KEYS, T).lerp(P1L, w1).lerp(V(.26, 1.02, .2), wS).lerp(P2L, w2);
+  if (wS > .001) { const lh = bone('leftHand').rotation; lh.set(lerp(lh.x, .2, wS), lerp(lh.y, -.9, wS), lerp(lh.z, .25, wS)); }
   armIK('right', rT, HINT_R);
   armIK('left', lT, HINT_L);
   // 手首の向き：左手のカードを正面へ見せる
@@ -867,11 +913,23 @@ function cameraPV(T, RT = T) {
   else if (T < TL.fan - .05) { const u = (T - TL.cards) / (TL.fan - TL.cards), a = lerp(.5, -1.15, smooth(u)), r = lerp(3.1, 2.5, u); set([Math.sin(a) * r, 1.25 + u * .2, Math.cos(a) * r], [0, 1.25, 0]); fov = 42; }
   else { const u = smooth((T - TL.fan) / 4); set(L([.2, 1.35, 3.6], [-.05, 1.42, 2.75], u), L([-.35, 1.32, 0], [-.42, 1.36, 0], u)); fov = 40; }
   if (RT >= 3.2 && RT < INS_A + INS_D + .1) { const u = smooth((RT - 3.2) / 3.6); set(L([-.4, 1.15, 3.5], [-.28, 1.25, 2.95], u), L([.05, 1.0, 0], [.05, 1.08, 0], u)); fov = 38; }
+  if (inShow(RT)) fov = showCam(RT - SHOW0, set, L) || 42;
   if (RT >= P2 + .1) { const u = smooth((RT - P2) / 4.5); set(L([.2, 2.0, 1.95], [.08, 1.92, 1.55], u), L([-.2, 1.32, .15], [-.18, 1.36, .15], u)); fov = 46; }
   // 縦長の画面では少し引く
   if (camera.aspect < 1) { camPos.sub(camTgt).multiplyScalar(lerp(1.7, 1, clamp(camera.aspect, .5, 1) * 2 - 1)).add(camTgt); fov += 6; }
   camera.position.copy(camPos); camera.lookAt(camTgt);
   if (camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); }
+}
+
+/* 技紹介のカメラ（s：技紹介の始まりからの秒） */
+function showCam(s, set, L) {      // どれもキャラの位置が基準
+  if (s < 4.1) { const u = smooth(s / 4.1); set(L([-3.0, 2.1, -2.6], [-2.4, 1.9, -2.0], u), [0, 1.0, 4.0]); }
+  else if (s < 5.75) { const u = smooth((s - 4.1) / 1.65); set(L([.95, 1.1, -.35], [.8, 1.05, -.12], u), [0, .78, 1.15]); }
+  else if (s < 7.9) { const u = smooth((s - 5.75) / 2.15); set(L([3.6, 1.9, -1.8], [3.0, 1.7, -1.2], u), [0, .9, 3.6]); }
+  else if (s < 10) { const u = smooth((s - 7.9) / 2.1); set(L([-2.6, 1.9, -2.2], [-2.2, 1.8, -1.8], u), [0, 1.1, 3.5]); }
+  else if (s < 12) { const u = smooth((s - 10) / 2); set(L([-3.4, 1.5, .6], [-3.0, 1.6, 1.8], u), [0, .9, 1.2]); }
+  else if (s < 13.75) { const u = (s - 12) / 1.75, a = lerp(.6, 1.2, u); set([Math.sin(a) * 2.2, .9, -Math.cos(a) * 2.2], [0, .75, 0]); }
+  else { const u = smooth((s - 13.75) / 3.25); set(L([2.8, 3.1, -10.5], [2.2, 2.7, -9.2], u), [0, 1.4, -2.4]); return 50; }
 }
 
 /* 演出の合図（その時刻を通り過ぎたら一度だけ） */
@@ -890,6 +948,16 @@ const CUES = [
   [real(TL.cards) - .05, () => { SFX.flutter(0, 1.9); duck = 1; }],
   [real(TL.cards) + .2, () => SFX.chime(0)],
   [real(TL.fan), () => SFX.whoosh(0, -1)],
+  // ---- 技紹介
+  [SHOW0, () => { SK.respawn = false; [[-2.4, 5.6], [0, 4.2], [2.4, 5.6]].forEach(([x, z], i) => { const d = makeDummy(x, z, 1100, i); d.rise = 0; }); SFX.thunk(); showSkill('SKILL SHOWCASE', '勝負師の手札'); }],
+  [SHOW0 + .2, () => voice('pv_05', '見せてあげる。わたしの勝ち方。')],
+  [SHOW0 + 4.1, () => { showSkill('SKILL 1', 'ルーレットショット'); SK.force.s1 = 'jack'; pvUse('s1'); }],
+  [SHOW0 + 7.9, () => { showSkill('SKILL 2', 'ハットトリック'); pvUse('s2'); }],
+  [SHOW0 + 10.0, () => { showSkill('SKILL 3', 'コイントス・ステップ'); SK.force.s3 = 'omote'; SK.dash = 6; pvUse('s3'); }],
+  [SHOW0 + 12.0, () => { showSkill('CHARGE', 'レイズ'); vrm.scene.rotation.y = Math.PI; pvUse('charge'); }],      // 振り向いて、的のほうへ
+  [SHOW0 + 13.4, () => releaseCharge()],
+  [SHOW0 + 13.75, () => { SK.luck = 100; showSkill('AWAKEN', 'オールイン・ロイヤルフラッシュ'); pvUse('awaken'); }],
+  [SHOW1, () => { SK.dash = 0; resetSkills(); vrm.scene.position.set(0, DAIS_Y, 0); vrm.scene.rotation.y = 0; flash(); vrm.springBoneManager?.reset?.(); }],
   [P2 + .4, () => voice('pv_04', 'さあ――次は、あなたの番よ。')],
   [real(TL.logo), () => { hideCap(); SFX.hit(); $('logo').classList.add('on'); for (let i = 0; i < 120; i++) { const a = rnd() * 6.283, B = vrm.scene.position; SP.emit(B.x + Math.sin(a) * 1.1, B.y + 1.35 + Math.cos(a) * .9, B.z - .4, Math.sin(a) * .8, Math.cos(a) * .8, .3, 1 + rnd(), i % 3 === 0); } }],
   [real(TL.end) - 1.2, () => $('endmenu').classList.add('on')],
@@ -929,6 +997,7 @@ function updateWalk(dt, t) {
   let ix = (keys.d || keys.arrowright ? 1 : 0) - (keys.a || keys.arrowleft ? 1 : 0), iz = (keys.s || keys.arrowdown ? 1 : 0) - (keys.w || keys.arrowup ? 1 : 0);
   if (joy.on) { ix = joy.x; iz = joy.y; }
   let mv = new THREE.Vector3(ix, 0, iz);
+  if (SK.act && SK.act.lock) { mv.set(0, 0, 0); player.goal = null; }
   if (mv.lengthSq() > 0) player.goal = null;
   else if (player.goal) { mv.subVectors(player.goal, player.pos).setY(0); if (mv.length() < .15) { player.goal = null; mv.set(0, 0, 0); } }
   if (mv.lengthSq() > 1) mv.normalize();
@@ -954,7 +1023,7 @@ function updateWalk(dt, t) {
   armIK('left', new THREE.Vector3(.2, .98, .22), HINT_L, 1 - w);
   bone('leftHand').rotation.set(.2, -.9, .25);
   fingers('right', .25); fingers('left', .7);
-  const bl = blink(dt, true); expr('happy_mouth', .35); expr('relaxed_eye', bl > 0 ? 0 : .25); expr('blinkLeft', 0); expr('blink', bl);
+  const bl = blink(dt, true); expr('happy_mouth', talking ? 0 : .35); expr('brow_happy', talking ? .6 : 0); lipSync(); expr('relaxed_eye', bl > 0 ? 0 : .25); expr('blinkLeft', 0); expr('blink', bl);
   if (vrm.lookAt) lookObj.position.copy(camera.position);
   keyLight.position.copy(vrm.scene.position).add(_v.set(-2.5, 6, 6)); keyLight.target.position.copy(vrm.scene.position);   // 影はキャラについていく
   // カメラは後ろ上から追う
@@ -991,12 +1060,642 @@ const endJoy = e => {
 canvas.addEventListener('pointerup', endJoy); canvas.addEventListener('pointercancel', endJoy);
 
 /* =====================================================================
+   フォルトゥナの技（カジノで使える。PVの技紹介でも同じものを動かす）
+     通常：カードスロー（3段）／技1：ルーレットショット／技2：ハットトリック
+     技3：コイントス・ステップ／溜め：レイズ／覚醒：オールイン・ロイヤルフラッシュ
+     ツキ：出目が外れると貯まり、満タンで覚醒できる
+   ===================================================================== */
+const SK = { act: null, combo: 0, comboT: 0, cd: { s1: 0, s2: 0, s3: 0 }, luck: 0, raise: 0, charge: null, awakenT: 0, missRow: 0,
+  turret: null, hatFly: null, coin: null, bomb: null, royal: null, shots: [], rings: [], chips: [], shake: 0, force: {}, respawn: true };
+const CD = { s1: 7, s2: 4, s3: 3 };
+const RAISE_MUL = [1, 1.3, 1.6, 2];
+const actorPos = () => vrm.scene.position;
+const fwdOf = () => new THREE.Vector3(Math.sin(vrm.scene.rotation.y), 0, Math.cos(vrm.scene.rotation.y));
+const rightOf = () => new THREE.Vector3(-Math.cos(vrm.scene.rotation.y), 0, Math.sin(vrm.scene.rotation.y));     // キャラの右手側
+const busy = () => SK.act && SK.act.k !== 'atk';
+function moveActor(dx, dz) {
+  if (mode === 'walk') {
+    player.pos.x = clamp(player.pos.x + dx, -ROOM.x + 1.4, ROOM.x - 1.4); player.pos.z = clamp(player.pos.z + dz, ROOM.z0 + 1.2, ROOM.z1 - 1);
+    for (const [cx, cz, r] of colliders) { const ex = player.pos.x - cx, ez = player.pos.z - cz, d = Math.hypot(ex, ez); if (d < r && d > 0) { player.pos.x = cx + ex / d * r; player.pos.z = cz + ez / d * r; } }
+    vrm.scene.position.set(player.pos.x, groundY(player.pos.x, player.pos.z), player.pos.z);
+  } else { const p = vrm.scene.position; p.x += dx; p.z += dz; p.y = groundY(p.x, p.z); }
+}
+
+/* ---- 音（技用） ---- */
+function sweep(d, f0, f1, dur, type, vol) {
+  if (!AC) return; const t = at(d), o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur); o.connect(g); g.connect(sfxBus); env(g, t, .005, vol, dur); o.start(t); o.stop(t + dur + .05);
+}
+Object.assign(SFX, {
+  pew(d = 0, big = false) { if (!AC) return; if (big) { sweep(d, 700, 70, .45, 'sawtooth', .22); noise(d, .4, 'lowpass', 900, .7, .45); tone(d, 55, 'sine', .6, .5); } else { sweep(d, 1500, 320, .12, 'square', .07); sweep(d, 2600, 900, .08, 'sine', .08); } },
+  tick(d = 0) { if (AC) noise(d, .025, 'bandpass', 3200, 3, .22); },
+  clunk(d = 0) { if (!AC) return; tone(d, 180, 'square', .12, .12); noise(d, .05, 'lowpass', 1500, .7, .4); },
+  ding(d = 0, f = 1320) { if (!AC) return; tone(d, f, 'triangle', .18, .5); tone(d, f * 2, 'sine', .06, .3); },
+  bwomp(d = 0) { if (!AC) return; sweep(d, 320, 90, .5, 'sawtooth', .12); },
+  thud(d = 0) { if (!AC) return; noise(d, .09, 'lowpass', 1300, .7, .45); tone(d, 130, 'sine', .35, .12); },
+  boom(d = 0, big = 1) { if (!AC) return; noise(d, .9 * big, 'lowpass', 500, .7, .9); tone(d, 48, 'sine', .9, 1.1 * big); noise(d, .5, 'highpass', 4000, .5, .2); },
+  ting(d = 0) { if (!AC) return; tone(d, 2600, 'sine', .14, .45); tone(d + .01, 3900, 'sine', .08, .3); },
+  fanfare(d = 0) { if (!AC) return; [67, 72, 76, 79, 84].forEach((m, i) => { tone(d + i * .09, mf(m), 'square', .06, .35); tone(d + i * .09, mf(m + 12), 'sine', .08, .6); }); [84, 88, 91].forEach(m => tone(d + .5, mf(m), 'triangle', .1, 1.4)); for (let i = 0; i < 8; i++) SFX.coin(d + .3 + i * .09); },
+});
+
+/* ---- 表示：技名の帯・出目・ダメージの数字 ---- */
+function showSkill(tag, name) {
+  const b = $('skb'); b.querySelector('small').textContent = tag; b.querySelector('b').textContent = name;
+  b.classList.remove('on'); void b.offsetWidth; b.classList.add('on');
+  clearTimeout(showSkill.t); showSkill.t = setTimeout(() => b.classList.remove('on'), mode === 'pv' ? 2600 : 1400);
+}
+function showRes(text, color = '#ffe9a8', size = 1) {
+  if (SNAP_T !== null) return;
+  const el = document.createElement('div'); el.className = 'res'; el.textContent = text; el.style.color = color; el.style.fontSize = `calc(clamp(30px,7vw,72px) * ${size})`;
+  $('ono').appendChild(el); setTimeout(() => el.remove(), 1500);
+}
+const dmgPool = [];
+function dmgNum(pos, n, kind) {
+  if (SNAP_T !== null) return;
+  const el = document.createElement('div'); el.className = 'dmg' + (kind ? ' ' + kind : ''); el.textContent = kind === 'heal' ? '+' + n : n;
+  $('ono').appendChild(el); dmgPool.push({ el, p: pos.clone().add(new THREE.Vector3((rnd() - .5) * .4, 0, (rnd() - .5) * .4)), t: 0 });
+}
+function updateDmg(dt) {
+  for (let i = dmgPool.length - 1; i >= 0; i--) {
+    const d = dmgPool[i]; d.t += dt; d.p.y += dt * .9;
+    const s = d.p.clone().project(camera);
+    d.el.style.left = (s.x * .5 + .5) * innerWidth + 'px'; d.el.style.top = (-s.y * .5 + .5) * innerHeight + 'px';
+    d.el.style.opacity = s.z < 1 ? clamp(1.6 - d.t * 1.6, 0, 1) : 0;
+    if (d.t > 1) { d.el.remove(); dmgPool.splice(i, 1); }
+  }
+}
+
+/* ---- 的：トランプの兵隊 ---- */
+const dummies = [];
+const dummyFaces = [['J', '♠'], ['Q', '♣'], ['K', '♦'], ['J', '♥'], ['K', '♠']].map(([r, s]) => cardFace(r, s));
+function makeDummy(x, z, hp, i) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(.42, .5, .1, 24), GOLD); base.position.y = .05; g.add(base);
+  const body = new THREE.Group(); body.position.y = .12; g.add(body);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(.035, .035, .45, 8), GOLD); pole.position.y = .22; body.add(pole);
+  const face = new THREE.MeshStandardMaterial({ map: dummyFaces[i % dummyFaces.length], emissive: 0x2a1a08, emissiveIntensity: .6, roughness: .45, metalness: .2 });
+  const card = new THREE.Mesh(new THREE.BoxGeometry(.95, 1.33, .03), [edgeMat, edgeMat, edgeMat, edgeMat, face, backMat]); card.position.y = 1.1; card.castShadow = true; body.add(card);
+  const bar = new THREE.Group(); bar.position.y = 2.05; g.add(bar);
+  const bg = new THREE.Mesh(new THREE.PlaneGeometry(.9, .07), new THREE.MeshBasicMaterial({ color: 0x220810, depthWrite: false })); bar.add(bg);
+  const fill = new THREE.Mesh(new THREE.PlaneGeometry(.88, .05), new THREE.MeshBasicMaterial({ color: 0xffc94a, depthWrite: false })); fill.position.z = .001; bar.add(fill);
+  scene.add(g);
+  const d = { g, body, face, bar, fill, hp, max: hp, alive: true, flash: 0, wob: 0, wobV: 0, down: 0, respawn: 0, rise: 1, home: new THREE.Vector3(x, 0, z) };
+  dummies.push(d); return d;
+}
+function clearDummies() { for (const d of dummies) scene.remove(d.g); dummies.length = 0; }
+function nearestDummy(from, maxD = 16, dir = null) {
+  let best = null, bd = maxD;
+  for (const d of dummies) {
+    if (!d.alive || d.rise < .9) continue;
+    const dx = d.g.position.x - from.x, dz = d.g.position.z - from.z, dist = Math.hypot(dx, dz);
+    if (dir && (dx * dir.x + dz * dir.z) / (dist || 1) < .2) continue;      // 後ろの的は狙わない
+    if (dist < bd) { bd = dist; best = d; }
+  }
+  return best;
+}
+const dummyCenter = d => new THREE.Vector3(d.g.position.x, d.g.position.y + 1.2, d.g.position.z);
+function hurt(d, dmg, from, knock = 1, kind = '') {
+  if (!d.alive) return;
+  const n = Math.round(dmg * (.9 + rnd() * .2));
+  d.hp -= n; d.flash = 1; d.wobV += (2 + knock * 3) * (rnd() < .5 ? 1 : -1);
+  dmgNum(dummyCenter(d), n, kind || (n >= 150 ? 'crit' : ''));
+  SK.luck = Math.min(100, SK.luck + .6);
+  for (let i = 0; i < 6; i++) { const c = dummyCenter(d); SP.emit(c.x, c.y, c.z, (rnd() - .5) * 2, rnd() * 2, (rnd() - .5) * 2, .4 + rnd() * .3, i % 2 === 0); }
+  if (d.hp <= 0) {
+    d.alive = false; d.down = 0; d.respawn = 4;
+    SFX.boom(0, .5);
+    for (let i = 0; i < 40; i++) { const c = dummyCenter(d); SP.emit(c.x, c.y, c.z, (rnd() - .5) * 5, rnd() * 4, (rnd() - .5) * 5, .7 + rnd() * .5, i % 3 === 0); }
+  } else SFX.thud();
+}
+// 範囲で当てる。set を渡すと、同じ的には一度だけ当たる
+function hitArea(center, r, dmg, knock = 1, set = null, kind = '') {
+  let n = 0;
+  for (const d of dummies) {
+    if (!d.alive || d.rise < .9 || (set && set.has(d))) continue;
+    if (Math.hypot(d.g.position.x - center.x, d.g.position.z - center.z) < r + .45 && Math.abs(center.y - (d.g.position.y + 1.1)) < 1.6 + r * .3) { hurt(d, dmg, center, knock, kind); set?.add(d); n++; }
+  }
+  return n;
+}
+function updateDummies(dt) {
+  for (const d of dummies) {
+    // こちらを向く
+    const a = actorPos(), want = Math.atan2(a.x - d.g.position.x, a.z - d.g.position.z);
+    let df = want - d.g.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); d.g.rotation.y += df * (1 - Math.exp(-dt * 4));
+    d.wobV += (-d.wob * 60 - d.wobV * 7) * dt; d.wob += d.wobV * dt;
+    d.flash = Math.max(0, d.flash - dt * 6);
+    d.face.emissive.setRGB(.17 + d.flash * .9, .1 + d.flash * .8, .03 + d.flash * .6);
+    if (d.rise < 1) d.rise = Math.min(1, d.rise + dt * 2.2);
+    if (!d.alive) {
+      d.down = Math.min(1, d.down + dt * 3);
+      d.body.rotation.x = -easeOut(d.down) * Math.PI / 2;
+      if (SK.respawn) { d.respawn -= dt; if (d.respawn <= 0) { d.alive = true; d.hp = d.max; d.rise = 0; d.body.rotation.x = 0; } }
+    } else d.body.rotation.x = 0;
+    d.body.rotation.z = d.wob * .25;
+    d.body.position.y = .12 - (1 - smooth(d.rise)) * 2.2;
+    d.bar.visible = d.alive && d.rise > .9;
+    d.fill.scale.x = Math.max(.001, d.hp / d.max); d.fill.position.x = -.44 * (1 - d.fill.scale.x);
+    d.bar.quaternion.copy(camera.quaternion);
+  }
+}
+
+/* ---- 弾 ---- */
+const orbGeo = new THREE.SphereGeometry(1, 16, 12);
+function shoot(o) {      // { pos, dir, speed, r, dmg, life, kind, color, scale, pierce, knock }
+  let m;
+  if (o.kind === 'card') { m = new THREE.Mesh(cardGeo, [edgeMat, edgeMat, edgeMat, edgeMat, faces[Math.floor(rnd() * faces.length)], backMat]); m.scale.setScalar(o.scale || 1.6); }
+  else { m = new THREE.Mesh(orbGeo, new THREE.MeshBasicMaterial({ color: new THREE.Color(o.color || 0xffd77a).multiplyScalar(3), toneMapped: false })); m.scale.setScalar(o.scale || .09); }   // 明るくして光らせる
+  m.position.copy(o.pos); scene.add(m);
+  SK.shots.push(Object.assign({ m, t: 0, hit: new Set(), spin: rnd() * 6 }, o, { dir: o.dir.clone().normalize() }));
+}
+function updateShots(dt) {
+  for (let i = SK.shots.length - 1; i >= 0; i--) {
+    const s = SK.shots[i]; s.t += dt;
+    s.m.position.addScaledVector(s.dir, s.speed * dt);
+    if (s.kind === 'card') { s.spin += dt * 25; s.m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), s.dir); s.m.rotateX(-Math.PI / 2 + .2); s.m.rotateZ(s.spin); }
+    const p = s.m.position;
+    if (rnd() < (s.kind === 'card' ? .5 : 1)) SP.emit(p.x, p.y, p.z, (rnd() - .5) * .3, (rnd() - .5) * .3, (rnd() - .5) * .3, .25 + rnd() * .2, s.tint);
+    let done = s.t > s.life;
+    for (const d of dummies) {
+      if (!d.alive || d.rise < .9 || s.hit.has(d)) continue;
+      const c = dummyCenter(d);
+      if (Math.hypot(c.x - p.x, c.z - p.z) < s.r + .45 && Math.abs(c.y - p.y) < .9 + s.r) {
+        s.hit.add(d); hurt(d, s.dmg, p, s.knock || 1, s.crit ? 'crit' : '');
+        if (s.big) { SK.shake = Math.max(SK.shake, .12); burstRing(p, 1.6, 0xffd77a); }
+        if (!s.pierce) { done = true; break; }
+      }
+    }
+    if (done) { scene.remove(s.m); s.m.material.dispose?.(); SK.shots.splice(i, 1); }
+  }
+}
+// 広がる光の輪
+const ringGeo = new THREE.RingGeometry(.85, 1, 48);
+function burstRing(pos, size, color = 0xffd77a, life = .5) {
+  const m = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color, transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+  m.rotation.x = -Math.PI / 2; m.position.set(pos.x, Math.max(.05, pos.y > 1 ? .08 : pos.y + .05), pos.z); scene.add(m);
+  SK.rings.push({ m, t: 0, size, life });
+}
+function updateRings(dt) {
+  for (let i = SK.rings.length - 1; i >= 0; i--) {
+    const r = SK.rings[i]; r.t += dt; const u = r.t / r.life;
+    r.m.scale.setScalar(.2 + easeOut(u) * r.size); r.m.material.opacity = 1 - u;
+    if (u >= 1) { scene.remove(r.m); r.m.material.dispose(); SK.rings.splice(i, 1); }
+  }
+}
+
+/* ---- 技を出す ---- */
+function startAct(k, dur, lock, ev = []) { SK.act = { k, t: 0, dur, lock, ev: ev.sort((a, b) => a[0] - b[0]), n: 0 }; }
+function aimAtNearest() {      // 近くの的のほうへ向く（歩いているときだけ）
+  if (mode !== 'walk') return;
+  const d = nearestDummy(actorPos(), 11); if (!d) return;
+  player.yaw = Math.atan2(d.g.position.x - player.pos.x, d.g.position.z - player.pos.z); vrm.scene.rotation.y = player.yaw;
+}
+const handPos = () => { const p = new THREE.Vector3(); handRawR.getWorldPosition(p); return p; };
+const takeRaise = () => { const r = SK.raise; SK.raise = 0; for (const c of SK.chips) c.fade = true; return r; };
+function pvUse(k) { SK.act = null; SK.charge = null; useSkill(k); }     // PVの台本用：前の動きを打ち切ってから出す
+function useSkill(k) {
+  if (!vrm) return;
+  if (k === 'atk') return attack();
+  if (k === 'charge') return startCharge();
+  if (busy() || SK.charge) return;
+  if (k === 's1' && SK.cd.s1 <= 0) return skillRoulette();
+  if (k === 's2' && SK.cd.s2 <= 0 && !SK.hatFly) return skillHat();
+  if (k === 's3' && SK.cd.s3 <= 0) return skillCoin();
+  if (k === 'awaken' && SK.luck >= 100 && !SK.royal) return skillAwaken();
+}
+// 通常：カードスロー
+function attack() {
+  if (busy() || SK.charge) return;
+  if (SK.act && SK.act.k === 'atk' && SK.act.t < .22) return;
+  const n = SK.comboT > 0 ? SK.combo % 3 + 1 : 1; SK.combo = n; SK.comboT = .75;
+  aimAtNearest();
+  startAct('atk', n === 3 ? .5 : .36, false, [[n === 3 ? .16 : .11, () => {
+    const f = fwdOf(), p = handPos().addScaledVector(f, .2);
+    const tgt = nearestDummy(actorPos(), 14, f);
+    const dir = tgt ? dummyCenter(tgt).sub(p).setY(0).normalize() : f;
+    SFX.whoosh(0, 1);
+    if (n < 3) shoot({ pos: p, dir, speed: 17, r: .3, dmg: 38, life: .8, kind: 'card' });
+    else for (let i = -2; i <= 2; i++) shoot({ pos: p, dir: dir.clone().applyAxisAngle(Y, i * .17), speed: 15, r: .3, dmg: 28, life: .7, kind: 'card' });
+  }]]);
+  SK.act.n = n;
+}
+
+/* 技1：ルーレットショット（3リールのスロット砲台） */
+const SYM = ['7', '♦', '♣', '♥', 'BAR', '★'];
+const symTex = SYM.map(s => tex(128, 128, (g, w, h) => {
+  const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#bdb4a2'); gr.addColorStop(.5, '#fffaf0'); gr.addColorStop(1, '#bdb4a2'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = s === '7' || s === '♦' || s === '♥' ? '#c8102e' : s === '★' ? '#c98a12' : '#16121e';
+  g.font = s === 'BAR' ? '900 40px sans-serif' : s === '7' ? '900 96px serif' : '86px serif'; g.fillText(s, w / 2, h / 2 + 4);
+  g.strokeStyle = '#8a6a2a'; g.lineWidth = 3; g.strokeRect(1, 1, w - 2, h - 2);
+}));
+const OUTCOME = {
+  jack:  { mul: 3, rate: .55, n: 7, big: true, label: 'JACKPOT!!', color: '#ffe066', luck: 4 },
+  dia:   { mul: 2, rate: .19, n: 22, label: '♦ ラピッド', color: '#ff6b8a', luck: 8 },
+  club:  { mul: 2, rate: .42, n: 10, spread: true, label: '♣ スプレッド', color: '#c9a8ff', luck: 8 },
+  heart: { mul: 1.5, rate: .4, n: 11, heal: true, label: '♥ ハートビート', color: '#ff8fb0', luck: 8 },
+  pair:  { mul: 1.3, rate: .4, n: 11, label: 'PAIR', color: '#ffe9a8', luck: 12 },
+  none:  { mul: .7, rate: .4, n: 11, label: 'NO HIT', color: '#a99f92', luck: 34 },
+};
+const RANK = { jack: 5, dia: 4, club: 4, heart: 4, pair: 2, none: 1 };
+function rollSlot(r) {
+  if (SK.force.s1) { const k = SK.force.s1; SK.force.s1 = null; return k; }
+  if (SK.awakenT > 0) return 'jack';
+  let best = null;
+  for (let i = 0; i <= r; i++) {        // レイズした分だけ引き直して、いちばん良い出目を取る
+    let x = rnd(), k;
+    if (SK.missRow >= 3) x = .16 + x * .4;                 // 外れが3回続いたら、次はそろう
+    k = x < .04 ? 'jack' : x < .08 ? 'dia' : x < .12 ? 'club' : x < .16 ? 'heart' : x < .56 ? 'pair' : 'none';
+    if (!best || RANK[k] > RANK[best]) best = k;
+  }
+  return best;
+}
+function reelsFor(k) {
+  const pick = n => Math.floor(rnd() * n);
+  if (k === 'jack') return [0, 0, 0];
+  if (k === 'dia') return [1, 1, 1]; if (k === 'club') return [2, 2, 2]; if (k === 'heart') return [3, 3, 3];
+  if (k === 'pair') { const a = pick(6); let b = pick(6); if (b === a) b = (a + 1 + pick(5)) % 6; const r = [a, a, b]; const sw = pick(3); [r[sw], r[2]] = [r[2], r[sw]]; return r; }
+  let a = pick(6), b = pick(6), c = pick(6); while (b === a) b = pick(6); while (c === a || c === b) c = pick(6); return [a, b, c];
+}
+function makeTurret() {
+  const g = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(.3, .38, .22, 24), BLACK); base.position.y = .11; g.add(base);
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .32, 10), GOLD); post.position.y = .38; g.add(post);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(.92, .6, .46), std({ color: 0x4a0b1c, metalness: .6, roughness: .3 })); body.position.y = .82; g.add(body);
+  for (const y of [.5, 1.14]) { const t = new THREE.Mesh(new THREE.BoxGeometry(.98, .06, .5), GOLD); t.position.y = y; g.add(t); }
+  const marq = new THREE.Mesh(new THREE.BoxGeometry(.92, .2, .3), [GOLD, GOLD, GOLD, GOLD, new THREE.MeshBasicMaterial({ map: neonText('FORTUNA', 256, 64, '800 40px serif', '#fff0c8', '#ffb43a') }), new THREE.MeshBasicMaterial({ map: neonText('♠ LUCKY ♠', 256, 64, '800 36px serif', '#fff0c8', '#ff4a7a') })]);
+  marq.position.y = 1.27; g.add(marq);
+  const reels = [];
+  for (let i = 0; i < 3; i++) {
+    const rg = new THREE.Group(); rg.position.set(-.27 + i * .27, .82, -.23); g.add(rg);
+    for (let k = 0; k < 6; k++) {
+      const a = k / 6 * Math.PI * 2, f = new THREE.Mesh(new THREE.PlaneGeometry(.22, .19), new THREE.MeshBasicMaterial({ map: symTex[k] }));
+      f.position.set(0, Math.sin(a) * .165, -Math.cos(a) * .165); f.rotation.set(a, Math.PI, 0); rg.add(f);
+    }
+    reels.push(rg);
+  }
+  const barrel = new THREE.Group(); barrel.position.set(0, 1.0, .1); g.add(barrel);
+  const tube = new THREE.Mesh(new THREE.CylinderGeometry(.07, .1, .6, 16), GOLD); tube.rotation.x = Math.PI / 2; tube.position.z = .3; barrel.add(tube);
+  const muzzle = new THREE.Mesh(new THREE.TorusGeometry(.085, .025, 8, 20), GOLD); muzzle.position.z = .6; barrel.add(muzzle);
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(.07, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffd77a })); lamp.position.set(.5, 1.27, 0); g.add(lamp);
+  const lever = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .4, 8), GOLD); lever.position.set(.52, .95, 0); g.add(lever);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(.06, 10, 8), std({ color: 0xc8102e })); knob.position.set(.52, 1.16, 0); g.add(knob);
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return { g, reels, barrel, lamp };
+}
+function skillRoulette() {
+  const r = takeRaise();
+  SK.cd.s1 = CD.s1; aimAtNearest();
+  voice('call_s1', 'ルーレットショット！');
+  startAct('s1', .95, true);
+  if (SK.turret) { scene.remove(SK.turret.g); SK.turret = null; }
+  const T0 = makeTurret(), f = fwdOf(), p = actorPos().clone().addScaledVector(f, 1.35);
+  p.y = groundY(p.x, p.z);
+  T0.g.position.copy(p); T0.g.rotation.y = vrm.scene.rotation.y; T0.g.scale.setScalar(.01); scene.add(T0.g);
+  const k = rollSlot(r);
+  SK.missRow = k === 'none' ? SK.missRow + 1 : 0;
+  SK.turret = Object.assign(T0, { t: 0, k, o: OUTCOME[k], res: reelsFor(k), stop: [1.05, 1.3, 1.6], from: [0, 0, 0], shown: false, fired: 0, nextShot: 0, mul: RAISE_MUL[r], tick: 0 });
+  burstRing(p, 1.4, 0xffd77a);
+  SFX.ting(); SFX.coin(.05);
+}
+const FIRE0 = 1.75;
+function updateTurret(dt) {
+  const tu = SK.turret; if (!tu) return;
+  tu.t += dt;
+  const pop = tu.t < .3 ? easeOut(tu.t / .3) * 1.15 : tu.t < .4 ? lerp(1.15, 1, (tu.t - .3) / .1) : 1;
+  const endT = FIRE0 + tu.o.n * tu.o.rate + .5;
+  tu.g.scale.setScalar(tu.t > endT ? Math.max(.001, 1 - (tu.t - endT) / .3) : pop);
+  // リール：回して、順に止める
+  tu.reels.forEach((rg, i) => {
+    const sp = 22, st = tu.stop[i];
+    if (tu.t < st) rg.rotation.x = -sp * tu.t;
+    else {
+      const cur = -sp * st, tgt = -(tu.res[i] / 6) * Math.PI * 2;
+      const fin = tgt + Math.PI * 2 * Math.floor((cur - tgt) / (Math.PI * 2));
+      const u = clamp((tu.t - st) / .22, 0, 1), back = 1 + 2.2 * Math.pow(u - 1, 3) + 1.2 * Math.pow(u - 1, 2);
+      rg.rotation.x = lerp(cur, fin, back);
+      if (!tu['s' + i]) { tu['s' + i] = 1; SFX.clunk(); }
+    }
+  });
+  if (tu.t < tu.stop[2]) { tu.tick -= dt; if (tu.tick <= 0) { tu.tick = .055; SFX.tick(); } }
+  tu.lamp.material.color.setHSL((tu.t * 2) % 1, 1, .6);
+  // 出目の発表
+  if (!tu.shown && tu.t >= tu.stop[2] + .15) {
+    tu.shown = true; const o = tu.o, P = tu.g.position.clone().add(new THREE.Vector3(0, 1.4, 0));
+    SK.luck = Math.min(100, SK.luck + o.luck);
+    showRes(o.label, o.color, tu.k === 'jack' ? 1.3 : tu.k === 'none' ? .7 : 1);
+    if (tu.k === 'jack') { SFX.fanfare(); voice('jackpot', 'あら、引いちゃった♪'); flash(); SK.shake = .15; for (let i = 0; i < 120; i++) SP.emit(P.x, P.y, P.z, (rnd() - .5) * 6, rnd() * 5, (rnd() - .5) * 6, .8 + rnd() * .6, i % 3 === 0); }
+    else if (tu.k === 'none') { SFX.bwomp(); if (rnd() < .6 || mode === 'pv') voice('miss', '……今のは見逃してあげる。'); }
+    else if (tu.k === 'pair') SFX.ding();
+    else { SFX.chime(); for (let i = 0; i < 50; i++) SP.emit(P.x, P.y, P.z, (rnd() - .5) * 4, rnd() * 3, (rnd() - .5) * 4, .7, true); }
+  }
+  // 撃つ
+  if (tu.t >= FIRE0 && tu.fired < tu.o.n && tu.t >= tu.nextShot) {
+    tu.nextShot = tu.t + tu.o.rate; tu.fired++;
+    const o = tu.o, mp = new THREE.Vector3(); tu.barrel.children[1].getWorldPosition(mp);
+    const tgt = nearestDummy(tu.g.position, 16, new THREE.Vector3(Math.sin(tu.g.rotation.y), 0, Math.cos(tu.g.rotation.y)));
+    let dir = tgt ? dummyCenter(tgt).sub(mp).normalize() : new THREE.Vector3(Math.sin(tu.g.rotation.y), 0, Math.cos(tu.g.rotation.y));
+    if (tgt) { const lp = tu.g.worldToLocal(dummyCenter(tgt)); tu.barrel.rotation.y = Math.atan2(lp.x, lp.z); }
+    const dmg = 30 * o.mul * tu.mul;
+    if (o.big) { shoot({ pos: mp, dir, speed: 15, r: .7, dmg, life: 1.4, scale: .17, color: 0xffe066, pierce: true, knock: 3, big: true, crit: true }); SFX.pew(0, true); SK.shake = Math.max(SK.shake, .06); }
+    else if (o.spread) { for (const a of [-.22, 0, .22]) shoot({ pos: mp, dir: dir.clone().applyAxisAngle(Y, a), speed: 17, r: .3, dmg, life: .9, scale: .09, color: 0xc9a8ff, tint: true }); SFX.pew(); }
+    else { shoot({ pos: mp, dir, speed: 18, r: .3, dmg, life: .9, scale: .09, color: tu.k === 'heart' ? 0xff8fb0 : tu.k === 'dia' ? 0xff6b8a : 0xffd77a }); SFX.pew(); }
+    if (o.heal && tu.fired % 3 === 0) dmgNum(actorPos().clone().add(new THREE.Vector3(0, 1.8, 0)), 40, 'heal');
+    for (let i = 0; i < 8; i++) SP.emit(mp.x, mp.y, mp.z, dir.x * 2 + (rnd() - .5), dir.y * 2 + (rnd() - .5), dir.z * 2 + (rnd() - .5), .25, false);
+  }
+  if (tu.t > endT + .3) { scene.remove(tu.g); SK.turret = null; }
+}
+
+/* 技2：ハットトリック（帽子のブーメラン → キャッチでカードが噴き出す） */
+const HAT_OUT = .32, HAT_FLY = 1.25;
+function skillHat() {
+  const r = takeRaise();
+  SK.cd.s2 = CD.s2; aimAtNearest();
+  voice('call_s2', 'ハットトリック！');
+  startAct('s2', HAT_OUT + HAT_FLY + .45, true);
+  SK.hatFly = { t: 0, side: rnd() < .5 ? 1 : -1, hit: new Set(), mul: RAISE_MUL[r], cards: 12 + r * 6, o: null, f: fwdOf(), rt: rightOf(), caught: false, back: false };
+}
+const _hm = new THREE.Matrix4(), _hq3 = new THREE.Quaternion();
+function hatFlyPos(h, u) {
+  return h.o.clone().addScaledVector(h.f, 6.2 * Math.sin(Math.PI * u)).addScaledVector(h.rt, 1.3 * h.side * Math.sin(2 * Math.PI * u)).add(new THREE.Vector3(0, .25 * Math.sin(Math.PI * u), 0));
+}
+function updateHatFly(dt) {
+  const h = SK.hatFly; if (!h) return;
+  h.t += dt;
+  if (h.t >= HAT_OUT && !h.o) { h.o = new THREE.Vector3(); headRaw.getWorldPosition(h.o); h.o.y += .12; SFX.whoosh(0, 1); }
+  if (!h.o) return;
+  const u = (h.t - HAT_OUT) / HAT_FLY;
+  if (u >= .5 && !h.back) { h.back = true; h.hit.clear(); SFX.whoosh(0, -1); }
+  if (u < 1) {
+    const p = hatFlyPos(h, u);
+    hitArea(p, .75, 55 * h.mul, 1, h.hit);
+    if (rnd() < .8) SP.emit(p.x, p.y, p.z, (rnd() - .5) * .4, (rnd() - .5) * .4, (rnd() - .5) * .4, .4, true);
+  } else if (!h.caught) {
+    h.caught = true;
+    // キャッチした瞬間、帽子からカードが噴き出す
+    const c = h.o.clone(); SFX.catch(); SFX.flutter(0, 1.2); burstRing(actorPos(), 2.6, 0xc9a8ff);
+    for (let i = 0; i < h.cards; i++) { const a = i / h.cards * Math.PI * 2; shoot({ pos: c, dir: new THREE.Vector3(Math.sin(a), -.08, Math.cos(a)), speed: 10, r: .35, dmg: 24 * h.mul, life: .42, kind: 'card', pierce: true }); }
+    for (let i = 0; i < 50; i++) SP.emit(c.x, c.y, c.z, (rnd() - .5) * 4, rnd() * 3, (rnd() - .5) * 4, .6, i % 2 === 0);
+    SK.shake = Math.max(SK.shake, .05);
+  }
+  if (h.t > HAT_OUT + HAT_FLY + .5) SK.hatFly = null;
+}
+function hatOverride() {      // 帽子が飛んでいる間は、頭から外して動かす
+  const h = SK.hatFly; if (!h || !h.o || h.caught) return;
+  const u = clamp((h.t - HAT_OUT) / HAT_FLY, 0, 1), p = hatFlyPos(h, u);
+  _hq3.setFromAxisAngle(Y, h.t * 24);
+  _hm.compose(p, _hq3, new THREE.Vector3(1, 1, 1).multiplyScalar(1 + .5 * Math.sin(Math.PI * u)));
+  hat.pivot.matrix.copy(_hm); hat.pivot.matrixWorldNeedsUpdate = true;
+}
+
+/* 技3：コイントス・ステップ（表：前へ駆け抜ける／裏：下がってコインの爆弾を置く） */
+const coinTex = (txt, col) => tex(128, 128, (g, w, h) => { g.fillStyle = '#d9a64a'; g.beginPath(); g.arc(w / 2, h / 2, 62, 0, 7); g.fill(); g.strokeStyle = '#8a5f1e'; g.lineWidth = 6; g.beginPath(); g.arc(w / 2, h / 2, 52, 0, 7); g.stroke(); g.fillStyle = col; g.font = '900 54px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, w / 2, h / 2 + 3); });
+const coinMats = [new THREE.MeshStandardMaterial({ color: 0xd9a64a, metalness: .9, roughness: .25 }), new THREE.MeshStandardMaterial({ map: coinTex('表', '#5a1a00'), metalness: .6, roughness: .3, emissive: 0x3a2508, emissiveIntensity: .8 }), new THREE.MeshStandardMaterial({ map: coinTex('裏', '#2a0f45'), metalness: .6, roughness: .3, emissive: 0x3a2508, emissiveIntensity: .8 })];
+const coinGeo = new THREE.CylinderGeometry(.09, .09, .014, 28);
+function skillCoin() {
+  const r = takeRaise();
+  SK.cd.s3 = CD.s3; aimAtNearest();
+  voice('call_s3', '表か、裏か――！');
+  const face = SK.force.s3 || (rnd() < .5 ? 'omote' : 'ura'); SK.force.s3 = null;
+  const m = new THREE.Mesh(coinGeo, coinMats); m.castShadow = true; scene.add(m);
+  SK.coin = { m, t: 0, face, mul: RAISE_MUL[r], hit: new Set(), done: false, p0: null };
+  startAct('s3', 1.35, true);
+  SFX.ting();
+}
+function updateCoin(dt) {
+  const c = SK.coin; if (!c) return;
+  c.t += dt;
+  const FLIP = .8;
+  if (c.t < FLIP) {       // 親指ではじいて、くるくる回って手に戻る
+    const hp = handPos(), u = c.t / FLIP; c.m.position.copy(hp).add(new THREE.Vector3(0, .1 + 1.0 * 4 * u * (1 - u), 0));
+    c.m.rotation.set(c.t * 30, 0, .3);
+  } else if (!c.done) {
+    c.done = true; c.m.position.copy(handPos()).add(new THREE.Vector3(0, .1, 0));
+    c.m.rotation.set(c.face === 'omote' ? 0 : Math.PI, vrm.scene.rotation.y, 0);
+    SFX.ting(); showRes(c.face === 'omote' ? '表！ ダッシュ' : '裏！ トラップ', c.face === 'omote' ? '#ffe9a8' : '#c9a8ff', .8);
+    c.p0 = actorPos().clone(); c.f = fwdOf();
+    SFX.whoosh(0, 1);
+  }
+  if (c.done) {
+    const k = c.t - FLIP;
+    if (k < .3) {
+      const step = dt / .3;
+      if (c.face === 'omote') {         // 前へ一気に駆け抜け、通った的を斬る
+        moveActor(c.f.x * (SK.dash || 4.6) * step, c.f.z * (SK.dash || 4.6) * step);
+        const p = actorPos().clone(); p.y += 1.1; hitArea(p, .9, 80 * c.mul, 2, c.hit);
+        for (let i = 0; i < 6; i++) SP.emit(p.x + (rnd() - .5) * .5, p.y + (rnd() - .5) * 1.2, p.z + (rnd() - .5) * .5, -c.f.x * 2, 0, -c.f.z * 2, .5, i % 2 === 0);
+      } else {
+        moveActor(-c.f.x * 2.8 * step, -c.f.z * 2.8 * step);
+      }
+    }
+    if (k > .02 && c.face === 'ura' && !SK.bomb) {     // コインを置いていく
+      SK.bomb = { m: c.m, t: 0, p: c.p0.clone(), mul: c.mul }; c.m.position.copy(c.p0).add(new THREE.Vector3(0, .04, 0)); c.m.rotation.set(0, 0, 0); c.m = null;
+    }
+    if (k > .55) { if (c.m) scene.remove(c.m); SK.coin = null; }
+    else if (c.m && c.face === 'omote') c.m.position.copy(handPos()).add(new THREE.Vector3(0, .1, 0));
+  }
+}
+function updateBomb(dt) {
+  const b = SK.bomb; if (!b) return;
+  b.t += dt; b.m.rotation.y += dt * 4; b.m.position.y = .04 + Math.abs(Math.sin(b.t * 6)) * .05;
+  if (Math.floor(b.t * 6) !== Math.floor((b.t - dt) * 6)) SFX.tick();
+  const near = dummies.some(d => d.alive && d.rise > .9 && Math.hypot(d.g.position.x - b.p.x, d.g.position.z - b.p.z) < 1.3);
+  if (b.t > 1.5 || (near && b.t > .3)) {
+    const p = b.p.clone().add(new THREE.Vector3(0, .5, 0));
+    hitArea(p, 2.3, 140 * b.mul, 3); burstRing(b.p, 3, 0xc9a8ff, .6); SFX.boom(); SK.shake = .1;
+    for (let i = 0; i < 70; i++) SP.emit(p.x, p.y, p.z, (rnd() - .5) * 6, rnd() * 5, (rnd() - .5) * 6, .8, i % 2 === 0);
+    scene.remove(b.m); SK.bomb = null;
+  }
+}
+
+/* 溜め：レイズ（溜めるほどチップが積まれ、次の技が強くなる） */
+const chipMats = chipCols.map(c => std({ color: c, roughness: .4, emissive: c, emissiveIntensity: .25 }));
+function startCharge() {
+  if (busy() || SK.charge) return;
+  SK.charge = { t: 0, lvl: 0 };
+  startAct('charge', 99, true);
+  voice('call_charge', 'レイズ。');
+  for (const c of SK.chips) scene.remove(c.g); SK.chips = [];
+}
+function releaseCharge() {
+  const c = SK.charge; if (!c) return;
+  SK.charge = null; if (SK.act && SK.act.k === 'charge') SK.act.dur = SK.act.t + .25;
+  if (c.lvl > 0) { SK.raise = c.lvl; showRes('RAISE ×' + RAISE_MUL[c.lvl], '#ffd77a', .8); SFX.ding(0, 1760); }
+  else for (const ch of SK.chips) ch.fade = true;
+}
+function updateCharge(dt) {
+  const c = SK.charge;
+  if (c) {
+    c.t += dt;
+    const lvl = Math.min(3, Math.floor(c.t / .45));
+    if (lvl > c.lvl) {        // チップの山をひとつ足す
+      c.lvl = lvl; const a = vrm.scene.rotation.y + (lvl - 2) * .9, p = actorPos();
+      const g = new THREE.Group(); g.position.set(p.x + Math.sin(a) * .55, p.y, p.z + Math.cos(a) * .55); scene.add(g);
+      SK.chips.push({ g, n: 0, max: 6 + lvl * 3, col: chipMats[(lvl * 2) % chipMats.length], fade: false, t: 0 });
+      SFX.ding(0, 880 * Math.pow(1.26, lvl)); burstRing(p, 1 + lvl * .4, 0xffd77a, .4);
+    }
+    const p = actorPos(); if (rnd() < .6) { const a = rnd() * 6.28; SP.emit(p.x + Math.sin(a) * .6, p.y + .1, p.z + Math.cos(a) * .6, 0, 1.2 + c.lvl * .4, 0, .7, false); }
+  }
+  for (let i = SK.chips.length - 1; i >= 0; i--) {
+    const s = SK.chips[i]; s.t += dt;
+    if (s.n < s.max && s.t > s.n * .05) { const m = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, .016, 16), s.col); m.position.y = s.n * .018 + .01; s.g.add(m); s.n++; if (s.n % 2) SFX.coin(0); }
+    if (s.fade) { s.g.scale.y -= dt * 3; if (s.g.scale.y <= .02) { scene.remove(s.g); SK.chips.splice(i, 1); } }
+  }
+}
+
+/* 覚醒：オールイン・ロイヤルフラッシュ（巨大な5枚が順に刺さり、最後に一斉に弾ける） */
+const royalTex = ['10', 'J', 'Q', 'K', 'A'].map(r => cardFace(r, '♠'));
+function skillAwaken() {
+  SK.luck = 0; SK.awakenT = 10;
+  voice('call_awaken', 'オールイン――ロイヤルフラッシュ！');
+  startAct('awaken', 3.3, true);
+  const f = fwdOf(), rt = rightOf(), o = actorPos().clone();
+  const cards = royalTex.map((t, i) => {
+    const mat = new THREE.MeshStandardMaterial({ map: t, emissive: 0xffd77a, emissiveIntensity: .25, roughness: .35, metalness: .3 });
+    const m = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.1, .05), [edgeMat, edgeMat, edgeMat, edgeMat, mat, backMat]); m.castShadow = true; m.scale.setScalar(.01); scene.add(m);
+    const a = (i - 2) * .42;
+    const sky = o.clone().addScaledVector(f, -1.2 + Math.abs(i - 2) * .3).addScaledVector(rt, Math.sin(a) * 3).add(new THREE.Vector3(0, 3.1 + Math.cos(a) * .8, 0));
+    const gnd = o.clone().addScaledVector(f, 2.6 + i * 1.15).addScaledVector(rt, (i % 2 ? 1 : -1) * (i === 2 ? 0 : 1.1));
+    gnd.y = groundY(gnd.x, gnd.z) + .95;
+    return { m, mat, sky, gnd, a, slam: false };
+  });
+  SK.royal = { t: 0, cards, f, o, done: false };
+  SFX.thunk(); SK.shake = .05;
+  for (let i = 0; i < 80; i++) SP.emit(o.x, o.y + 1, o.z, (rnd() - .5) * 3, rnd() * 4, (rnd() - .5) * 3, 1, true);
+}
+function updateRoyal(dt) {
+  const R = SK.royal; if (!R) return;
+  R.t += dt; const yaw = Math.atan2(R.f.x, R.f.z);
+  R.cards.forEach((c, i) => {
+    const appear = .15 + i * .1, slam = 1.05 + i * .28;
+    if (R.t < slam) {          // 背中側の空に扇形で浮かぶ
+      c.m.scale.setScalar(Math.max(.01, easeOut((R.t - appear) / .35)));
+      c.m.position.copy(c.sky).add(new THREE.Vector3(0, Math.sin(R.t * 3 + i) * .05, 0));
+      c.m.rotation.set(0, yaw, -c.a * .8);
+    } else {
+      const u = clamp((R.t - slam) / .18, 0, 1);
+      c.m.position.lerpVectors(c.sky, c.gnd, u * u);
+      c.m.rotation.set(-.25 * u, yaw, lerp(-c.a * .8, (i - 2) * .12, u));
+      if (u >= 1 && !c.slam) {
+        c.slam = true; SFX.thunk(); SFX.boom(0, .5); SK.shake = Math.max(SK.shake, .12);
+        const p = c.gnd.clone(); burstRing(p, 2.6, 0xffd77a, .5); hitArea(p, 2.1, 170, 2.5);
+        for (let k = 0; k < 40; k++) SP.emit(p.x, p.y - .8, p.z, (rnd() - .5) * 5, rnd() * 3, (rnd() - .5) * 5, .7, k % 2 === 0);
+      }
+    }
+    if (R.t > 2.55) c.mat.emissiveIntensity = .25 + Math.min(2.5, (R.t - 2.55) * 6) * (.6 + .4 * Math.sin(R.t * 40));
+    if (R.t > 3.05) { const u = clamp((R.t - 3.05) / .5, 0, 1); c.m.scale.setScalar(Math.max(.01, 1 - u)); c.m.position.y += dt * 2; }
+  });
+  if (R.t > 2.95 && !R.done) {      // 5枚そろって、一斉に弾ける
+    R.done = true;
+    const mid = R.o.clone().addScaledVector(R.f, 4.9); mid.y = groundY(mid.x, mid.z) + .8;
+    showRes('ROYAL FLUSH', '#ffe066', 1.4); flash(); SFX.hit(); SFX.boom(0, 1.6); SK.shake = .28;
+    burstRing(mid, 7, 0xffd77a, .9); burstRing(mid, 5, 0xc9a8ff, .7);
+    hitArea(mid, 6.5, 520, 4, null, 'crit');
+    for (let i = 0; i < 260; i++) SP.emit(mid.x + (rnd() - .5) * 5, mid.y, mid.z + (rnd() - .5) * 5, (rnd() - .5) * 8, rnd() * 7, (rnd() - .5) * 8, 1 + rnd(), i % 2 === 0);
+  }
+  if (R.t > 3.7) { for (const c of R.cards) scene.remove(c.m); SK.royal = null; }
+}
+
+/* ---- 技のポーズ（腕だけ上書きする） ---- */
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+function skillPose() {
+  const a = SK.act; if (!a) return;
+  const t = a.t, w = smooth(t / .1) * (1 - smooth((t - a.dur + .18) / .18));
+  let R = null, L = null, lean = 0;
+  if (a.k === 'atk') {
+    if (a.n < 3) R = t < .1 ? V(-.4, 1.35, -.1) : V(-.22, 1.32, .55);
+    else { R = t < .14 ? V(-.3, 1.4, -.05) : V(-.62, 1.3, .32); L = t < .14 ? V(.3, 1.4, -.05) : V(.6, 1.3, .32); }
+    lean = .06;
+  } else if (a.k === 's1') { R = t < .3 ? V(-.3, 1.55, .25) : V(-.18, 1.42, .55); fingers('right', t < .3 ? .9 : .5); lean = .04; }
+  else if (a.k === 's2') {
+    const h = SK.hatFly, u = h && h.o ? (h.t - HAT_OUT) / HAT_FLY : 0;
+    if (t < HAT_OUT * .7) R = V(-.27, 1.62, .1);
+    else if (t < HAT_OUT + .2) R = V(-.2, 1.45, .6);
+    else if (u < .75) R = V(-.32, 1.05, .2);
+    else R = V(-.22, 1.48, .5);
+    fingers('right', u > .95 && u < 1.3 ? .95 : .3);
+  } else if (a.k === 's3') {
+    R = t < .8 ? V(-.2, 1.18, .35) : V(-.38, 1.0, -.05);
+    lean = t > .8 && t < 1.15 && SK.coin?.face === 'omote' ? .35 : 0;
+    fingers('right', .8);
+  } else if (a.k === 'charge') {
+    R = V(-.33, 1.02, .3); L = V(.33, 1.02, .3); lean = .05;
+    bone('hips').position.y -= .04;
+    bone('leftHand').rotation.set(0, 0, -.3); bone('rightHand').rotation.set(0, 0, .3); fingers('left', .15); fingers('right', .15);
+  } else if (a.k === 'awaken') {
+    if (t < 1.0) { R = V(-.55, 1.75, .12); L = V(.55, 1.75, .12); }
+    else { R = V(-.2, 1.45, .6); L = V(.45, 1.1, .1); }
+    lean = t < 1 ? -.08 : .1; fingers('right', .3); fingers('left', .3);
+  }
+  bone('spine').rotation.x += lean * w;
+  if (R) armIK('right', R, HINT_R, w);
+  if (L) armIK('left', L, HINT_L, w);
+}
+
+/* ---- 毎フレームの更新 ---- */
+function skillTick(dt) {
+  for (const k in SK.cd) SK.cd[k] = Math.max(0, SK.cd[k] - dt);
+  SK.comboT = Math.max(0, SK.comboT - dt);
+  SK.awakenT = Math.max(0, SK.awakenT - dt);
+  const a = SK.act;
+  if (a) {
+    a.t += dt;
+    while (a.ev.length && a.ev[0][0] <= a.t) a.ev.shift()[1]();
+    if (a.t >= a.dur) SK.act = null;
+  }
+  updateCharge(dt); updateTurret(dt); updateHatFly(dt); updateCoin(dt); updateBomb(dt); updateRoyal(dt);
+  updateShots(dt); updateRings(dt); updateDummies(dt); updateDmg(dt);
+  if (SK.awakenT > 0) {       // 覚醒中のオーラ
+    const p = actorPos(); for (let i = 0; i < 3; i++) { const a2 = rnd() * 6.28; SP.emit(p.x + Math.sin(a2) * .7, p.y + rnd() * 1.8, p.z + Math.cos(a2) * .7, 0, .8, 0, .6, rnd() < .5); }
+  }
+  SK.shake = Math.max(0, SK.shake - dt * .6);
+}
+function applyShake() { if (SK.shake > 0) camera.position.add(new THREE.Vector3((rnd() - .5) * SK.shake, (rnd() - .5) * SK.shake, (rnd() - .5) * SK.shake)); }
+function resetSkills() {
+  if (SK.turret) scene.remove(SK.turret.g);
+  if (SK.coin?.m) scene.remove(SK.coin.m); if (SK.bomb) scene.remove(SK.bomb.m);
+  if (SK.royal) for (const c of SK.royal.cards) scene.remove(c.m);
+  for (const s of SK.shots) scene.remove(s.m); for (const r of SK.rings) scene.remove(r.m); for (const c of SK.chips) scene.remove(c.g);
+  for (const d of dmgPool) d.el.remove(); dmgPool.length = 0;
+  Object.assign(SK, { act: null, combo: 0, comboT: 0, cd: { s1: 0, s2: 0, s3: 0 }, luck: 0, raise: 0, charge: null, awakenT: 0, missRow: 0, turret: null, hatFly: null, coin: null, bomb: null, royal: null, shots: [], rings: [], chips: [], shake: 0, force: {} });
+  clearDummies();
+}
+// 歩くモードの的
+function spawnWalkDummies() {
+  SK.respawn = true;
+  [[-3.8, 1.0], [3.8, 1.0], [-3.2, -3.4], [3.2, -3.4], [0, -4.8]].forEach(([x, z], i) => { const d = makeDummy(x, z, 900, i); colliders.push([x, z, .6]); d.col = colliders[colliders.length - 1]; });
+}
+
+/* ---- 歩くモードの操作：画面のボタンとキー ---- */
+const KEYMAP = { j: 'atk', u: 's1', i: 's2', o: 's3', k: 'charge', l: 'awaken' };
+addEventListener('keydown', e => {
+  if (mode !== 'walk' || e.repeat) return;
+  const k = KEYMAP[e.key.toLowerCase()]; if (k) { useSkill(k); e.preventDefault(); }
+});
+addEventListener('keyup', e => { if (mode === 'walk' && e.key.toLowerCase() === 'k') releaseCharge(); });
+document.querySelectorAll('#skills .sk').forEach(b => {
+  const k = b.dataset.k;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture?.(e.pointerId); initAudio(); useSkill(k); });
+  if (k === 'charge') { const up = () => releaseCharge(); b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); }
+});
+function updateSkillUI() {
+  const set = (k, v, max) => { const b = document.querySelector(`#skills [data-k="${k}"]`); b.style.setProperty('--cd', (v / max * 360) + 'deg'); b.classList.toggle('cool', v > 0); };
+  set('s1', SK.cd.s1, CD.s1); set('s2', SK.cd.s2, CD.s2); set('s3', SK.cd.s3, CD.s3);
+  $('luckbar').style.width = SK.luck + '%';
+  const aw = document.querySelector('#skills [data-k="awaken"]'); aw.classList.toggle('ready', SK.luck >= 100); aw.classList.toggle('cool', SK.luck < 100 && SK.awakenT <= 0);
+  $('luck').classList.toggle('full', SK.luck >= 100);
+  document.querySelector('#skills [data-k="charge"]').classList.toggle('on', !!SK.charge || SK.raise > 0);
+  $('raiseTag').textContent = SK.raise ? 'RAISE ×' + RAISE_MUL[SK.raise] : SK.awakenT > 0 ? '覚醒中 ' + Math.ceil(SK.awakenT) : '';
+}
+
+/* =====================================================================
    進行
    ===================================================================== */
 let mode = 'idle', T = 0, prevT = -1, clock = new THREE.Clock(), wallT = 0;
 function resetPV() {
   try { vSrc?.stop(); } catch (e) {} vSrc = null; mouthOpen = 0; talking = false;
   T = 0; prevT = -1; hat.rel = null; cardOrigin = null; SP.clear(); seed = 99; duck = 1;
+  for (const d of dummies) if (d.col) { const i = colliders.indexOf(d.col); if (i >= 0) colliders.splice(i, 1); }
+  resetSkills();
   for (const c of cards) c.m.visible = false;
   vrm.scene.position.set(0, DAIS_Y, 0); vrm.scene.rotation.y = 0;
   vrm.springBoneManager?.reset?.();
@@ -1012,12 +1711,13 @@ function startWalk() {
   initAudio(); resetPV(); mode = 'walk'; document.body.className = 'walk';
   $('gate').classList.add('hide'); $('fade').style.opacity = 0;
   $('replay').hidden = false; $('skip').hidden = true;
-  player.pos.set(0, 0, 3.2); player.yaw = Math.PI; player.speed = 0; camYaw = 0;
+  player.pos.set(0, 0, 5.2); player.yaw = Math.PI; player.speed = 0; camYaw = 0;
   spot.intensity = SPOT_I; keyLight.intensity = .8;
   hat.rel = null;
   if (AC && !bgmOn) bgmStart(wallT);
   duck = .8;
   camera.position.set(0, 4, 9);
+  spawnWalkDummies();
 }
 $('go').onclick = startPV; $('again').onclick = startPV; $('replay').onclick = startPV; $('towalk').onclick = startWalk;
 $('skip').onclick = () => { if (mode === 'pv') { T = real(TL.logo) + .01; prevT = T - .001; } };
@@ -1048,16 +1748,23 @@ function update(dt) {
     rimLight.intensity = 3 + 4 * smooth((tt(T) - TL.logo) / .6);
     keyLight.position.set(-2.5, 6, 6); keyLight.target.position.set(0, 0, 0);
     mouthLevel(dt);
+    skillTick(dt);
     posePV(tt(T), dt, T);
+    skillPose();
     vrm.update(dt); vrm.scene.updateMatrixWorld(true);
-    updateHat(tt(T));
-    cameraPV(tt(T), T);
+    updateHat(tt(T)); hatOverride();
+    cameraPV(tt(T), T); applyShake();
     updateCards(tt(T), dt, true);
+    if (inShow(T)) for (const c of cards) c.m.visible = false;      // 技紹介の間は、背中の扇を消す
       } else if (mode === 'walk') {
     if (AC) bgmTick(wallT);
+    mouthLevel(dt);
+    skillTick(dt);
     updateWalk(dt, wallT);
+    skillPose();
     vrm.update(dt); vrm.scene.updateMatrixWorld(true);
-    updateHat(0);
+    updateHat(0); hatOverride(); applyShake();
+    updateSkillUI();
   } else {
     // 開始前：遠くからカジノを眺める
     camera.position.set(Math.sin(wallT * .1) * 9, 4.5, 14); camera.lookAt(0, 2.5, -4);
