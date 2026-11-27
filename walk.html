@@ -281,7 +281,7 @@
 <div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
 <div id="bossHud"><small>BOSS</small><b>氷殻の守護者グラキエス</b><div class="bb"><i id="bossBar"></i></div><span id="bossNum"></span></div>
-<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261127190846">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261127190846">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
+<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261127193334">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261127193334">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
   <header><div class="logo" id="shopLogo">夜</div><div class="nm"><b id="shopName">ヨルマート</b><small id="shopEn">YORU MART</small></div><button class="close tap" id="shopClose">✕ 店を出る</button></header>
@@ -500,6 +500,32 @@ const SHINO_LINE_VOICE = {
   'わ、コイン……！ ちょっと得した気分。': ['town_09', 1.45, .12],
   '宝箱、ほんとにあるっちゃね。': ['town_10', 1.43, .09],
   'これで何か買っていこっか。': ['town_11', 1.56, .18],
+  // 訓練場（ゴーレム戦）
+  '訓練場……。ここでは、ほかのしのとも手合わせできるけん。': ['battle_01', 0.96, 0.03],
+  '……動いた？ 気をつけて、来るよ。': ['battle_02', 1.19, 0.16],
+  'あの石の……こっち見とる。': ['battle_03', 1.65, 0.15],
+  '……かたかった。でも、うちの勝ち。': ['battle_04', 1.43, 0.09],
+  'ふう……おとなしゅうしとって。': ['battle_05', 1.9, 0.1],
+  '石でも、凍らせれば割れるけん。': ['battle_06', 1.71, 0.1],
+  // 対人戦（負けた・勝った）
+  'う……やられた……。': ['pvp_01', 1.9, 0.06],
+  '……つよかね。次は負けんけん。': ['pvp_02', 1.09, 0.21],
+  'いたた……。もう一回、やろ。': ['pvp_03', 1.78, 0.1],
+  '……勝った。': ['pvp_04', 2.4, 0.11],
+  'ふう……うちの勝ちやね。': ['pvp_05', 1.34, 0.05],
+  'ごめんね、手加減できんかった。': ['pvp_06', 1.26, 0.21],
+  // ダンジョン
+  'ここが地下迷宮……。ひんやりしとるね。気をつけて進も。': ['dg_01', 1.26, 0.17],
+  '奥の扉、閉まっとる……。部屋の敵を倒せば開くみたい。': ['dg_02', 1.12, 0.17],
+  '閉じ込められた……！ 来るよ。': ['dg_03', 1.02, 0.3],
+  '今度は数が多か……。背中、任せたけん。': ['dg_04', 1.05, 0.07],
+  '宝物庫みたい……。泉の水で、少し休んでいこ。': ['dg_05', 1.21, 0.1],
+  '……冷たくて、気持ちよか。': ['dg_06', 2.4, 0.07],
+  'この扉の向こう……すごい冷気。覚悟はよか？': ['dg_07', 1.02, 0.1],
+  '……でっかい。でも、うちらなら勝てる。': ['dg_08', 1.19, 0.12],
+  '氷霊を呼んだ……！ 先に数を減らそ。': ['dg_09', 1.24, 0.15],
+  'ふう……片付いたね。先へ進も。': ['dg_10', 1.48, 0.16],
+  '勝った……！ おつかれさま。いっしょに帰ろ。': ['dg_11', 1.17, 0.23],
 };
 if (PARTNER === 'shino') SFX.preload(Object.values(SHINO_LINE_VOICE).map(v => 'voice/shino/' + v[0]));
 function shinoVoice(id) { const v = VOICE[id]; if (v && PARTNER === 'shino') SFX.voice(v.f, v.vol, v.skip); }
@@ -1552,7 +1578,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127190846');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261127193334');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -3818,7 +3844,7 @@ function dBuild() {
   dWall(-1.75, 0, -1.75, 6.6); dWall(1.75, 0, 1.75, 6.6); dWall(-1.8, 6.6, 1.8, 6.6);     // 地上へ続く階段の壁
   const portal = new THREE.Mesh(new THREE.RingGeometry(.6, 1.1, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.5, 2.2), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   portal.rotation.x = -Math.PI / 2; portal.position.set(DX, .03, -1); scene.add(portal); DG.portalA = portal;
-  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127190846', 350); } });
+  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127193334', 350); } });
   dCorridor(-18, -10);
   // 戦闘の部屋1
   dRoom(-9, 9, -36, -18, { n: true, s: true }); for (const [x, z] of [[-5, -23], [5, -23], [-5, -31], [5, -31]]) dPillar(x, z);
@@ -4065,7 +4091,7 @@ function dClear() {
   // 帰り道のポータル
   const p = new THREE.Mesh(new THREE.RingGeometry(.8, 1.4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.4, .6), transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   p.rotation.x = -Math.PI / 2; p.position.set(DX, .04, -104); scene.add(p); DG.portalB = p;
-  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127190846', 350); } });
+  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261127193334', 350); } });
   dChest(0, -112, 5000, 'boss');
   setTimeout(() => {
     $('dresTime').textContent = fmt(sec); $('dresBest').textContent = nb ? 'ベスト更新！' : `ベスト ${fmt(best)}`; $('dresCoin').textContent = `+${reward.toLocaleString()}円`;
