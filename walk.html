@@ -332,7 +332,7 @@
 <div id="cHud"><div class="chip"><i>◆</i><span>ルーチェコイン</span><b id="cCoin">0</b></div><button id="cMisB" type="button">ミッション<span id="cMisN"></span></button></div>
 <div id="cdlg"><div class="nm">FORTUNA</div><div id="cdlgT"></div><div id="cdlgC"></div></div>
 <div id="cgame" class="cpanel"><div class="box"><h3 id="cgN"></h3><div class="sub" id="cgH"></div><div id="cgC"></div><div id="cgB"></div><div id="cgMsg"></div><div id="cgA"></div><div class="acts"><button class="x" id="cgX" type="button">閉じる</button></div></div></div>
-<div id="croul" class="cpanel"><div class="box"><h3>運命のルーレット</h3><div class="sub">緑の「0★」に止まれば、フォルトゥナが仲間になる</div><div id="croulWrap"><canvas id="croulC" width="420" height="420"></canvas></div><div id="croulR"></div><div class="acts"><button id="croulOk" type="button" hidden>OK</button></div></div></div>
+<div id="croul" class="cpanel"><div class="box"><h3>運命のルーレット</h3><div class="sub">★に止まれば、フォルトゥナが仲間になる</div><div id="croulWrap"><canvas id="croulC" width="420" height="420"></canvas></div><div id="croulR"></div><div class="acts"><button id="croulOk" type="button" hidden>OK</button></div></div></div>
 <div id="cmis" class="cpanel"><div class="box"><h3>ミッション</h3><div class="sub">ルーチェ・ドーロ開幕祭</div><div id="cmisL"></div><div class="acts"><button class="x" id="cmisX" type="button">閉じる</button></div></div></div>
 <div id="cjoin" class="cpanel"><div class="box"><div class="big">JACKPOT 7-7-7</div><div class="who">フォルトゥナ・レイズが仲間になった！</div><div class="sub">キャラ選択画面で選べるようになりました</div><div class="acts"><button id="cjoinP" type="button">パートナーにする</button><button class="x" id="cjoinX" type="button">閉じる</button></div></div></div>
 <div id="map"><canvas id="mapc" width="340" height="340"></canvas></div>
@@ -345,7 +345,7 @@
 <div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
 <div id="bossHud"><small>BOSS</small><b>氷殻の守護者グラキエス</b><div class="bb"><i id="bossBar"></i></div><span id="bossNum"></span></div>
-<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261128125511">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261128125511">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
+<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261128133151">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261128133151">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
   <header><div class="logo" id="shopLogo">夜</div><div class="nm"><b id="shopName">ヨルマート</b><small id="shopEn">YORU MART</small></div><button class="close tap" id="shopClose">✕ 店を出る</button></header>
@@ -415,7 +415,7 @@ function socSave() { SOC.L.set('arc_friends', SOC.friends); SOC.SS.set('arc_part
 function socX() {
   const p = SOC.party, now = Date.now();
   SOC.mb = SOC.mb.filter(m => now - m.at < 90000).slice(-8);          // 古いメッセージは片付ける
-  return { pid: SOC.pid, t: SOC.tab, nm: SOC.myName.slice(0, 16), pt: p ? { id: p.id, lead: p.lead, ...(p.lead === SOC.pid ? { m: p.m, go: p.go || 0 } : {}) } : null, mb: SOC.mb };
+  return { pid: SOC.pid, t: SOC.tab, nm: SOC.myName.slice(0, 16), ...(CASINO && myRl ? { rl: myRl } : {}), ...(CASINO && mySl ? { sl: mySl } : {}), pt: p ? { id: p.id, lead: p.lead, ...(p.lead === SOC.pid ? { m: p.m, go: p.go || 0 } : {}) } : null, mb: SOC.mb };
 }
 function socSend(to, k, p = {}) { SOC.mb.push({ n: ++SOC.mbN, to, k, p, at: Date.now() }); socSave(); }
 // ほかのプレイヤー（x を持つ人だけ。同じ人が重なったら新しい方）
@@ -851,6 +851,11 @@ const LC = (() => {
     cost() { return Math.max(0, PRICE - get('spent', 0)); },
     spin() { const c = get('coins', 0); if (c < SPIN) return false; set('coins', c - SPIN); set('spent', get('spent', 0) + SPIN); return true; },
     pay() { const c = this.cost(), have = get('coins', 0); if (have < c) return false; set('coins', have - c); set('spent', PRICE); return true; },
+    // スロットのチャレンジ回数を一度だけ戻す（rst1）
+    resetOnce() { if (get('rst1', 0)) return; try { localStorage.removeItem('lc_ch_slot'); } catch (e) {} set('rst1', 1); },
+    // ルーレットの挑戦回数（天井用。キーを替えるとリセット）
+    rs: () => get('rs1', 0),
+    rsSet(n) { set('rs1', n); },
     unlock() { try { localStorage.setItem('unlock_fortuna', 'ルーチェ・ドーロ'); } catch (e) {} },
     // チャレンジ回数（ミニゲームごと。12分で1回ふえる、最大5回）
     ch(g) {
@@ -868,7 +873,7 @@ const LC = (() => {
     claimable() { return MISSIONS.filter(M => { const p = this.progress(M.id); return !p.got && p.v >= M.goal; }).length; },
   };
 })();
-LC.bump('login', 1, 'max');
+LC.bump('login', 1, 'max'); LC.resetOnce?.();
 // ミッション一覧を el に描く（受け取ると onClaim(報酬) を呼ぶ）
 function lcMissions(el, onClaim) {
   el.innerHTML = '';
@@ -1804,7 +1809,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128125511');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128133151');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -2065,7 +2070,7 @@ addEventListener('message', e => {
   else if (m.type === 'net:peers' && Array.isArray(m.peers)) {
     SOC.peers = m.peers.filter(p => p && typeof p.peer === 'string' && p.presence && typeof p.presence === 'object'); socDupCheck();
     NET.peers = SOC.peers.filter(p => MYAREA && p.presence.area === MYAREA && Array.isArray(p.presence.st));
-    syncRemotes(); updateNetUI();
+    syncRemotes(); updateNetUI(); if (CASINO) cRlCheck();
   }
 });
 netPost({ type: 'net:hello', area: MYAREA });
@@ -4445,7 +4450,7 @@ function dBuild() {
   dWall(-1.75, 0, -1.75, 6.6); dWall(1.75, 0, 1.75, 6.6); dWall(-1.8, 6.6, 1.8, 6.6);     // 地上へ続く階段の壁
   const portal = new THREE.Mesh(new THREE.RingGeometry(.6, 1.1, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.5, 2.2), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   portal.rotation.x = -Math.PI / 2; portal.position.set(DX, .03, -1); scene.add(portal); DG.portalA = portal;
-  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128125511', 350); } });
+  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128133151', 350); } });
   dCorridor(-18, -10);
   // 戦闘の部屋1
   dRoom(-9, 9, -36, -18, { n: true, s: true }); for (const [x, z] of [[-5, -23], [5, -23], [-5, -31], [5, -31]]) dPillar(x, z);
@@ -4705,7 +4710,7 @@ function dClear() {
   // 帰り道のポータル
   const p = new THREE.Mesh(new THREE.RingGeometry(.8, 1.4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.4, .6), transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   p.rotation.x = -Math.PI / 2; p.position.set(DX, .04, -104); scene.add(p); DG.portalB = p;
-  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128125511', 350); } });
+  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128133151', 350); } });
   dChest(0, -112, 5000, 'boss');
   setTimeout(() => {
     $('dresTime').textContent = fmt(sec); $('dresBest').textContent = nb ? 'ベスト更新！' : `ベスト ${fmt(best)}`; $('dresCoin').textContent = `+${reward.toLocaleString()}円`;
@@ -4853,12 +4858,12 @@ function cBuildCasino() {
   {
     const wheelTex = tex(1024, 1024, (g, w, h) => {
       g.translate(w / 2, h / 2);
-      const N = 37, nums = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+      const N = 37, nums = C_NUMS;
       g.fillStyle = '#2a1a08'; g.beginPath(); g.arc(0, 0, w * .5, 0, 7); g.fill();
       for (let i = 0; i < N; i++) {
         const a0 = i / N * Math.PI * 2, a1 = (i + 1) / N * Math.PI * 2;
-        g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, w * .46, a0, a1); g.closePath(); g.fillStyle = i === 0 ? '#0e6b3a' : (i % 2 ? '#8e1426' : '#0c0a10'); g.fill();
-        g.save(); g.rotate((a0 + a1) / 2 + Math.PI / 2); g.fillStyle = '#ffe9b8'; g.font = 'bold 34px serif'; g.textAlign = 'center'; g.fillText(String(nums[i]), 0, -w * .41); g.restore();
+        g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, w * .46, a0, a1); g.closePath(); g.fillStyle = C_STAR.has(i) ? '#12a35a' : (C_RED.has(nums[i]) ? '#8e1426' : '#0c0a10'); g.fill();
+        g.save(); g.rotate((a0 + a1) / 2 + Math.PI / 2); g.fillStyle = C_STAR.has(i) ? '#fff6c8' : '#ffe9b8'; g.font = 'bold 34px serif'; g.textAlign = 'center'; g.fillText(C_STAR.has(i) ? '★' : String(nums[i]), 0, -w * .41); g.restore();
       }
       g.strokeStyle = '#e8bd62'; g.lineWidth = 10; g.beginPath(); g.arc(0, 0, w * .46, 0, 7); g.stroke();
       g.fillStyle = '#1a0f06'; g.beginPath(); g.arc(0, 0, w * .33, 0, 7); g.fill();
@@ -4867,7 +4872,16 @@ function cBuildCasino() {
       g.fillStyle = '#e8bd62'; g.beginPath(); g.arc(0, 0, w * .07, 0, 7); g.fill();
     });
     const wheel = new THREE.Mesh(new THREE.CircleGeometry(3.4, 96), std({ map: wheelTex, emissiveMap: wheelTex, emissive: 0xffffff, emissiveIntensity: .35, metalness: .4, roughness: .4 }));
-    wheel.position.set(0, 5.2, ROOM.z0 + .08); CROOT.add(wheel); spinners.push({ o: wheel, ax: 'z', v: -.12 });
+    wheel.position.set(0, 5.2, ROOM.z0 + .08); CROOT.add(wheel);
+    // 針（上）と、真ん中の表示（回らない）
+    const pin = new THREE.Mesh(new THREE.ConeGeometry(.28, .6, 3), std({ color: 0xffd77a, emissive: 0xffb84a, emissiveIntensity: .8, metalness: .6, roughness: .3 }));
+    pin.rotation.z = Math.PI; pin.position.set(0, 5.2 + 3.55, ROOM.z0 + .25); CROOT.add(pin);
+    const lc = document.createElement('canvas'); lc.width = 512; lc.height = 512;
+    const ltex = new THREE.CanvasTexture(lc); ltex.colorSpace = THREE.SRGBColorSpace;
+    const label = new THREE.Mesh(new THREE.CircleGeometry(2.05, 64), new THREE.MeshBasicMaterial({ map: ltex, transparent: true }));
+    label.position.set(0, 5.2, ROOM.z0 + .14); CROOT.add(label);
+    cWall = { wheel, lc, ltex, spin: null, idle: -.12 };
+    cWallText('運命のルーレット', '★に止まれば仲間に');
     const frame = new THREE.Mesh(new THREE.TorusGeometry(3.45, .12, 12, 120), GOLD); frame.position.copy(wheel.position); frame.position.z += .05; CROOT.add(frame);
     for (let i = 0; i < 48; i++) {    // 盤のまわりの電球
       const a = i / 48 * Math.PI * 2, m = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffe2a0 }));
@@ -4976,6 +4990,14 @@ function cBuildCasino() {
       const knob = new THREE.Mesh(new THREE.SphereGeometry(.06, 10, 8), std({ color: 0xc8102e })); knob.position.set(.6, 1.47, 0); g.add(knob);
       const tray = new THREE.Mesh(new THREE.BoxGeometry(.7, .08, .2), GOLD); tray.position.set(0, .7, .45); g.add(tray);
       CROOT.add(g); n++;
+      if (s < 0 && z === 1.5) {           // 「ルーチェ・セブン」の上に、いま遊んでいる人の画面
+        const bc = document.createElement('canvas'); bc.width = 512; bc.height = 256;
+        const btex = new THREE.CanvasTexture(bc); btex.colorSpace = THREE.SRGBColorSpace;
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(.12, 1.7, 3.3), GOLD); frame.position.set(-ROOM.x + .12, 3.35, 2.25); CROOT.add(frame);
+        const bd = new THREE.Mesh(new THREE.PlaneGeometry(3.1, 1.55), new THREE.MeshBasicMaterial({ map: btex })); bd.rotation.y = Math.PI / 2; bd.position.set(-ROOM.x + .2, 3.35, 2.25); CROOT.add(bd);
+        cBoard = { c: bc, tex: btex, owner: null, who: '', r: [0, 4, 8], spin: [false, false, false], pos: [0, 4, 8], msg: '', hot: false, idleT: 0, drawT: 0 };
+        cBoardDraw();
+      }
     }
   }
   // 光
@@ -5037,7 +5059,7 @@ function cInit() {
   I('slot', 'スロット「ルーチェ・セブン」で遊ぶ', () => cOpenGame('slot'));
   I('hilo', 'ハイ＆ローで遊ぶ', () => cOpenGame('hilo'));
   I('shuffle', 'シャッフル・ゲームで遊ぶ（ディーラー：フォルトゥナ）', () => cOpenGame('shuffle'));
-  I('exit', 'ロビーへ戻る', () => { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128125511', 350); });
+  I('exit', 'ロビーへ戻る', () => { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128133151', 350); });
   $('cHud').classList.add('on'); cHud();
   cLoadNpc();
 }
@@ -5124,7 +5146,7 @@ function cTalk() {
 function cMenu() {
   const owned = LC.owned(), cost = LC.cost();
   cChoices([
-    ['運命のルーレット', cRoulette, `◆ ${LC.SPIN}　${owned ? '大当たりで ◆1,000' : '0 に止まれば仲間に'}`],
+    ['運命のルーレット', cRoulette, `◆ ${LC.SPIN}　${owned ? '★で ◆1,000' : `★で仲間に（天井まで あと ${C_PITY - LC.rs()} 回）`}`],
     ...(owned ? [] : [['契約する', cContract, cost > 0 ? `あと ◆ ${cost.toLocaleString()}（ルーレットに使った分は差し引き済み）` : '◆ 0 で契約できます']]),
     ['話を聞く', () => { const L = [['ここはわたしの舞台。負ける気で来る人は、いないわ。', 'npc_talk1'], ['コインはミニゲームで稼げるわ。腕しだいで、ずっと増えるのよ。', 'npc_talk2'], ['ルーレットに使ったコインは、契約の支払いに回してあげる。……損はさせないわ。', 'npc_talk3']][cTalkN % 3]; cTalkN++; cSay(L[0], L[1], 4.5); }],
     ['ミッション', () => { cEndTalk(); cMissions(); }],
@@ -5150,14 +5172,70 @@ $('cjoinX').addEventListener('click', () => { $('cjoin').classList.remove('on');
 /* ---------- 運命のルーレット（37マス。0 に止まれば仲間になる） ---------- */
 const C_NUMS = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
 const C_RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
-let cRoul = null;
+// 当たり（★）のマス。0 と、その反対側あたりの3マス（4/37）。さらに 10 回目は必ず当たる
+const C_STAR = new Set([0, 9, 18, 28]), C_PITY = 10;
+let cRoul = null, cWall = null, myRl = null;
+function cWallText(a, b, hot) {
+  if (!cWall) return; const g = cWall.lc.getContext('2d'), W = 512;
+  g.clearRect(0, 0, W, W);
+  const gr = g.createRadialGradient(W / 2, W / 2, 20, W / 2, W / 2, W / 2); gr.addColorStop(0, hot ? 'rgba(90,60,10,.95)' : 'rgba(30,16,8,.92)'); gr.addColorStop(1, 'rgba(20,10,6,.85)');
+  g.fillStyle = gr; g.beginPath(); g.arc(W / 2, W / 2, W / 2 - 4, 0, 7); g.fill();
+  g.strokeStyle = '#e8bd62'; g.lineWidth = 8; g.stroke();
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = hot ? '#fff1b0' : '#ffe9b8';
+  const fit = (t, size, y) => { let f = size; do { g.font = `800 ${f}px "Shippori Mincho B1", serif`; f -= 2; } while (g.measureText(t).width > W * .8 && f > 18); g.fillText(t, W / 2, y); };
+  fit(a, 54, W * .42); g.fillStyle = hot ? '#ffd77a' : '#d9c39a'; fit(b, 40, W * .6);
+  cWall.ltex.needsUpdate = true;
+}
+// 奥の盤を、だれかのスピンに合わせて回す（最後に始まったものを映す。順番待ちはしない）
+function cWallSpin(name, idx, mine) {
+  if (!cWall) return;
+  const th = (idx + .5) / 37 * Math.PI * 2, cur = cWall.wheel.rotation.z;
+  let to = Math.PI / 2 + th; to -= Math.ceil((to - cur) / (Math.PI * 2)) * Math.PI * 2; to -= Math.PI * 2 * 5;
+  cWall.spin = { t: 0, dur: 4.2, from: cur, to, idx, name, mine, done: false };
+  cWallText(mine ? 'あなたの挑戦' : `${name} さん`, '運命のルーレット 挑戦中…', true);
+}
+function cWallTick(dt) {
+  if (!cWall) return; const S = cWall.spin;
+  if (!S) { cWall.wheel.rotation.z += cWall.idle * dt; return; }
+  S.t += dt; const u = Math.min(1, S.t / S.dur), e = 1 - Math.pow(1 - u, 4);
+  cWall.wheel.rotation.z = S.from + (S.to - S.from) * e;
+  if (u >= 1 && !S.done) {
+    S.done = true; const win = C_STAR.has(S.idx), who = S.mine ? 'あなた' : `${S.name} さん`;
+    cWallText(win ? `★ ${who} 大当たり！` : `${who}：${C_NUMS[S.idx]}`, win ? 'フォルトゥナが微笑んだ' : '残念、また挑戦！', win);
+    if (win && !S.mine) { SFX.play('fx_jackpot', .35); burst(new THREE.Vector3(CX, 6, C_ROOM.z0 + 1), 50, 5, 4, 1.6, [1.8, 1.4, .5]); }
+  }
+  if (S.done && S.t > S.dur + 5) { cWall.spin = null; cWallText('運命のルーレット', '★に止まれば仲間に'); }
+}
+// ほかの人のスピンを受け取る（x.rl = { n, i }。入ってきた時点のものは映さない）
+const cRlSeen = new Map(), cSlSeen = new Map();
+function cRlCheck() {
+  if (!CASINO) return;
+  for (const p of SOC.peers) {
+    const x = p.presence && p.presence.x; if (!x || p.presence.area !== 'casino' || !PID_RE.test(x.pid) || x.pid === SOC.pid) continue;
+    const rl = x.rl, n = rl && Number.isInteger(rl.n) ? rl.n : 0, i = rl && Number.isInteger(rl.i) && rl.i >= 0 && rl.i < 37 ? rl.i : -1;
+    // スロット：始めた人（n が変わった人）に画面を切り替える。順番待ちはしない
+    const sl = x.sl, sn = sl && Number.isInteger(sl.n) ? sl.n : 0, sr = sl && Array.isArray(sl.r) && sl.r.length === 3 && sl.r.every(v => Number.isInteger(v) && v >= -1 && v < 12) ? sl.r : null;
+    const sWas = cSlSeen.get(x.pid), sKey = sn + ':' + (sr ? sr.join(',') : ''); cSlSeen.set(x.pid, sKey);
+    if (sWas !== undefined && sKey !== sWas && sn && sr) {
+      const nm = socName(p.name) || socName(x.nm) || 'プレイヤー', started = sWas.split(':')[0] !== String(sn);
+      if (started || (cBoard && cBoard.owner === x.pid)) cBoardSet(x.pid, nm + ' さん', sr);
+    }
+    const was = cRlSeen.get(x.pid); cRlSeen.set(x.pid, n);
+    if (was === undefined || n === was || i < 0 || !n) continue;
+    cWallSpin(socName(p.name) || socName(x.nm) || 'プレイヤー', i, false);
+  }
+}
+function cRoulSub() {
+  const left = C_PITY - LC.rs(), el = $('croul').querySelector('.sub');
+  el.textContent = `★に止まれば、フォルトゥナが仲間になる（4/37）　天井まで あと ${left} 回`;
+}
 function cDrawWheel(rot) {
   const cv = $('croulC'), g = cv.getContext('2d'), W = cv.width, R = W / 2 - 6;
   g.clearRect(0, 0, W, W); g.save(); g.translate(W / 2, W / 2); g.rotate(rot);
   for (let i = 0; i < 37; i++) {
     const a0 = i / 37 * Math.PI * 2 - Math.PI / 2 - Math.PI / 37, a1 = a0 + Math.PI * 2 / 37, n = C_NUMS[i];
-    g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, a0, a1); g.closePath(); g.fillStyle = n === 0 ? '#0e8a4a' : C_RED.has(n) ? '#a3142a' : '#141018'; g.fill();
-    g.save(); g.rotate((a0 + a1) / 2 + Math.PI / 2); g.fillStyle = '#ffe9b8'; g.font = `bold ${W * .045}px serif`; g.textAlign = 'center'; g.fillText(n === 0 ? '0★' : n, 0, -R * .84); g.restore();
+    g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, a0, a1); g.closePath(); g.fillStyle = C_STAR.has(i) ? '#12a35a' : C_RED.has(n) ? '#a3142a' : '#141018'; g.fill();
+    g.save(); g.rotate((a0 + a1) / 2 + Math.PI / 2); g.fillStyle = C_STAR.has(i) ? '#fff6c8' : '#ffe9b8'; g.font = `bold ${W * (C_STAR.has(i) ? .06 : .045)}px serif`; g.textAlign = 'center'; g.fillText(C_STAR.has(i) ? '★' : n, 0, -R * .84); g.restore();
   }
   g.strokeStyle = '#e8bd62'; g.lineWidth = 5; g.beginPath(); g.arc(0, 0, R, 0, 7); g.stroke();
   g.fillStyle = '#1a0f06'; g.beginPath(); g.arc(0, 0, R * .55, 0, 7); g.fill(); g.lineWidth = 3; g.stroke();
@@ -5169,11 +5247,17 @@ function cRoulette() {
   if (!LC.spin()) { cSay('チップが足りないわ。もう少し遊んでいらっしゃい。', 'npc_short', 3.2); return; }
   cHud(); $('cdlg').classList.remove('on');
   cSay('運命のルーレット……回してみましょうか。', 'npc_spin', 3);
-  const idx = Math.floor(Math.random() * 37), turns = 6;
+  // 天井：10 回目は必ず★。当たったら数え直し
+  const cnt = LC.rs() + 1, stars = [...C_STAR], others = [...Array(37).keys()].filter(i => !C_STAR.has(i));
+  const win = cnt >= C_PITY || Math.random() < C_STAR.size / 37;
+  const idx = win ? pick(stars) : pick(others), turns = 6;
+  LC.rsSet(win ? 0 : cnt);
+  myRl = { n: (myRl ? myRl.n : 0) + 1, i: idx }; cWallSpin('', idx, true);
   // 針（上）に idx のマスが来る角度
   const target = -(idx / 37) * Math.PI * 2 - Math.PI * 2 * turns;
   cRoul = { t: 0, dur: 4.2, from: 0, to: target, idx, done: false };
   $('croulR').textContent = ''; $('croulOk').hidden = true; $('croul').classList.add('on');
+  $('croul').querySelector('.sub').textContent = win && cnt >= C_PITY ? '天井！ 今回は必ず★に止まる' : `挑戦 ${cnt} 回目`;
   SFX.play('fx_reel_spin', .6); setTimeout(() => SFX.play('fx_reel_spin', .5), 1700);
   cDrawWheel(0);
 }
@@ -5184,14 +5268,14 @@ function cRoulTick(dt) {
   if (u >= 1) {
     R.done = true; const n = C_NUMS[R.idx], el = $('croulR');
     SFX.play('fx_reel_stop', 1.3);
-    if (n === 0) {
-      el.textContent = '★ 0 ★　大当たり！';
+    if (C_STAR.has(R.idx)) {
+      el.textContent = '★ 大当たり！ ★';
       if (LC.owned()) { cGain(1000); el.textContent += '　◆ +1,000'; SFX.play('fx_jackpot', .7); cSay('あら、また引いたのね。……ご褒美よ。', null, 2.5); }
       else { LC.unlock(); cSay('あら……引いたのね。いいわ、あなたについていってあげる。', 'npc_win', 4.5); setTimeout(() => { $('croul').classList.remove('on'); cJoin(); }, 2600); return; }
     } else {
       const back = C_RED.has(n) ? 30 : 20; cGain(back);
       el.textContent = `${n}（${C_RED.has(n) ? '赤' : '黒'}）　◆ +${back}`;
-      cSay(`残念。でも、ツキは貯まっていくものよ。（契約まで あと ◆ ${LC.cost().toLocaleString()}）`, 'npc_lose', 3);
+      cSay(`残念。でも、ツキは貯まっていくものよ。（天井まで あと ${C_PITY - LC.rs()} 回／契約まで あと ◆ ${LC.cost().toLocaleString()}）`, 'npc_lose', 3);
     }
     $('croulOk').hidden = false;
   }
@@ -5232,8 +5316,57 @@ $('cgX').addEventListener('click', () => { $('cgame').className = 'cpanel'; cG =
 function cBtn(label, fn, cls = '') { const b = document.createElement('button'); b.type = 'button'; b.className = 'tap ' + cls; b.textContent = label; b.addEventListener('click', fn); $('cgA').appendChild(b); return b; }
 function cPrize(n, msg) { if (n > 0) cGain(n); $('cgMsg').textContent = msg + (n > 0 ? `　◆ +${n}` : ''); }
 
-/* スロット「ルーチェ・セブン」：目押し。リールは右ほど速い */
+/* スロット「ルーチェ・セブン」：目押し。リールは右ほど速い。止めた時、1コマ先が左のリールと同じ絵ならすべって合わせる */
 const S_SYM = ['7', 'BAR', '★', '♦', '♣', '♥', 'BAR', '♣', '♦', '★', '♥', '♣'], S_H = 64;
+let cBoard = null, mySl = null;
+const S_COL = s => s === '7' || s === '♦' || s === '♥' ? '#d0102a' : s === 'BAR' ? '#1a1a2a' : s === '★' ? '#b8860b' : '#1a1a2a';
+function slotResult(s) {
+  const same = s[0] === s[1] && s[1] === s[2], pair = s[0] === s[1] || s[1] === s[2] || s[0] === s[2];
+  if (same && s[0] === '7') return { n: 300, msg: 'JACKPOT!! 7-7-7', big: 2 };
+  if (same && s[0] === 'BAR') return { n: 150, msg: 'BAR そろい！', big: 1 };
+  if (same && s[0] === '★') return { n: 120, msg: '★ そろい！', big: 1 };
+  if (same) return { n: 80, msg: `${s[0]} そろい！`, big: 1 };
+  if (pair) return { n: 30, msg: 'ペア！', big: 0 };
+  return { n: 10, msg: 'はずれ…', big: 0 };
+}
+function cBoardDraw() {
+  const B = cBoard; if (!B) return; const g = B.c.getContext('2d'), W = 512, H = 256;
+  g.fillStyle = B.hot ? '#3a1206' : '#12060e'; g.fillRect(0, 0, W, H);
+  g.strokeStyle = '#ffcf5a'; g.lineWidth = 6; g.strokeRect(3, 3, W - 6, H - 6);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = '#ffd77a'; g.font = '800 30px "Shippori Mincho B1", serif';
+  g.fillText(B.who ? `${B.who} がプレイ中` : 'LUCE SEVEN', W / 2, 30);
+  for (let k = 0; k < 3; k++) {
+    const x = 46 + k * 144, y = 56, w = 132, h = 130;
+    const gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, '#888'); gr.addColorStop(.5, '#fff'); gr.addColorStop(1, '#888');
+    g.fillStyle = gr; g.fillRect(x, y, w, h);
+    g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+    const pos = B.pos[k], base = Math.floor(pos), off = pos - base;
+    for (let d = -1; d <= 2; d++) {
+      const sym = S_SYM[(((base + d) % 12) + 12) % 12], cy = y + h / 2 + (d - off) * 70;
+      g.fillStyle = S_COL(sym); g.font = sym === 'BAR' ? 'bold 40px sans-serif' : 'bold 80px serif'; g.fillText(sym, x + w / 2, cy + 4);
+    }
+    g.restore();
+  }
+  g.strokeStyle = 'rgba(255,60,90,.8)'; g.lineWidth = 3; g.beginPath(); g.moveTo(40, 121); g.lineTo(W - 40, 121); g.stroke();
+  g.fillStyle = B.hot ? '#fff1b0' : '#e8dcc8'; g.font = '800 32px "Shippori Mincho B1", serif'; g.fillText(B.msg || (B.who ? '' : '空いています　だれでも遊べます'), W / 2, 222);
+  B.tex.needsUpdate = true;
+}
+// r：3本のリールの止まった位置（-1 は回っている）。owner：だれの画面か（自分は 'me'）
+function cBoardSet(owner, who, r) {
+  const B = cBoard; if (!B) return;
+  B.owner = owner; B.who = who; B.idleT = 0;
+  for (let k = 0; k < 3; k++) { B.spin[k] = r[k] < 0; if (r[k] >= 0) B.pos[k] = r[k]; }
+  if (r.every(v => v >= 0)) { const res = slotResult(r.map(i => S_SYM[i])); B.msg = res.msg; B.hot = res.big > 0; if (owner !== 'me' && res.big === 2) SFX.play('fx_jackpot', .3); }
+  else { B.msg = ''; B.hot = false; }
+  cBoardDraw();
+}
+function cBoardTick(dt) {
+  const B = cBoard; if (!B) return;
+  const spinning = B.spin.some(v => v);
+  if (spinning) { for (let k = 0; k < 3; k++) if (B.spin[k]) B.pos[k] = (B.pos[k] + [7, 8.5, 10][k] * dt) % 12; B.drawT -= dt; if (B.drawT <= 0) { B.drawT = 1 / 30; cBoardDraw(); } }
+  else if (B.owner) { B.idleT += dt; if (B.idleT > 6) { B.owner = null; B.who = ''; B.msg = ''; B.hot = false; cBoardDraw(); } }
+}
 function cSlotStart() {
   cG.state = 'slot'; const B = $('cgB'); B.innerHTML = '<div class="reels"></div>';
   cG.reels = [0, 1, 2].map(i => {
@@ -5241,15 +5374,20 @@ function cSlotStart() {
     const st = document.createElement('div'); st.className = 'strip';
     for (let r = 0; r < 3; r++) for (const s of S_SYM) { const c = document.createElement('i'); c.textContent = s; c.className = s === '7' ? 'r7' : s === 'BAR' ? 'bar' : s === '♦' || s === '♥' ? 'red' : ''; st.appendChild(c); }
     w.appendChild(st); B.firstChild.appendChild(w);
-    return { st, pos: Math.random() * 12, speed: [7.5, 9.5, 11.5][i], stop: false, snap: null };
+    return { st, pos: Math.random() * 12, speed: [5, 6, 7][i], stop: false, snap: null };
   });
   $('cgA').innerHTML = '';
   cG.btns = [0, 1, 2].map(i => cBtn('STOP', () => cSlotStop(i), 'stop'));
   $('cgMsg').textContent = ''; SFX.play('fx_reel_spin', .45);
+  mySl = { n: (mySl ? mySl.n : 0) + 1, r: [-1, -1, -1] }; cBoardSet('me', 'あなた', mySl.r);
 }
 function cSlotStop(i) {
   const R = cG?.reels?.[i]; if (!R || R.stop) return;
-  R.stop = true; R.snap = { from: R.pos, to: Math.round(R.pos), t: 0 }; cG.btns[i].disabled = true; SFX.play('fx_reel_stop', 1.3);
+  let to = Math.round(R.pos);
+  const at = k => S_SYM[((k % 12) + 12) % 12], fixed = cG.reels.filter(r => r.stop).map(r => at(r.snap.to));
+  if (fixed.length && !fixed.includes(at(to)) && fixed.includes(at(to + 1))) to += 1;           // 1コマすべって、そろえてくれる
+  R.stop = true; R.snap = { from: R.pos, to, t: 0 }; cG.btns[i].disabled = true; SFX.play('fx_reel_stop', 1.3);
+  mySl = { n: mySl ? mySl.n : 1, r: mySl ? mySl.r.slice() : [-1, -1, -1] }; mySl.r[i] = ((to % 12) + 12) % 12; cBoardSet('me', 'あなた', mySl.r);
   if (cG.reels.every(r => r.stop)) setTimeout(cSlotJudge, 300);
 }
 function cSlotTick(dt) {
@@ -5264,13 +5402,9 @@ function cSlotJudge() {
   if (!cG || cG.state !== 'slot') return;
   cG.state = 'slotDone';
   const s = cG.reels.map(R => S_SYM[((Math.round(R.pos) % 12) + 12) % 12]);
-  const same = s[0] === s[1] && s[1] === s[2], pair = s[0] === s[1] || s[1] === s[2] || s[0] === s[2];
-  let n = 10, msg = 'はずれ…';
-  if (same && s[0] === '7') { n = 300; msg = 'JACKPOT!! 7-7-7'; LC.bump('slot777', 1, 'max'); SFX.play('fx_jackpot', .7); SFX.voice('voice/fortuna/mg_slot777', .8, .1); }
-  else if (same && s[0] === 'BAR') { n = 150; msg = 'BAR そろい！'; SFX.play('ui_clear', .6); }
-  else if (same && s[0] === '★') { n = 120; msg = '★ そろい！'; SFX.play('ui_clear', .6); }
-  else if (same) { n = 80; msg = `${s[0]} そろい！`; SFX.play('ui_clear', .5); }
-  else if (pair) { n = 30; msg = 'ペア！'; }
+  const { n, msg, big } = slotResult(s);
+  if (big === 2) { LC.bump('slot777', 1, 'max'); SFX.play('fx_jackpot', .7); SFX.voice('voice/fortuna/mg_slot777', .8, .1); }
+  else if (big === 1) SFX.play('ui_clear', .6);
   cPrize(n, msg); cHud();
   $('cgA').innerHTML = ''; cBtn('もう一度（チャレンジ1回）', () => cGameMenu());
 }
@@ -5356,7 +5490,7 @@ function cFrame(dt, t) {
   }
   for (const c of CAS.chandeliers) c.rotation.y += dt * .05;
   const dp = CAS.dust.geometry.attributes.position.array; for (let i = 1; i < dp.length; i += 3) { dp[i] += dt * .08; if (dp[i] > 8) dp[i] = 0; } CAS.dust.geometry.attributes.position.needsUpdate = true;
-  cNpcTick(dt, t); cRoulTick(dt); cSlotTick(dt);
+  cNpcTick(dt, t); cRoulTick(dt); cWallTick(dt); cSlotTick(dt); cBoardTick(dt);
 }
 function drawCasinoMap() {
   const W = mapc.width, S = 6;
@@ -5425,7 +5559,7 @@ function tick(dt) {
 window.__step = (n, w, h) => { if (w) { camera.aspect = w / h; camera.updateProjectionMatrix(); renderer.setSize(w, h); composer.setSize(w, h); } for (let i = 0; i < n; i++) tick(1 / 60); return renderer.domElement.toDataURL('image/jpeg', .8); };
 
 loop();
-window.__walk = { player, keys, wallet, chests, interact: () => interact(), near: () => near?.label, openShop, closeShop, SHOPS, step: s => { for (let i = 0; i < s * 60; i++) tick(1 / 60); }, cam: () => ({ camYaw, camPitch }), setCam: (y, p, d) => { camYaw = y; camPitch = p; camDist = d; camInit = false; }, lockCam: v => { camLock = v; }, CB, PV, dummies, golem, attack, useSkill, net: NET, remotes, dg: DG, dn: DN, soc: SOC, fakePeers: list => { NET.status = { available: true, connected: true }; NET.peers = list; syncRemotes(); updateNetUI(); }, vrm: () => vrm };
+window.__walk = { player, keys, wallet, chests, interact: () => interact(), near: () => near?.label, openShop, closeShop, SHOPS, step: s => { for (let i = 0; i < s * 60; i++) tick(1 / 60); }, cam: () => ({ camYaw, camPitch }), setCam: (y, p, d) => { camYaw = y; camPitch = p; camDist = d; camInit = false; }, lockCam: v => { camLock = v; }, CB, PV, dummies, golem, attack, useSkill, net: NET, remotes, dg: DG, dn: DN, soc: SOC, fakePeers: list => { NET.status = { available: true, connected: true }; NET.peers = list; syncRemotes(); updateNetUI(); if (CASINO) { SOC.peers = list; cRlCheck(); } }, vrm: () => vrm };
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); sizeBulbs(); });
 </script>
 </body>
