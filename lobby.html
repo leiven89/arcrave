@@ -198,6 +198,37 @@
 .lcm .lcmt{flex:1;min-width:0}.lcm small{font-size:10px;letter-spacing:.15em;color:#c9a8ff;margin-right:6px}.lcm b{font-size:13px;color:#f6efe2}
 .lcm span{display:block;font-size:11px;color:#b9a98f;margin-top:2px}.lcm button{flex:none;min-width:78px;height:32px;font:700 12px sans-serif;border:1px solid rgba(255,215,122,.5);background:rgba(20,8,14,.7);color:#b9a98f;cursor:pointer}
 .lcm.ok button{background:linear-gradient(120deg,#fff1c4,#ffd77a);color:#1a0d02;border-color:#ffd77a}.lcm.got{opacity:.55}
+  /* ---- ホームのパネル（メール・ミッション・お知らせ・ストーリー・ショップ） ---- */
+  #hp{position:fixed;inset:0;z-index:62;display:none;place-items:center;background:rgba(2,6,16,.66)}
+  #hp.on{display:grid}
+  #hp .box{width:min(560px,calc(100vw - 20px));height:min(640px,calc(100vh - 28px));display:flex;flex-direction:column;background:linear-gradient(180deg,rgba(10,22,44,.97),rgba(5,10,24,.97));border:1px solid var(--line);box-shadow:0 0 40px rgba(63,240,255,.18);color:#e8fbff}
+  #hp header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid rgba(63,240,255,.25)}
+  #hp header b{font:800 19px var(--jp);letter-spacing:.08em} #hp header small{font:700 11px var(--en);letter-spacing:.3em;color:var(--cy)}
+  #hp header .x{margin-left:auto;width:40px;height:40px;display:grid;place-items:center;font-size:20px;border:1px solid rgba(63,240,255,.4);text-align:center}
+  #hp .bd{flex:1;overflow:auto;padding:12px 14px;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+  #hp .ft{padding:10px 14px;border-top:1px solid rgba(63,240,255,.2);display:flex;gap:8px;align-items:center;font-size:12px;color:#9fc6dd}
+  #hp .ft button{margin-left:auto}
+  #hp .it{display:flex;gap:12px;align-items:center;padding:12px;margin-bottom:8px;background:rgba(63,240,255,.06);border:1px solid rgba(63,240,255,.2)}
+  #hp .it .ic{flex:none;width:44px;height:44px;display:grid;place-items:center;font-size:20px;background:rgba(63,240,255,.12);border:1px solid rgba(63,240,255,.35)}
+  #hp .it .tx{flex:1;min-width:0} #hp .it .tx b{display:block;font-size:14px;line-height:1.45} #hp .it .tx small{display:block;font-size:11.5px;color:#9fc6dd;line-height:1.5;margin-top:2px}
+  #hp .it.done{opacity:.5}
+  #hp .bt{flex:none;padding:9px 14px;min-height:40px;font:700 13px var(--jp);background:linear-gradient(120deg,#bff9ff,#3ff0ff);color:#03121c;text-align:center}
+  #hp .bt:disabled{background:rgba(255,255,255,.12);color:#8aa6b8}
+  #hp .bt.g{background:transparent;color:#bff3ff;border:1px solid rgba(63,240,255,.45)}
+  #hp .bar{height:5px;margin-top:6px;background:rgba(63,240,255,.15)} #hp .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cy2),var(--cy))}
+  #hp .tag{display:inline-block;padding:1px 7px;margin-right:6px;font:700 10px var(--en);letter-spacing:.1em;border:1px solid currentColor}
+  #hp .nw{padding:12px;margin-bottom:8px;border-left:3px solid var(--cy);background:rgba(63,240,255,.05);cursor:pointer}
+  #hp .nw .d{font:700 11px var(--en);color:#9fc6dd} #hp .nw b{display:block;margin:3px 0;font-size:14px}
+  #hp .nw p{display:none;font-size:13px;line-height:1.8;color:#cfe6f3;margin-top:6px} #hp .nw.open p{display:block}
+  #hp .ch{position:relative;padding:16px;margin-bottom:10px;min-height:96px;background:linear-gradient(110deg,rgba(26,168,255,.25),rgba(255,63,164,.12));border:1px solid rgba(63,240,255,.35)}
+  #hp .ch small{font:700 11px var(--en);letter-spacing:.25em;color:var(--cy)} #hp .ch b{display:block;font:800 18px "Shippori Mincho B1",serif;margin:4px 0} #hp .ch span{font-size:12px;color:#b9d6e6}
+  #hp .ch .bt{position:absolute;right:12px;bottom:12px} #hp .ch.lock{filter:grayscale(.8);opacity:.6}
+  #hp .rd{display:flex;flex-direction:column;height:100%;gap:12px}
+  #hp .rd .sc{flex:1;display:flex;flex-direction:column;justify-content:center;padding:18px;background:radial-gradient(ellipse at 50% 0%,rgba(63,240,255,.14),transparent 70%);border:1px solid rgba(63,240,255,.2)}
+  #hp .rd .nm{font:800 14px var(--jp);color:var(--cy);margin-bottom:8px;min-height:1.4em}
+  #hp .rd .ln{font:500 16px/1.95 "Shippori Mincho B1",serif;white-space:pre-wrap}
+  #hp .rd .nav{display:flex;gap:8px;align-items:center} #hp .rd .nav span{flex:1;text-align:center;font:700 12px var(--en);color:#9fc6dd}
+  #hp .bal{display:flex;gap:8px;margin-bottom:10px} #hp .bal div{flex:1;padding:10px;background:rgba(63,240,255,.07);border:1px solid rgba(63,240,255,.25)} #hp .bal small{display:block;font-size:11px;color:#9fc6dd} #hp .bal b{font:800 18px var(--en)}
 </style>
 <div id="evp"><div class="box">
   <div class="kv"><small>EVENT // LUCE D'ORO GRAND OPENING</small><h2>ルーチェ・ドーロ開幕祭</h2><p>カジノのミニゲームでルーチェコインを集めよう。舞台のフォルトゥナに話しかければ、<b>運命のルーレット</b>で運試しも、コインで<b>契約</b>して確定で仲間にすることもできる。</p></div>
@@ -256,17 +287,17 @@
 
   <div id="res">
     <div class="chip panel"><span class="ic" style="color:#7dffb0">⚡</span><span id="stamina">126/150</span><div class="plus tap">+</div></div>
-    <div class="chip panel"><span class="ic" style="color:var(--yl)">◈</span>1,284,500<div class="plus tap">+</div></div>
-    <div class="chip panel"><span class="ic" style="color:var(--mg)">✦</span>3,450<div class="plus tap">+</div></div>
-    <button class="sq panel tap" data-msg="メールボックス（デモ）">✉<span class="dot"></span></button>
+    <div class="chip panel"><span class="ic" style="color:var(--yl)">円</span><span id="yenV">0</span><div class="plus tap">+</div></div>
+    <div class="chip panel"><span class="ic" style="color:var(--mg)">✦</span><span id="crysV">0</span><div class="plus tap">+</div></div>
+    <button class="sq panel tap" id="mailBtn">✉<span class="dot" id="mailDot"></span></button>
     <button class="sq panel tap" id="tutLobbyBtn" aria-label="チュートリアル" title="チュートリアル">？</button>
   </div>
 
   <nav id="left" class="tiltL">
-    <button class="lm panel tap" data-msg="ミッション報酬を受け取りました"><span class="hx">◎</span><span><b>ミッション</b><small>MISSION</small></span><span class="dot"></span></button>
+    <button class="lm panel tap" id="misBtn"><span class="hx">◎</span><span><b>ミッション</b><small>MISSION</small></span><span class="dot"></span></button>
     <button class="lm panel tap" id="evBtn"><span class="hx">★</span><span><b>イベント</b><small>EVENT</small></span><span class="dot"></span></button>
     <button class="lm panel tap" id="friendBtn"><span class="hx">⚇</span><span><b>フレンド</b><small>FRIEND</small></span></button>
-    <button class="lm panel tap" data-msg="お知らせ（デモ）"><span class="hx">!</span><span><b>お知らせ</b><small>NEWS</small></span></button>
+    <button class="lm panel tap" id="newsBtn"><span class="hx">!</span><span><b>お知らせ</b><small>NEWS</small></span></button>
     <button class="lm panel tap" id="sfxBtn"><span class="hx">♪</span><span><b>効果音</b><small>SFX ON</small></span></button>
     <button class="lm panel tap" id="bgmBtn"><span class="hx">♫</span><span><b>BGM</b><small>BGM ON</small></span></button>
     <button class="lm panel tap" id="voiceBtn"><span class="hx">🔇</span><span><b>ボイス</b><small>VOICE OFF</small></span></button>
@@ -287,7 +318,7 @@
       <h2>ルーチェ・ドーロ開幕祭</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261128141006">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261128161225">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
@@ -296,11 +327,11 @@
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261128141006">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261128141006">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
-      <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
-      <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261128141006">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261128161225">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261128161225">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" id="storyBtn">❖<b>ストーリー</b><small>STORY</small></button>
+      <button class="gb panel tap" id="shopBtn">◈<b>ショップ</b><small>SHOP</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261128161225">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -315,6 +346,7 @@
 
 <div id="bubble"></div>
 <div id="toast" class="panel"></div>
+<div id="hp"><div class="box"><header><b id="hpT"></b><small id="hpE"></small><button class="x" id="hpX" type="button" aria-label="閉じる">×</button></header><div class="bd" id="hpB"></div><div class="ft" id="hpF"></div></div></div>
 
 <div id="loading">
   <div class="t">BOOTING</div>
@@ -494,8 +526,8 @@ function tLobbyStart(force) {
     { t: 'アークレイヴへようこそ', b: 'ここはロビー。あなたの<b>パートナー</b>が待っている屋上です。<br>キャラを<b>タップ</b>すると反応してくれるよ。<br>ボタンの使いかたを、かんたんに案内します。', dim: true },
     { t: '出撃', b: '3Dの街<b>「ノエルベルク」</b>へ。歩いたり、お店に入ったり、技で戦ったりできます。はじめての人はここから！', hi: '#sortie', dim: true },
     { t: 'ダンジョン', b: '<b>パーティ</b>を組んで、仲間と一緒に地下迷宮へ挑みます。ボスを倒すと報酬がもらえます。', hi: '#dungeon', dim: true },
-    { t: 'キャラ・編成', b: '<b>パートナー</b>を選びます。選んだキャラで街を歩き、戦います。', hi: '[data-href="select.html?v=20261128141006"]', dim: true },
-    { t: 'ガチャ', b: 'クリスタルを使って、キャラやアイテムを<b>召喚</b>します。', hi: '[data-href="gacha.html?v=20261128141006"]', dim: true },
+    { t: 'キャラ・編成', b: '<b>パートナー</b>を選びます。選んだキャラで街を歩き、戦います。', hi: '[data-href="select.html?v=20261128161225"]', dim: true },
+    { t: 'ガチャ', b: 'クリスタルを使って、キャラやアイテムを<b>召喚</b>します。', hi: '[data-href="gacha.html?v=20261128161225"]', dim: true },
     { t: 'イベント', b: 'いまは<b>「ルーチェ・ドーロ開幕祭」</b>。カジノのミニゲームでコインを集めると、新キャラ<b>フォルトゥナ</b>が仲間になります。', hi: ['#evBtn', '#evBanner'], dim: true },
     { t: 'フレンド・パーティ', b: '同じ時間に遊んでいる人と<b>フレンド</b>になったり、<b>パーティ</b>を組んだりできます。', hi: '#friendBtn', dim: true },
     { t: 'さあ、出撃しよう！', b: 'まずは<b>出撃</b>して、街で操作を覚えよう。街でもチュートリアルが始まります。<br><small>右上の「？」で、この案内をまた見られます。</small>', hi: ['#sortie', '#tutLobbyBtn'], dim: true },
@@ -516,7 +548,7 @@ function evOpen() { evRender(); document.getElementById('evp').classList.add('on
 document.getElementById('evBtn').addEventListener('click', evOpen);
 document.getElementById('evBanner').addEventListener('click', evOpen);
 document.getElementById('evX').addEventListener('click', () => document.getElementById('evp').classList.remove('on'));
-document.getElementById('evGo').addEventListener('click', () => { location.href = 'walk.html?area=casino&v=20261128141006'; });
+document.getElementById('evGo').addEventListener('click', () => { location.href = 'walk.html?area=casino&v=20261128161225'; });
 /* ---------- パートナー：キャラ選択画面で選んだキャラ（shino / karen）を使う ---------- */
 // フォルトゥナは招待コードで解放した人だけ（キャラ選択画面・タイトル画面で入力）
 const FORTUNA_OK = (() => { try { return !!localStorage.getItem('unlock_fortuna'); } catch (e) { return false; } })();
@@ -1533,7 +1565,157 @@ document.addEventListener('click', e => { if (e.target.closest && e.target.close
 { const b = document.getElementById('bgmBtn'), show = () => { b.querySelector('.hx').textContent = BGM.isOn() ? '♫' : '×'; b.querySelector('small').textContent = BGM.isOn() ? 'BGM ON' : 'BGM OFF'; b.classList.toggle('on', BGM.isOn()); };
   show(); b.addEventListener('click', ev => { ev.stopPropagation(); BGM.setOn(!BGM.isOn()); show(); toast(BGM.isOn() ? 'BGMをONにしました' : 'BGMをOFFにしました'); }); }
 document.querySelectorAll('[data-href]').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); location.href = el.dataset.href; }));
-document.querySelectorAll('.plus').forEach(el => el.addEventListener('click', () => toast('ショップ（デモ）')));
+document.querySelectorAll('.plus').forEach(el => el.addEventListener('click', ev => { ev.stopPropagation(); hpOpen('shop'); }));
+
+
+/* ---------- ホームのパネル：メール・ミッション・お知らせ・ストーリー・ショップ ---------- */
+const HS = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+const crys = { get: () => HS.get('crystals', 30000), add(n) { HS.set('crystals', crys.get() + n); homeRes(); } };
+const yen = { get: () => HS.get('walk_coins', 200), add(n) { HS.set('walk_coins', Math.max(0, yen.get() + n)); homeRes(); } };
+function homeRes() {
+  document.getElementById('crysV').textContent = crys.get().toLocaleString();
+  document.getElementById('yenV').textContent = yen.get().toLocaleString();
+  const mailLeft = HP_MAIL.filter(m => !HS.get('home_mail', []).includes(m.id)).length;
+  document.getElementById('mailDot').style.display = mailLeft ? '' : 'none';
+}
+const hpEl = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function hpBtn(label, fn, cls = '') { const b = document.createElement('button'); b.type = 'button'; b.className = 'bt tap ' + cls; b.textContent = label; b.addEventListener('click', ev => { ev.stopPropagation(); fn(b); }); return b; }
+function hpItem(ic, title, sub, btn, done) {
+  const d = document.createElement('div'); d.className = 'it' + (done ? ' done' : '');
+  d.innerHTML = `<div class="ic">${ic}</div><div class="tx"><b>${esc(title)}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  if (btn) d.appendChild(btn); return d;
+}
+// --- メール
+const HP_MAIL = [
+  { id: 'm1', from: '運営事務局', t: 'アークレイヴへようこそ！', b: 'はじめまして、オペレーター。第9隊へようこそ。<br>ささやかですが、着任のお祝いです。', r: 3000 },
+  { id: 'm2', from: 'イベント事務局', t: '「ルーチェ・ドーロ開幕祭」開催記念', b: 'カジノ「ルーチェ・ドーロ」がオープンしました。開催を記念してクリスタルをお届けします。', r: 1500 },
+  { id: 'm3', from: '運営事務局', t: 'チュートリアル追加のお知らせ', b: 'ロビーと街にチュートリアルを追加しました。右上の「？」からいつでも見られます。', r: 500 },
+  { id: 'm4', from: '運営事務局', t: 'iPad・スマホの操作改善について', b: 'タップが効きにくい問題を修正しました。ご不便をおかけしました。', r: 300 },
+];
+function hpMail() {
+  const got = HS.get('home_mail', []), B = hpEl('hpB'); B.innerHTML = '';
+  for (const m of HP_MAIL) {
+    const done = got.includes(m.id);
+    B.appendChild(hpItem('✉', m.t, `${esc(m.from)}　／　${m.b}<br>報酬：<b style="color:var(--mg)">✦ ${m.r.toLocaleString()}</b>`,
+      hpBtn(done ? '受取済み' : '受け取る', () => { const g = HS.get('home_mail', []); if (g.includes(m.id)) return; g.push(m.id); HS.set('home_mail', g); crys.add(m.r); toast(`クリスタル ✦${m.r.toLocaleString()} を受け取りました`); hpMail(); }), done));
+    if (done) B.lastChild.querySelector('.bt').disabled = true;
+  }
+  const left = HP_MAIL.filter(m => !got.includes(m.id)), F = hpEl('hpF'); F.innerHTML = `<span>未受け取り ${left.length} 件</span>`;
+  const all = hpBtn('一括受け取り', () => { const g = HS.get('home_mail', []); let n = 0; for (const m of HP_MAIL) if (!g.includes(m.id)) { g.push(m.id); n += m.r; } HS.set('home_mail', g); if (n) { crys.add(n); toast(`クリスタル ✦${n.toLocaleString()} を受け取りました`); } hpMail(); });
+  all.disabled = !left.length; F.appendChild(all);
+}
+// --- ミッション（はじめての人向け。達成すると受け取れる）
+const HP_MIS = [
+  { id: 'tut', t: '街のチュートリアルを完了する', ok: () => HS.get('tut_town1', null) === 'done' || localStorage.getItem('tut_town1') === 'done', r: 500 },
+  { id: 'chara', t: 'キャラ選択でパートナーを決める', ok: () => !!localStorage.getItem('partner'), r: 300 },
+  { id: 'chest', t: '街で宝箱を1つ開ける', ok: () => { try { return Object.keys(localStorage).some(k => k.startsWith('walk_chest_')); } catch (e) { return false; } }, r: 300 },
+  { id: 'gacha', t: 'ガチャを1回まわす', ok: () => HS.get('pity', 0) > 0 || HS.get('ownedShino', false), r: 300 },
+  { id: 'casino', t: 'カジノでミニゲームを遊ぶ', ok: () => { const m = HS.get('lc_m', null); return !!(m && m.played && m.played.length); }, r: 300 },
+  { id: 'fortuna', t: 'フォルトゥナを仲間にする', ok: () => !!localStorage.getItem('unlock_fortuna'), r: 1000 },
+];
+function hpMis() {
+  const got = HS.get('home_mis', []), B = hpEl('hpB'); B.innerHTML = '';
+  let n = 0;
+  for (const M of HP_MIS) {
+    const ok = M.ok(), done = got.includes(M.id); if (done) n++;
+    const b = hpBtn(done ? '受取済み' : ok ? '受け取る' : '未達成', () => { const g = HS.get('home_mis', []); if (g.includes(M.id) || !M.ok()) return; g.push(M.id); HS.set('home_mis', g); crys.add(M.r); toast(`ミッション達成！ ✦${M.r.toLocaleString()}`); hpMis(); });
+    b.disabled = done || !ok;
+    B.appendChild(hpItem(done ? '✓' : '◎', M.t, `報酬：<b style="color:var(--mg)">✦ ${M.r.toLocaleString()}</b>`, b, done));
+  }
+  const F = hpEl('hpF'); F.innerHTML = `<span>ビギナーミッション ${n} / ${HP_MIS.length}</span>`;
+  F.appendChild(hpBtn('イベントミッションへ', () => { hpClose(); if (typeof evOpen === 'function') evOpen(); }, 'g'));
+}
+// --- お知らせ
+const HP_NEWS = [
+  { d: '2026.11.28', tag: 'NEW', t: 'チュートリアルを追加しました', b: 'ロビーではボタンの使いかたを、街では実際に操作しながら基本を覚えられます。街のチュートリアルを最後まで終えると 1,000円 のプレゼントがあります。' },
+  { d: '2026.11.28', tag: 'FIX', t: 'iPad・スマホのタップを改善しました', b: 'スティックを押さえながらボタンを押した時や、少し指がずれた時にも反応するようになりました。' },
+  { d: '2026.11.28', tag: 'EVENT', t: '「ルーチェ・ドーロ開幕祭」開催中！', b: 'カジノのミニゲーム（スロット・ハイ＆ロー・シャッフル）でルーチェコインを集めよう。運命のルーレットで★に止まるか、コインで契約すると、新キャラ「フォルトゥナ」が仲間になります。ルーレットは10回目で必ず★に止まります。' },
+  { d: '2026.11.27', tag: 'NEW', t: 'カジノをみんなで歩けるようになりました', b: 'ほかのプレイヤーと同じカジノを歩けます。ルーレットとスロットは、ほかの人が遊んでいる様子が台に映ります。' },
+  { d: '2026.11.20', tag: 'INFO', t: 'ダンジョン「氷晶の地下迷宮」', b: 'パーティを組んで挑むダンジョンです。最奥のボス「氷殻の守護者グラキエス」を倒すと報酬があります。' },
+];
+function hpNews() {
+  const B = hpEl('hpB'); B.innerHTML = '';
+  const col = { NEW: '#3ff0ff', FIX: '#7dffb0', EVENT: '#ffd77a', INFO: '#c9a8ff' };
+  for (const N of HP_NEWS) {
+    const d = document.createElement('div'); d.className = 'nw tap';
+    d.innerHTML = `<span class="d"><span class="tag" style="color:${col[N.tag]}">${N.tag}</span>${N.d}</span><b>${esc(N.t)}</b><p>${esc(N.b)}</p>`;
+    d.addEventListener('click', ev => { ev.stopPropagation(); d.classList.toggle('open'); });
+    B.appendChild(d);
+  }
+  hpEl('hpF').innerHTML = '<span>タップすると詳しく読めます</span>';
+}
+// --- ストーリー
+const HP_STORY = [
+  { id: 'p', no: 'PROLOGUE', t: '序章　白夜に咲く、氷の約束', s: '雪の都市ノエルベルク。第9隊のはじまりの夜。', lines: [
+    ['', '――聖夜を前にした、雪の都市ノエルベルク。\n街の灯りは、今夜もやさしく雪を照らしている。'],
+    ['', 'けれど、その光の届かない場所で、\n「氷」がゆっくりと、街を飲みこもうとしていた。'],
+    ['しの', 'あ、来た来た。あなたが新しいオペレーター？\nうち、雪代しの。今日から同じ第9隊やけん、よろしくね。'],
+    ['しの', '第9隊――「アークレイヴ」。\n街に出てくる氷の魔物から、みんなを守るのがうちらの仕事。'],
+    ['カレン', 'ちょっと、しの。新人さんを置いてきぼりにしないの。\n……はじめまして。カレンよ。踊るのと、戦うのが得意。'],
+    ['しの', 'ね、オペレーター。あなたには、うちらの「目」になってほしいと。\nどこに行って、どう戦うか。それを決めるのは、あなた。'],
+    ['', '遠くで、氷の割れる音がした。\n街の地下――「氷晶の地下迷宮」の方角から。'],
+    ['カレン', '……さっそく、お仕事みたいね。'],
+    ['しの', '大丈夫。うちらがおるけん。\n――約束する。この街の白い夜は、うちらが守るって。'],
+    ['', '序章　おわり\n\n（第1章へつづく）'],
+  ] },
+  { id: 'c1', no: 'CHAPTER 1', t: '第1章　氷晶の地下迷宮', s: '近日公開', lock: true },
+  { id: 'c2', no: 'CHAPTER 2', t: '第2章　黄金の夜、ルーチェ・ドーロ', s: '近日公開', lock: true },
+];
+function hpStory() {
+  const B = hpEl('hpB'); B.innerHTML = ''; const read = HS.get('home_story', []);
+  for (const C of HP_STORY) {
+    const d = document.createElement('div'); d.className = 'ch' + (C.lock ? ' lock' : '');
+    d.innerHTML = `<small>${C.no}</small><b>${esc(C.t)}</b><span>${esc(C.s)}${read.includes(C.id) ? '　✓ 読了' : ''}</span>`;
+    if (!C.lock) d.appendChild(hpBtn(read.includes(C.id) ? 'もう一度読む' : '読む', () => hpRead(C)));
+    else { const b = hpBtn('🔒 近日公開', () => {}); b.disabled = true; d.appendChild(b); }
+    B.appendChild(d);
+  }
+  hpEl('hpF').innerHTML = '<span>メインストーリー</span>';
+}
+function hpRead(C) {
+  let k = 0; const B = hpEl('hpB');
+  B.innerHTML = '<div class="rd"><div class="sc"><div class="nm"></div><div class="ln"></div></div><div class="nav"></div></div>';
+  const nav = B.querySelector('.nav'), back = hpBtn('◀ もどる', () => go(-1), 'g'), cnt = document.createElement('span'), next = hpBtn('つぎへ ▶', () => go(1));
+  nav.append(back, cnt, next);
+  B.querySelector('.sc').addEventListener('click', ev => { ev.stopPropagation(); go(1); });
+  function go(d) {
+    k += d;
+    if (k >= C.lines.length) { const r = HS.get('home_story', []); if (!r.includes(C.id)) { r.push(C.id); HS.set('home_story', r); if (C.id === 'p') { crys.add(500); toast('序章クリア！ ✦500'); } } return hpStory(); }
+    k = Math.max(0, k);
+    const [nm, ln] = C.lines[k];
+    B.querySelector('.nm').textContent = nm; B.querySelector('.ln').textContent = ln;
+    cnt.textContent = `${k + 1} / ${C.lines.length}`; back.disabled = k === 0; next.textContent = k === C.lines.length - 1 ? 'おわる' : 'つぎへ ▶';
+  }
+  go(0);
+  hpEl('hpF').innerHTML = `<span>${esc(C.t)}</span>`; hpEl('hpF').appendChild(hpBtn('一覧へ', hpStory, 'g'));
+}
+// --- ショップ（街で集めた円を、クリスタルと交換する）
+const HP_SHOP = [
+  { n: 'クリスタル ✦150', ic: '✦', cost: 500, give: 150 },
+  { n: 'クリスタル ✦700', ic: '✦', cost: 2000, give: 700 },
+  { n: 'クリスタル ✦2,000', ic: '✦', cost: 5000, give: 2000 },
+];
+function hpShop() {
+  const B = hpEl('hpB'); B.innerHTML = '';
+  const bal = document.createElement('div'); bal.className = 'bal';
+  bal.innerHTML = `<div><small>所持金（街で集めた円）</small><b>${yen.get().toLocaleString()}円</b></div><div><small>クリスタル</small><b>✦ ${crys.get().toLocaleString()}</b></div>`;
+  B.appendChild(bal);
+  for (const it of HP_SHOP) {
+    const b = hpBtn(`${it.cost.toLocaleString()}円`, () => { if (yen.get() < it.cost) return toast('円が足りません。街の宝箱やお店で集めよう'); yen.add(-it.cost); crys.add(it.give); toast(`${it.n} と交換しました`); hpShop(); });
+    b.disabled = yen.get() < it.cost;
+    B.appendChild(hpItem(it.ic, it.n, 'ガチャに使えるクリスタルと交換します', b));
+  }
+  B.appendChild(hpItem('⚡', 'スタミナ回復', '準備中', (() => { const b = hpBtn('準備中', () => {}); b.disabled = true; return b; })()));
+  hpEl('hpF').innerHTML = '<span>円は、街の宝箱やチュートリアルの報酬で手に入ります</span>';
+}
+const HP = { mail: ['メールボックス', 'MAIL', hpMail], mis: ['ミッション', 'MISSION', hpMis], news: ['お知らせ', 'NEWS', hpNews], story: ['ストーリー', 'STORY', hpStory], shop: ['ショップ', 'SHOP', hpShop] };
+function hpOpen(k) { const [t, e, fn] = HP[k]; hpEl('hpT').textContent = t; hpEl('hpE').textContent = e; fn(); hpEl('hpB').scrollTop = 0; hpEl('hp').classList.add('on'); }
+function hpClose() { hpEl('hp').classList.remove('on'); homeRes(); }
+hpEl('hpX').addEventListener('click', ev => { ev.stopPropagation(); hpClose(); });
+hpEl('hp').addEventListener('click', ev => { ev.stopPropagation(); if (ev.target.id === 'hp') hpClose(); });
+for (const [id, k] of [['mailBtn', 'mail'], ['misBtn', 'mis'], ['newsBtn', 'news'], ['storyBtn', 'story'], ['shopBtn', 'shop']]) hpEl(id).addEventListener('click', ev => { ev.stopPropagation(); hpOpen(k); });
+homeRes(); addEventListener('pageshow', homeRes);
 
 const voiceBtn = document.getElementById('voiceBtn');
 voiceBtn.addEventListener('click', ev => {
