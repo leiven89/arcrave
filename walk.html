@@ -345,7 +345,7 @@
 <div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
 <div id="bossHud"><small>BOSS</small><b>氷殻の守護者グラキエス</b><div class="bb"><i id="bossBar"></i></div><span id="bossNum"></span></div>
-<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261128124853">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261128124853">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
+<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261128125511">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261128125511">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
   <header><div class="logo" id="shopLogo">夜</div><div class="nm"><b id="shopName">ヨルマート</b><small id="shopEn">YORU MART</small></div><button class="close tap" id="shopClose">✕ 店を出る</button></header>
@@ -1804,7 +1804,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128124853');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128125511');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -2097,7 +2097,7 @@ function syncRemotes() {
     if (!r) {
       if (remotes.size >= MAX_REMOTE) continue;
       r = makeRemote(p); remotes.set(p.peer, r);
-      if (!again) netToast(`${peerName(p)} さんが ノエルベルク に来ました`);
+      if (!again) netToast(`${peerName(p)} さんが ${CASINO ? 'カジノ' : 'ノエルベルク'} に来ました`);
     }
     applyPresence(r, p);
   }
@@ -2131,7 +2131,7 @@ function makeRemote(p) {
 }
 function applyPresence(r, p) {
   const [x, z, yaw, sp] = p.presence.st;
-  const X = num(x, -80, 260), Z = num(z, -130, 30), Y = num(yaw, -100, 100), S = num(sp, 0, 8);
+  const X = num(x, -230, 260), Z = num(z, -130, 30), Y = num(yaw, -100, 100), S = num(sp, 0, 8);
   if (X === null || Z === null) return;
   const first = !r.tgt;
   if (first || r.tgt.x !== X || r.tgt.z !== Z || r.tgt.speed !== (S ?? 0)) r.tgtAt = performance.now();
@@ -4445,7 +4445,7 @@ function dBuild() {
   dWall(-1.75, 0, -1.75, 6.6); dWall(1.75, 0, 1.75, 6.6); dWall(-1.8, 6.6, 1.8, 6.6);     // 地上へ続く階段の壁
   const portal = new THREE.Mesh(new THREE.RingGeometry(.6, 1.1, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.5, 2.2), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   portal.rotation.x = -Math.PI / 2; portal.position.set(DX, .03, -1); scene.add(portal); DG.portalA = portal;
-  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128124853', 350); } });
+  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128125511', 350); } });
   dCorridor(-18, -10);
   // 戦闘の部屋1
   dRoom(-9, 9, -36, -18, { n: true, s: true }); for (const [x, z] of [[-5, -23], [5, -23], [-5, -31], [5, -31]]) dPillar(x, z);
@@ -4705,7 +4705,7 @@ function dClear() {
   // 帰り道のポータル
   const p = new THREE.Mesh(new THREE.RingGeometry(.8, 1.4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.4, .6), transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   p.rotation.x = -Math.PI / 2; p.position.set(DX, .04, -104); scene.add(p); DG.portalB = p;
-  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128124853', 350); } });
+  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128125511', 350); } });
   dChest(0, -112, 5000, 'boss');
   setTimeout(() => {
     $('dresTime').textContent = fmt(sec); $('dresBest').textContent = nb ? 'ベスト更新！' : `ベスト ${fmt(best)}`; $('dresCoin').textContent = `+${reward.toLocaleString()}円`;
@@ -5037,7 +5037,7 @@ function cInit() {
   I('slot', 'スロット「ルーチェ・セブン」で遊ぶ', () => cOpenGame('slot'));
   I('hilo', 'ハイ＆ローで遊ぶ', () => cOpenGame('hilo'));
   I('shuffle', 'シャッフル・ゲームで遊ぶ（ディーラー：フォルトゥナ）', () => cOpenGame('shuffle'));
-  I('exit', 'ロビーへ戻る', () => { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128124853', 350); });
+  I('exit', 'ロビーへ戻る', () => { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128125511', 350); });
   $('cHud').classList.add('on'); cHud();
   cLoadNpc();
 }

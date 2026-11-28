@@ -281,7 +281,7 @@
       <h2>ルーチェ・ドーロ開幕祭</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261128124853">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261128125511">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
@@ -290,11 +290,11 @@
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261128124853">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261128124853">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261128125511">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261128125511">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261128124853">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261128125511">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -405,7 +405,7 @@ function evOpen() { evRender(); document.getElementById('evp').classList.add('on
 document.getElementById('evBtn').addEventListener('click', evOpen);
 document.getElementById('evBanner').addEventListener('click', evOpen);
 document.getElementById('evX').addEventListener('click', () => document.getElementById('evp').classList.remove('on'));
-document.getElementById('evGo').addEventListener('click', () => { location.href = 'walk.html?area=casino&v=20261128124853'; });
+document.getElementById('evGo').addEventListener('click', () => { location.href = 'walk.html?area=casino&v=20261128125511'; });
 /* ---------- パートナー：キャラ選択画面で選んだキャラ（shino / karen）を使う ---------- */
 // フォルトゥナは招待コードで解放した人だけ（キャラ選択画面・タイトル画面で入力）
 const FORTUNA_OK = (() => { try { return !!localStorage.getItem('unlock_fortuna'); } catch (e) { return false; } })();
