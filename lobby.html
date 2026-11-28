@@ -318,7 +318,7 @@
       <h2>ルーチェ・ドーロ開幕祭</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261128161225">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261128162357">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
@@ -327,11 +327,11 @@
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261128161225">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261128161225">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261128162357">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261128162357">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" id="storyBtn">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" id="shopBtn">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261128161225">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261128162357">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -526,8 +526,8 @@ function tLobbyStart(force) {
     { t: 'アークレイヴへようこそ', b: 'ここはロビー。あなたの<b>パートナー</b>が待っている屋上です。<br>キャラを<b>タップ</b>すると反応してくれるよ。<br>ボタンの使いかたを、かんたんに案内します。', dim: true },
     { t: '出撃', b: '3Dの街<b>「ノエルベルク」</b>へ。歩いたり、お店に入ったり、技で戦ったりできます。はじめての人はここから！', hi: '#sortie', dim: true },
     { t: 'ダンジョン', b: '<b>パーティ</b>を組んで、仲間と一緒に地下迷宮へ挑みます。ボスを倒すと報酬がもらえます。', hi: '#dungeon', dim: true },
-    { t: 'キャラ・編成', b: '<b>パートナー</b>を選びます。選んだキャラで街を歩き、戦います。', hi: '[data-href="select.html?v=20261128161225"]', dim: true },
-    { t: 'ガチャ', b: 'クリスタルを使って、キャラやアイテムを<b>召喚</b>します。', hi: '[data-href="gacha.html?v=20261128161225"]', dim: true },
+    { t: 'キャラ・編成', b: '<b>パートナー</b>を選びます。選んだキャラで街を歩き、戦います。', hi: '[data-href="select.html?v=20261128162357"]', dim: true },
+    { t: 'ガチャ', b: 'クリスタルを使って、キャラやアイテムを<b>召喚</b>します。', hi: '[data-href="gacha.html?v=20261128162357"]', dim: true },
     { t: 'イベント', b: 'いまは<b>「ルーチェ・ドーロ開幕祭」</b>。カジノのミニゲームでコインを集めると、新キャラ<b>フォルトゥナ</b>が仲間になります。', hi: ['#evBtn', '#evBanner'], dim: true },
     { t: 'フレンド・パーティ', b: '同じ時間に遊んでいる人と<b>フレンド</b>になったり、<b>パーティ</b>を組んだりできます。', hi: '#friendBtn', dim: true },
     { t: 'さあ、出撃しよう！', b: 'まずは<b>出撃</b>して、街で操作を覚えよう。街でもチュートリアルが始まります。<br><small>右上の「？」で、この案内をまた見られます。</small>', hi: ['#sortie', '#tutLobbyBtn'], dim: true },
@@ -548,7 +548,7 @@ function evOpen() { evRender(); document.getElementById('evp').classList.add('on
 document.getElementById('evBtn').addEventListener('click', evOpen);
 document.getElementById('evBanner').addEventListener('click', evOpen);
 document.getElementById('evX').addEventListener('click', () => document.getElementById('evp').classList.remove('on'));
-document.getElementById('evGo').addEventListener('click', () => { location.href = 'walk.html?area=casino&v=20261128161225'; });
+document.getElementById('evGo').addEventListener('click', () => { location.href = 'walk.html?area=casino&v=20261128162357'; });
 /* ---------- パートナー：キャラ選択画面で選んだキャラ（shino / karen）を使う ---------- */
 // フォルトゥナは招待コードで解放した人だけ（キャラ選択画面・タイトル画面で入力）
 const FORTUNA_OK = (() => { try { return !!localStorage.getItem('unlock_fortuna'); } catch (e) { return false; } })();

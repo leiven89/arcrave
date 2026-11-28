@@ -118,6 +118,10 @@
   #cutin .txt{position:absolute;left:46%;top:50%;transform:translateY(-50%) skewY(8deg)}
   #cutin .txt small{display:block;font-family:var(--en);font-weight:700;font-size:18px;letter-spacing:.6em;color:var(--yl)}
   #cutin .txt b{display:block;font-size:min(9vw,96px);font-weight:900;letter-spacing:.06em;line-height:1.05;color:#fff;text-shadow:0 0 24px var(--cy),4px 4px 0 rgba(0,40,80,.8)}
+  body.karen #cutin .band{background:linear-gradient(90deg,rgba(40,4,30,.95),rgba(120,20,90,.95) 45%,rgba(255,106,216,.9) 100%);box-shadow:0 0 0 3px #ff6ad8,0 0 40px rgba(255,106,216,.75)}
+  body.karen #cutin img{filter:drop-shadow(0 0 20px rgba(255,106,216,.85))}
+  body.karen #cutin .txt b{text-shadow:0 0 24px #ff6ad8,4px 4px 0 rgba(60,0,40,.8)}
+  body.karen #cutin .txt small{color:#ffd77a}
   #cutin .txt span{display:block;font-family:var(--en);font-weight:700;font-size:22px;letter-spacing:.5em;color:var(--ice)}
 
   #toast{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);padding:14px 30px;font-weight:700;opacity:0;transition:.25s;pointer-events:none;z-index:9}
@@ -167,7 +171,7 @@
     #prompt{left:50%;top:36%}
     #head{left:12px;top:12px}
     #title b{font-size:18px}
-    #sub{white-space:normal;width:90%;bottom:auto;top:84px;font-size:14px}
+    #sub,body.skill #sub{white-space:normal;width:90%;bottom:auto;top:84px;font-size:14px}
   }
 
   /* スマホ横持ち（高さが低い画面）ではUI全体を縮小 */
@@ -1619,6 +1623,11 @@ function updateTheme(dt) {
 
 /* ---------- 選んだとき：暗転 → カチッとスポット → 振り向いて踊りだす ---------- */
 let kSm = null, kHipW = 0, kShow = null, kFin = null, kClock = 0, kLineT = 0;
+// 登場ショーの時間割（秒）
+const KSHOW_T = { step: 2.0, fake: 3.95, arp: 5.5, finale: 7.35, end: 8.9 };
+const K_HOPS = [[0, -.95, 2.15], [-.95, .25, 2.6], [.25, 1.05, 3.05]];          // [から, まで, 跳ぶ時刻]（0.42秒ずつ）
+const K_ARP = [69, 73, 76, 81, 85, 88];                                          // アルペジオ（上がっていく）
+const kAt = (x, y = .15) => new THREE.Vector3(x, y, 0);
 function selectKaren(el) {
   if (skill || kFin || fFin) return;
   if (!karen) { toast('カレンを読み込み中です…'); return; }
@@ -1644,6 +1653,7 @@ function selectKaren(el) {
   selected = true;
 }
 function leaveKaren() {
+  cutRestore(); setShot('normal');
   kFxClear(); camWide = 0; focus.y = 0; kHand('right', 0, 0, 0); kHand('left', 0, 0, 0);
   musicStop(); kShow = kFin = null; active = null;
   document.body.classList.remove('karen', 'skill');
@@ -1652,13 +1662,22 @@ function leaveKaren() {
   ringMat.map = ringTexShino; ringMat.color.copy(glow(.4, 1.6, 2.2)); ringMat.opacity = .55;
   charH = shinoH; focus.set(0, 0, 0); setFace({});
 }
+const CUT0 = (() => { const q = sel => document.querySelector('#cutin .txt ' + sel).textContent; return { small: q('small'), b: q('b'), span: q('span') }; })();
+function setCut(small, b, span, img) {
+  const q = sel => document.querySelector('#cutin .txt ' + sel);
+  q('small').textContent = small; q('b').textContent = b; q('span').textContent = span;
+  if (img) { const im = document.getElementById('cutImg'); if (!CUT0.img) CUT0.img = im.src; im.src = img; }
+}
+function cutRestore() { setCut(CUT0.small, CUT0.b, CUT0.span, CUT0.img || null); }
 function karenDecide() {
   if (kFin || kShow) return;
-  kFin = { t: 0, stage: 0 }; kPropsHide(); perfAct = perfPrev = -1;
+  kFin = { t: 0, stage: 0, nt: 0 }; kPropsHide(); perfAct = perfPrev = -1; musicStop();
   document.body.classList.add('skill');
-  kSmile(.6); say('フィナーレ、いっくよー♪', 1);
+  kSmile(.4); say('とっておき、見せてあげる……！', 1.2);
+  SPOTS.forEach(sp => sp.want = 0); SPOTS[0].want = 1;
+  setShot('charge');
   const ac = audio();
-  if (ac) { const t = ac.currentTime + .02; for (let i = 0; i < 30; i++) DR.cast(t + i * .05, .3 + i / 30 * .7); DR.whistle(t, 400, 2200, 1.5); }
+  if (ac) { const t = ac.currentTime + .02; for (let i = 0; i < 34; i++) DR.cast(t + i * .045, .2 + i / 34 * .8); DR.whistle(t, 300, 2400, 1.5); }
 }
 // 紙吹雪
 const CF = 260, cfPos = new Float32Array(CF * 3), cfCol = new Float32Array(CF * 3), cfV = [];
@@ -1679,7 +1698,7 @@ function karenTick(dt, rdt, t) {
     if (M.on && SND.ac && SND.ac.state === 'running') { const at = SND.ac.currentTime - M.t0; if (Math.abs(at - kClock) > .25) kClock = at; else kClock += (at - kClock) * .1; }
   }
   const beat = kClock / BEAT;
-  let P, x = 0, yaw = 0, z = 0, y = 0, perf = false, perfD = null;
+  let P, x = 0, yaw = 0, z = 0, y = 0, perf = false, perfD = null, direct = false;
   const main = SPOTS[0], cols = SPOTS.slice(1);
   if (kShow) {                                              // 登場
     const s = kShow; s.t += rdt;
@@ -1689,22 +1708,100 @@ function karenTick(dt, rdt, t) {
       const ac = SND.ac; if (ac) { DR.cast(ac.currentTime, 1); tone('square', 90, ac.currentTime, .08, .3); DR.crash(ac.currentTime + .02); }
     }
     if (s.stage >= 1) { const k = kss(Math.min(1, (s.t - 1.45) / .45)); yaw = Math.PI * (1 - Math.max(0, k)); P = kBlend(KP.back, KP.open, Math.max(0, k)); }
-    if (s.stage === 1 && s.t > 1.5) { s.stage = 2; kSmile(.7); say('お待たせ♪ カレン・カデンツァ、華麗にステップ・イン！', 2.2); }
-    if (s.stage === 2 && s.t > 2.0) { kShow = null; musicStart(); kClock = 0; cols.forEach(c => c.want = 1); env.userData.nameMesh.material.opacity = .9; kLineT = 12; }
-  } else if (kFin) {                                        // 決定：三回転して決めポーズ
-    const f = kFin; f.t += rdt;
-    const k = Math.min(1, f.t / 1.5);
-    x = kRoot.position.x * (1 - k * .2);
-    if (f.t < 1.5) { P = kBlend(KP.open, KP.passe, Math.min(1, f.t / .25)); yaw = kss(k) * Math.PI * 6; }
-    else P = kBlend(KP.passe, KP.finale, Math.min(1, (f.t - 1.5) / .15));
-    SPOTS.forEach(s => s.want = 1);
-    if (f.stage === 0 && f.t > 1.5) {
-      f.stage = 1; popConfetti(); fwBurst(L(-.5, 2.9, -1.0), { n: 400, speed: 3.4, cols: FW_COLS.party, life: 1.8, light: 8 }); SFX.boom(1.2); flash(.6, .5); shake = .6; burstShock(4, .7);
-      kSmile(1, true); say('フィナーレは、あなたと一緒に。よろしくね♪', 2.4);
-      const ac = SND.ac; if (ac) { const t0 = ac.currentTime; DR.crash(t0); DR.kick(t0); DR.stab(t0, [57, 61, 64, 69]); DR.stab(t0 + .25, [57, 61, 64, 69, 73]); DR.lead(t0 + .25, 81, .9, 76); }
+    if (s.stage === 1 && s.t > 1.5) { s.stage = 2; kSmile(.7); say('お待たせ♪ 今夜のショー、はじめるよ！', 1.6); }
+    const T = KSHOW_T, ac = SND.ac, cross = v => s.t - rdt < v && s.t >= v;
+    if (s.t >= T.step) direct = true;
+    // ① アドリブ・ステップ：音符の足場で、ぴょん、ぴょん、ぴょん
+    if (s.t >= T.step && s.t < T.fake) {
+      if (cross(T.step)) { say('まずは――アドリブ・ステップ！', 1.3); kSmile(.8); }
+      let hx = 0, hy = 0, air = false, dir = -1;
+      for (const [a, b, t0] of K_HOPS) {
+        const u = (s.t - t0) / .42;
+        if (u >= 0 && u <= 1) { hx = kLerp(a, b, kss(u)); hy = Math.sin(Math.PI * u) * .38; air = true; dir = Math.sign(b - a); }
+        else if (u > 1) hx = b;
+        if (cross(t0)) { puff(kAt(a), 10, { cols: FW_COLS.party, spd: .8, up: 1.4, size: .1 }); if (ac) DR.bell(ac.currentTime, 76 + K_HOPS.findIndex(h => h[2] === t0) * 3); }
+        if (cross(t0 + .42)) { fwBurst(kAt(b), { n: 70, speed: 1.1, cols: FW_COLS.party, life: .7, light: 3, shape: (v, k) => v.set(Math.cos(k * 6.283), .25, Math.sin(k * 6.283)) }); if (ac) { DR.kick(ac.currentTime); DR.clap(ac.currentTime + .01); } }
+      }
+      x = hx; y = hy; yaw = dir * .5; P = air ? KP.passe : KP.together;
     }
-    if (f.t > 3.6) {
-      kFin = null; document.body.classList.remove('skill');
+    // ② フェイク・フィナーレ：その場に分身を残して瞬間移動。分身ははじけて花火に
+    else if (s.t >= T.fake && s.t < T.arp) {
+      if (cross(T.fake)) { say('フェイク・フィナーレ♪', 1.2); flash(.35, .3); burstShock(1.6, .45); if (ac) { DR.whistle(ac.currentTime, 2400, 500, .25); DR.cast(ac.currentTime, 1); } s.decoy = 1.05; }
+      if (s.decoy !== undefined && s.t > T.fake + .55 && !s.boom) {
+        s.boom = true; fwBurst(kAt(s.decoy, 1.0), { n: 320, speed: 2.4, cols: FW_COLS.party, life: 1.3, light: 7, glitter: true });
+        fwBurst(kAt(s.decoy, 1.0), { n: 120, speed: 1.4, cols: [[2.8, .5, 1.4]], life: 1.2, light: 0, shape: (v, k) => { const h = heartPt(k * 6.283, 1); v.set(h.x, h.y, h.z).multiplyScalar(.06); } });
+        shake = .35; if (ac) { DR.kick(ac.currentTime); DR.crash(ac.currentTime); DR.stab(ac.currentTime, [62, 66, 69]); }
+      }
+      x = -.6; yaw = .7; P = s.t < T.fake + .5 ? KP.hip : KP.point || KP.tada;
+      if (s.t < T.fake + .55) puff(kAt(1.05, rand(.4, 1.5)), 1, { tex: 'heart', cols: [[2.6, .6, 1.6]], spd: .3, up: .4, size: .08, life: .6 });
+    }
+    // ③ トリック・アルペジオ：指揮にあわせて音符刃を連射。音が上がっていく
+    else if (s.t >= T.arp && s.t < T.finale) {
+      if (cross(T.arp)) { say('トリック・アルペジオ！', 1.3); kSmile(.9); }
+      x = kLerp(-.6, 0, kss(Math.min(1, (s.t - T.arp) / .4))); yaw = 0; P = KP.conduct || KP.open;
+      for (let k = 0; k < 6; k++) {
+        const t0 = T.arp + .3 + k * .22;
+        if (cross(t0)) {
+          const tg = new THREE.Vector3(-2.4 + k * .96, 1.0 + (k % 2) * .7, -1.3 - (k % 3) * .3);
+          for (let j = 0; j < 14; j++) { const f = j / 14; spark(new THREE.Vector3(kLerp(x - .3, tg.x, f), kLerp(1.4, tg.y, f), kLerp(.2, tg.z, f)), new THREE.Vector3(0, .2, 0), pick(FW_COLS.party), .35 + f * .3, .2, true); }
+          fwBurst(tg, { n: 90, speed: 1.5, cols: FW_COLS.party, life: .9, light: 3 });
+          puff(tg, 6, { tex: 'mix', cols: FW_COLS.party, spd: .6, up: 1, size: .12 });
+          if (ac) { DR.bell(ac.currentTime, K_ARP[k]); DR.hat(ac.currentTime, k === 5); }
+        }
+      }
+    }
+    // ④ ステップ・イン：くるっと回って決めポーズ、花火、名前が光る
+    else if (s.t >= T.finale) {
+      const u = Math.min(1, (s.t - T.finale) / .55);
+      x = 0; yaw = kss(u) * Math.PI * 2; P = u < 1 ? KP.passe : KP.finale;
+      if (cross(T.finale + .55)) {
+        say('カレン・カデンツァ、華麗にステップ・イン！', 2.2); kSmile(1, true);
+        SPOTS.forEach(sp => sp.want = 1); env.userData.nameMesh.material.opacity = .9;
+        fwBurst(L(0, 3.0, -1.2), { n: 420, speed: 3.2, cols: FW_COLS.party, life: 1.8, light: 8, glitter: true });
+        fwBurst(L(-1.8, 2.4, -1.6), { n: 160, speed: 2, cols: FW_COLS.warm, life: 1.4, light: 4 }); fwBurst(L(1.8, 2.4, -1.6), { n: 160, speed: 2, cols: FW_COLS.warm, life: 1.4, light: 4 });
+        popConfetti(); flash(.4, .5); burstShock(3, .6); shake = .4;
+        if (ac) { const t0 = ac.currentTime; DR.crash(t0); DR.kick(t0); DR.stab(t0, [57, 61, 64, 69]); DR.stab(t0 + .2, [57, 61, 64, 69, 73]); DR.lead(t0 + .2, 81, .8, 76); }
+      }
+    }
+    if (s.t >= T.end) { kShow = null; direct = false; musicStart(); kClock = 0; cols.forEach(c => c.want = 1); env.userData.nameMesh.material.opacity = .9; kLineT = 12; }
+  } else if (kFin) {                                        // 決定：覚醒《カデンツァ・グランドショー》→《グランド・フィナーレ》
+    const f = kFin; f.t += rdt; direct = true;
+    const ac = SND.ac, cross = v => f.t - rdt < v && f.t >= v;
+    x = 0; yaw = 0;
+    if (f.t < 1.3) {                                         // ため：指揮のかまえ。音符が胸に集まってくる
+      P = kBlend(KP.open, KP.conduct || KP.open, Math.min(1, f.t / .3));
+      f.nt -= rdt; if (f.nt <= 0) { f.nt = .06; const a = rand(0, 6.283), r = rand(.8, 1.4); const p0 = new THREE.Vector3(Math.cos(a) * r, rand(.6, 2), Math.sin(a) * r); spark(p0, p0.clone().sub(chestPos).multiplyScalar(-2.2), pick(FW_COLS.party), .45, 0, true); }
+    }
+    if (cross(1.3)) {                                        // カットイン
+      const ic = ROSTER.find(r => r.id === 'karen')?.icon;
+      setCut('AWAKEN', 'カデンツァ・グランドショー', 'CADENZA  GRAND  SHOW', ic);
+      cutin.classList.remove('on'); void cutin.offsetWidth; cutin.classList.add('on');
+      flash(.5, .4); if (ac) { const t0 = ac.currentTime; DR.crash(t0); DR.stab(t0, [62, 66, 69, 74]); }
+      say('覚醒《カデンツァ・グランドショー》！', 1.4); kSmile(.9);
+    }
+    if (f.t >= 1.3 && f.t < 2.45) P = KP.tada || KP.open;
+    if (cross(2.45)) { cutin.classList.remove('on'); setShot('release'); SPOTS.forEach(sp => sp.want = 1); }
+    if (f.t >= 2.45 && f.t < 4.0) {                          // 三回転しながら、花火の輪
+      const u = Math.min(1, (f.t - 2.45) / 1.5);
+      yaw = kss(u) * Math.PI * 6; P = KP.passe; y = Math.sin(Math.PI * u) * .12;
+      for (let k = 0; k < 10; k++) if (cross(2.5 + k * .13)) {
+        const a = k / 10 * Math.PI * 2, p0 = new THREE.Vector3(Math.cos(a) * 1.7, .9 + (k % 2) * .5, Math.sin(a) * 1.7 - .3);
+        fwBurst(p0, { n: 80, speed: 1.6, cols: FW_COLS.party, life: 1, light: 3 }); puff(p0, 4, { tex: 'mix', cols: FW_COLS.party, size: .13 });
+        if (ac) DR.bell(ac.currentTime, [69, 72, 76, 79, 81, 84, 88, 91, 93, 96][k]);
+      }
+    }
+    if (cross(4.0)) {                                        // グランド・フィナーレ
+      f.stage = 1; popConfetti(); SFX.boom(1.3); flash(.7, .6); shake = .7; burstShock(4.5, .8);
+      fwBurst(L(0, 3.1, -1.1), { n: 480, speed: 3.6, cols: FW_COLS.party, life: 2, light: 9, glitter: true });
+      fwBurst(L(0, 2.4, -1.1), { n: 160, speed: 1, cols: [[2.8, .5, 1.4]], life: 1.6, light: 0, shape: (v, k) => { const h = heartPt(k * 6.283, 1); v.set(h.x, h.y, h.z).multiplyScalar(.08); } });
+      for (const sx of [-2.2, 2.2]) fwBurst(L(sx, 2.2, -1.6), { n: 200, speed: 2.2, cols: FW_COLS.warm, life: 1.5, light: 4 });
+      kSmile(1, true); say('これがあたしのグランド・フィナーレ！', 1.8);
+      if (ac) { const t0 = ac.currentTime; DR.crash(t0); DR.kick(t0); DR.stab(t0, [57, 61, 64, 69]); DR.stab(t0 + .25, [57, 61, 64, 69, 73]); DR.lead(t0 + .25, 81, 1.1, 76); }
+    }
+    if (f.t >= 4.0) P = kBlend(KP.passe, KP.finale, Math.min(1, (f.t - 4.0) / .15));
+    if (cross(5.4)) { setShot('normal'); say('フィナーレは、あなたと一緒に。よろしくね♪', 2.4); }
+    if (f.t > 7.6) {
+      kFin = null; document.body.classList.remove('skill'); cutRestore();
       document.getElementById('toLobby').classList.add('show');
       toast('カレン・カデンツァ をパートナーに決定しました');
       try { localStorage.setItem('partner', 'karen'); } catch (e) {}
@@ -1715,7 +1812,7 @@ function karenTick(dt, rdt, t) {
   // 拍ごとに小さく沈む・頭でリズム
   const bounce = kShow || kFin || perf ? 0 : -.025 * Math.pow(Math.abs(Math.cos(Math.PI * beat)), 6);
   const PP = { ...P, _y: [(P._y ? P._y[0] : 0) + bounce, 0, 0], head: [P.head[0] + (kShow || kFin ? 0 : Math.sin(Math.PI * 2 * beat) * .04), P.head[1], P.head[2]] };
-  if (perf) { kRoot.position.set(x, y, z); kRoot.rotation.y = yaw; }
+  if (perf || direct) { kRoot.position.set(x, y, z); kRoot.rotation.y = yaw; }
   else { kRoot.position.x += (x - kRoot.position.x) * (kShow ? 1 : 1 - Math.exp(-rdt * 14)); kRoot.position.y *= .8; kRoot.position.z *= .8; kRoot.rotation.y = yaw + (kShow ? 0 : .22); }
   kSm = kSm ? kBlend(kSm, PP, 1 - Math.exp(-rdt * 14)) : PP;     // ポーズの切り替わりをなめらかに
   kApply(kSm);
@@ -2148,8 +2245,8 @@ function setInfo(id) {
    ===================================================================== */
 const toastEl = document.getElementById('toast'); let toastT;
 function toast(m) { toastEl.textContent = m; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1700); }
-document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128161225');
-document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261128161225');
+document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128162357');
+document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261128162357');
 window.__sel = { karen: () => ({ karen, kRoot, kShow, kFin, kClock, SPOTS, M, select: () => selectKaren(ROSTER.find(r => r.id === 'karen').card), decide: karenDecide, KP, kApply, clock: v => { musicStop(); kClock = v; }, icon: karenIcon }), pose: n => setPose(n, 10), shot: setShot, select: () => selectShino(document.querySelector('.ic.ur')), step: (sec) => { for (let i = 0; i < sec * 60; i++) tick(1 / 60); }, state: () => ({ skill, conv: conv.visible, glow: handGlow.scale.x, shot }), POSES, bone: n => bone(n), THREE, ear: EAR_OFFSET, hint: ELBOW_HINT, dbg: () => { const f = n => bone(n).getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)); const t = EAR_OFFSET.clone(); bone('head').localToWorld(t); return { head: f('head'), hand: f('leftHand'), elbow: f('leftLowerArm'), sh: f('leftUpperArm'), target: t.toArray().map(v => +v.toFixed(3)), rawHand: vrm.humanoid.getRawBoneNode('leftHand').getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)) }; }, show: () => { vrm.scene.visible = true; document.getElementById('loading').classList.add('hide'); setShot('normal'); } };
 
 /* =====================================================================
