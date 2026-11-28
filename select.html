@@ -1624,8 +1624,45 @@ function updateTheme(dt) {
 /* ---------- 選んだとき：暗転 → カチッとスポット → 振り向いて踊りだす ---------- */
 let kSm = null, kHipW = 0, kShow = null, kFin = null, kClock = 0, kLineT = 0;
 // 登場ショーの時間割（秒）
-const KSHOW_T = { step: 2.0, fake: 3.95, arp: 5.5, finale: 7.35, end: 8.9 };
-const K_HOPS = [[0, -.95, 2.15], [-.95, .25, 2.6], [.25, 1.05, 3.05]];          // [から, まで, 跳ぶ時刻]（0.42秒ずつ）
+const KSHOW_T = { step: 2.0, fake: 4.3, arp: 5.85, finale: 7.7, end: 9.25 };
+// 跳び：[から, まで, 跳ぶ時刻, 空中の秒数, 高さ, 回るか]
+const K_HOPS = [[0, -.8, 2.3, .34, .26, 0], [-.8, .2, 2.92, .38, .32, 0], [.2, 1.05, 3.55, .5, .44, 1]];
+const K_STEP_P = (() => {
+  // ため：腰を落として膝を曲げ、腕は少し後ろへ引く
+  const crouch = kPose({ hips: [.14, 0, 0], spine: [.2, 0, 0], chest: [.08, 0, 0], head: [-.14, 0, 0], _y: [-.11, 0, 0],
+    leftUpperLeg: [-.72, 0, .07], rightUpperLeg: [-.72, 0, -.07], leftLowerLeg: [1.25, 0, 0], rightLowerLeg: [1.25, 0, 0], leftFoot: [-.5, 0, 0], rightFoot: [-.5, 0, 0],
+    leftUpperArm: [0, .55, -1.0], rightUpperArm: [0, -.55, 1.0], leftLowerArm: [0, -.7, 0], rightLowerArm: [0, .7, 0] });
+  // 空中：右足をたたみ、左足は後ろへ流す。腕は前後に大きく振る
+  const air = kPose({ spine: [-.06, .12, 0], chest: [-.06, .08, 0], head: [-.06, -.1, 0],
+    leftUpperLeg: [.3, 0, .06], leftLowerLeg: [.45, 0, 0], leftFoot: [.55, 0, 0], rightUpperLeg: [-1.05, 0, -.1], rightLowerLeg: [1.55, 0, 0], rightFoot: [.6, 0, 0],
+    leftUpperArm: [0, -.75, -.4], rightUpperArm: [0, .5, .6], leftLowerArm: [0, -.45, 0], rightLowerArm: [0, 1.0, 0], leftHand: [0, 0, .35], rightHand: [0, 0, -.3] });
+  // 降りる前：足を伸ばして地面を探す
+  const reach = kPose({ spine: [.04, 0, 0], leftUpperLeg: [-.2, 0, .05], rightUpperLeg: [-.35, 0, -.05], leftLowerLeg: [.25, 0, 0], rightLowerLeg: [.4, 0, 0], leftFoot: [.2, 0, 0], rightFoot: [.25, 0, 0],
+    leftUpperArm: [0, -.3, -.6], rightUpperArm: [0, .3, .6], leftLowerArm: [0, -.4, 0], rightLowerArm: [0, .4, 0] });
+  return { crouch, air, reach, airM: kMirror(air), crouchS: kBlend(KP.open, crouch, .65) };
+})();
+// t 秒の時の ステップの姿勢・位置
+function kStepAt(t) {
+  const S = K_STEP_P, ss = v => kss(Math.min(1, Math.max(0, v)));
+  let P = KP.open, x = 0, y = 0, spin = 0, dir = -1;
+  for (let i = 0; i < K_HOPS.length; i++) {
+    const [a, b, t0, A, H, rot] = K_HOPS[i], air = i % 2 ? S.airM : S.air;
+    const land = t0 + A;
+    if (t < t0 - .16) { if (i === 0) { P = KP.open; x = a; } break; }
+    dir = Math.sign(b - a);
+    if (t < t0) { const u = (t - (t0 - .16)) / .16; P = kBlend(i === 0 ? KP.open : S.crouchS, S.crouch, ss(u)); x = a; }               // ため
+    else if (t < land) {                                                                                                                  // 空中
+      const v = (t - t0) / A;
+      P = v < .7 ? kBlend(S.crouch, air, ss(v * 3.2)) : kBlend(air, S.reach, ss((v - .7) / .3));
+      x = a + (b - a) * (v * .8 + kss(v) * .2); y = H * 4 * v * (1 - v); spin = rot ? kss(v) * Math.PI * 2 : 0;
+    } else if (t < land + .3) {                                                                                                           // 着地：沈んで戻る
+      const w = (t - land) / .3, sink = Math.sin(Math.PI * Math.min(1, w * 1.6)) * (1 - w * .4);
+      P = kBlend(KP.open, S.crouch, sink * (rot ? .85 : .6)); x = b;
+    } else { P = kBlend(KP.open, S.crouch, 0); x = b; continue; }
+    break;
+  }
+  return { P, x, y, spin, dir };
+}
 const K_ARP = [69, 73, 76, 81, 85, 88];                                          // アルペジオ（上がっていく）
 const kAt = (x, y = .15) => new THREE.Vector3(x, y, 0);
 function selectKaren(el) {
@@ -1714,15 +1751,14 @@ function karenTick(dt, rdt, t) {
     // ① アドリブ・ステップ：音符の足場で、ぴょん、ぴょん、ぴょん
     if (s.t >= T.step && s.t < T.fake) {
       if (cross(T.step)) { say('まずは――アドリブ・ステップ！', 1.3); kSmile(.8); }
-      let hx = 0, hy = 0, air = false, dir = -1;
-      for (const [a, b, t0] of K_HOPS) {
-        const u = (s.t - t0) / .42;
-        if (u >= 0 && u <= 1) { hx = kLerp(a, b, kss(u)); hy = Math.sin(Math.PI * u) * .38; air = true; dir = Math.sign(b - a); }
-        else if (u > 1) hx = b;
-        if (cross(t0)) { puff(kAt(a), 10, { cols: FW_COLS.party, spd: .8, up: 1.4, size: .1 }); if (ac) DR.bell(ac.currentTime, 76 + K_HOPS.findIndex(h => h[2] === t0) * 3); }
-        if (cross(t0 + .42)) { fwBurst(kAt(b), { n: 70, speed: 1.1, cols: FW_COLS.party, life: .7, light: 3, shape: (v, k) => v.set(Math.cos(k * 6.283), .25, Math.sin(k * 6.283)) }); if (ac) { DR.kick(ac.currentTime); DR.clap(ac.currentTime + .01); } }
-      }
-      x = hx; y = hy; yaw = dir * .5; P = air ? KP.passe : KP.together;
+      const st = kStepAt(s.t);
+      K_HOPS.forEach(([a, b, t0, A, , rot], i) => {
+        if (cross(t0)) { puff(kAt(a), 10, { cols: FW_COLS.party, spd: .8, up: 1.4, size: .1 }); if (ac) DR.bell(ac.currentTime, 76 + i * 3); }
+        if (cross(t0 + A)) { fwBurst(kAt(b), { n: rot ? 120 : 70, speed: rot ? 1.5 : 1.1, cols: FW_COLS.party, life: .7, light: 3, shape: (v, k) => v.set(Math.cos(k * 6.283), .25, Math.sin(k * 6.283)) }); if (ac) { DR.kick(ac.currentTime); DR.clap(ac.currentTime + .01); } if (rot) { kSmile(1, true); shake = .2; } }
+      });
+      // 進む方へ体を向ける（向きはなめらかに追う）。最後の跳びはくるっと一回転
+      s.face = kLerp(s.face ?? 0, st.dir * .75, 1 - Math.exp(-rdt * 7));
+      x = st.x; y = st.y; yaw = s.face + st.spin; P = st.P;
     }
     // ② フェイク・フィナーレ：その場に分身を残して瞬間移動。分身ははじけて花火に
     else if (s.t >= T.fake && s.t < T.arp) {
@@ -2245,8 +2281,8 @@ function setInfo(id) {
    ===================================================================== */
 const toastEl = document.getElementById('toast'); let toastT;
 function toast(m) { toastEl.textContent = m; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 1700); }
-document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128162357');
-document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261128162357');
+document.getElementById('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128172352');
+document.getElementById('toLobby').addEventListener('click', () => location.href = 'lobby.html?v=20261128172352');
 window.__sel = { karen: () => ({ karen, kRoot, kShow, kFin, kClock, SPOTS, M, select: () => selectKaren(ROSTER.find(r => r.id === 'karen').card), decide: karenDecide, KP, kApply, clock: v => { musicStop(); kClock = v; }, icon: karenIcon }), pose: n => setPose(n, 10), shot: setShot, select: () => selectShino(document.querySelector('.ic.ur')), step: (sec) => { for (let i = 0; i < sec * 60; i++) tick(1 / 60); }, state: () => ({ skill, conv: conv.visible, glow: handGlow.scale.x, shot }), POSES, bone: n => bone(n), THREE, ear: EAR_OFFSET, hint: ELBOW_HINT, dbg: () => { const f = n => bone(n).getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)); const t = EAR_OFFSET.clone(); bone('head').localToWorld(t); return { head: f('head'), hand: f('leftHand'), elbow: f('leftLowerArm'), sh: f('leftUpperArm'), target: t.toArray().map(v => +v.toFixed(3)), rawHand: vrm.humanoid.getRawBoneNode('leftHand').getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(3)) }; }, show: () => { vrm.scene.visible = true; document.getElementById('loading').classList.add('hide'); setShot('normal'); } };
 
 /* =====================================================================
