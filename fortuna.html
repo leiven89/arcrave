@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>フォルトゥナ・レイズ PV</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Shippori+Mincho+B1:wght@700;800&family=Dela+Gothic+One&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Shippori+Mincho+B1:wght@700;800&family=Dela+Gothic+One&family=Mochiy+Pop+One&display=swap" rel="stylesheet">
 <style>
   /* カジノ《ルーチェ・ドーロ》とフォルトゥナ・レイズの登場PV（ゲーム本編と同じ暗い配色で固定） */
   :root{ --gold:#ffd77a; --gold2:#c99a3b; --ink:#f6efe2; --mute:#b9a98f; --wine:#2a0710; --violet:#9b6bff;
@@ -43,7 +43,7 @@
   #cap{position:fixed;left:0;right:0;bottom:calc(min(9vh,9vw) + 14px);text-align:center;font:700 clamp(15px,3.4vw,22px)/1.5 var(--min);letter-spacing:.1em;color:#fff;text-shadow:0 2px 8px #000,0 0 18px rgba(0,0,0,.8);opacity:0;transition:opacity .35s;padding:0 16px}
   #cap.on{opacity:1}
   /* くるっ（擬音） */
-  .ono{position:absolute;font:400 clamp(28px,6.5vw,58px)/1 var(--pop);color:#fff4c9;-webkit-text-stroke:2px #6a2a00;paint-order:stroke fill;text-shadow:0 0 14px rgba(255,200,90,.9),0 4px 0 #3a1200;white-space:nowrap;transform:translate(-50%,-50%) scale(.2) rotate(-14deg);opacity:0;animation:ono .75s cubic-bezier(.2,1.6,.4,1) forwards}
+  .ono{position:absolute;font:400 clamp(30px,7vw,62px)/1 "Mochiy Pop One",var(--pop);letter-spacing:.04em;color:#fff4c9;-webkit-text-stroke:2.5px #5a1e00;paint-order:stroke fill;text-shadow:0 0 14px rgba(255,200,90,.9),0 4px 0 #3a1200;white-space:nowrap;transform:translate(-50%,-50%) scale(.2) rotate(-14deg);opacity:0;animation:ono .75s cubic-bezier(.2,1.6,.4,1) forwards}
   @keyframes ono{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(var(--r,-14deg))}25%{opacity:1;transform:translate(-50%,-50%) scale(1.15) rotate(var(--r,-14deg))}70%{opacity:1;transform:translate(-50%,-60%) scale(1) rotate(var(--r,-14deg))}100%{opacity:0;transform:translate(-50%,-80%) scale(.9) rotate(var(--r,-14deg))}}
   /* 名前のロゴ */
   #logo{position:fixed;left:max(5vw,16px);bottom:calc(min(9vh,9vw) + 13vh);max-width:min(680px,70vw);opacity:0;transform:translateX(-30px);transition:opacity 1s,transform 1.2s cubic-bezier(.2,.8,.2,1)}
@@ -135,6 +135,7 @@
   #logo .chips span{font-size:clamp(10px,1.6vw,13px);padding:3px 9px;border:1px solid rgba(255,215,122,.6);color:var(--ink);background:rgba(155,107,255,.2)}
   #note{position:fixed;right:max(16px,3vw);bottom:calc(min(9vh,9vw) + 8px);font-size:11px;color:rgba(255,255,255,.55);opacity:0;transition:opacity 1s}
   #note.on{opacity:1}
+  body.rec #hud,body.rec #endmenu,body.rec #gate{display:none !important}
   @media (prefers-reduced-motion:reduce){.ono{animation-duration:.01s}}
 </style>
 </head>
@@ -180,7 +181,7 @@
   <button id="snd" type="button" aria-pressed="true">音：ON</button>
   <button id="replay" type="button" hidden>PVを見る</button>
   <button id="skip" type="button" hidden>スキップ</button>
-  <a href="lobby.html?v=20261128002838">ロビーへ</a>
+  <a href="lobby.html?v=20261128124853">ロビーへ</a>
 </div>
 <div id="gate" class="layer">
   <div class="gbox">
@@ -212,6 +213,10 @@ const $ = id => document.getElementById(id);
 const Q = new URLSearchParams(location.search);
 const SNAP_T = Q.has('t') ? Number(Q.get('t')) : null;     // ?t=8.5 … その時刻の1コマだけ描く（確認用）
 const SNAP_WALK = Q.get('mode') === 'walk';
+// 録画モード（?rec=1）：動画に書き出すため、絵・文字の動き・タイマー・音を同じ時計（recClock）で1コマずつ進める
+const REC = Q.has('rec'), REC_FPS = 30, REC_DUR = 50;
+let recClock = 0;
+const acT = () => REC ? recClock : AC.currentTime;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const smooth = t => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
@@ -573,21 +578,26 @@ for (let i = 0; i < NC; i++) {
    ===================================================================== */
 // フォルトゥナのボイス（ElevenLabs：tools/gen_fortuna_voice.py）[音量, 頭の無音を飛ばす秒]
 const VOICES = { pv_06: [1, .13], pv_01: [.85, .15], pv_02: [1, .13], pv_03: [.95, .09], pv_04: [.85, 0], pv_05: [1, 0], call_s1: [.85, .1], jackpot: [1, .13], miss: [.9, .15], call_s2: [.75, .18], call_s3: [.95, .1], call_charge: [.95, .13], call_awaken: [.75, .33] };
-let vBus = null, vAn = null, vSrc = null, mouthOpen = 0;
+let vBus = null, vAn = null, vSrc = null, mouthOpen = 0, vRec = null;
 const vData = new Uint8Array(256);
 function voice(name, cap) {
   showCap('「' + cap + '」');
   const b = bufs[name], [vol, skip] = VOICES[name];
   if (!AC || !b) return;
-  try { vSrc?.stop(); } catch (e) {}
-  const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = b; g.gain.value = vol; s.connect(g); g.connect(vBus); s.start(AC.currentTime, skip); vSrc = s;
-  bgmBus.gain.setTargetAtTime(.22, AC.currentTime, .08);
-  s.onended = () => { if (vSrc === s) { vSrc = null; bgmBus.gain.setTargetAtTime(.5, AC.currentTime, .3); setTimeout(() => { if (!vSrc) hideCap(); }, 500); } };
+  try { vSrc?.stop(acT()); } catch (e) {}       // 止める時刻を指定する（書き出し時に、まだ鳴っている声が消えないように）
+  const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = b; g.gain.value = vol; s.connect(g); g.connect(vBus); s.start(acT(), skip); vSrc = s;
+  if (REC) vRec = { s, b, t0: recClock, skip, vol };
+  bgmBus.gain.setTargetAtTime(.22, acT(), .08);
+  s.onended = () => { if (vSrc === s) { vSrc = null; bgmBus.gain.setTargetAtTime(.5, acT(), .3); setTimeout(() => { if (!vSrc) hideCap(); }, 500); } };
 }
 let talking = false, vowelT = 0, vowel = 0, vowelPrev = 0, vowelMix = 1, lastLv = 0;
 function mouthLevel(dt) {      // 声の大きさで口の開きを決める（リップシンク）
   let v = 0;
-  if (vAn && vSrc) { vAn.getByteTimeDomainData(vData); let e = 0; for (const x of vData) e += (x - 128) * (x - 128); v = clamp((Math.sqrt(e / vData.length) - 1.5) / 16, 0, 1); }
+  if (REC && vRec && vSrc === vRec.s) {
+    const R = vRec, pos = recClock - R.t0 + R.skip;
+    if (pos >= R.b.duration) { vSrc = null; vRec = null; bgmBus.gain.setTargetAtTime(.5, acT(), .3); setTimeout(() => { if (!vSrc) hideCap(); }, 500); }
+    else { const d = R.b.getChannelData(0), i0 = Math.floor(pos * R.b.sampleRate); let e = 0, n = 0; for (let i = i0; i < Math.min(d.length, i0 + 1024); i++) { e += d[i] * d[i]; n++; } v = clamp((Math.sqrt(e / Math.max(1, n)) * 128 * R.vol - 1.5) / 16, 0, 1); }
+  } else if (vAn && vSrc) { vAn.getByteTimeDomainData(vData); let e = 0; for (const x of vData) e += (x - 128) * (x - 128); v = clamp((Math.sqrt(e / vData.length) - 1.5) / 16, 0, 1); }
   talking = !!vSrc;
   mouthOpen = lerp(mouthOpen, v, 1 - Math.exp(-dt * (v > mouthOpen ? 30 : 14)));
   // 音が強まった瞬間（音節の頭）ごとに、口の形（あ・い・う・え・お）を変える
@@ -604,20 +614,26 @@ function lipSync() {
 }
 let bgmLP = null;
 let AC = null, master = null, bgmBus = null, sfxBus = null, noiseBuf = null, soundOn = true;
-const bufs = {};
+const bufs = {}, audioLoads = [];
+// ElevenLabs で作った効果音（tools/gen_fortuna_sfx.py）と、そろえた音量
+const FXVOL = { fx_title_hit: .48, fx_spot: 1.2, fx_hat_throw: .84, fx_hat_spin: .58, fx_hat_catch: 3, fx_card_burst: .72, fx_card_fan: 2, fx_wipe: .36, fx_cutin: .51, fx_logo: .95,
+  fx_reel_spin: .67, fx_reel_stop: 1.36, fx_jackpot: .64, fx_shot: .42, fx_shot_big: .64, fx_coin_flip: 1.19, fx_dash: .43, fx_chips: .73, fx_bomb: 1.09, fx_card_slam: 1.1, fx_finale: .83 };
+const fxPlay = (n, d = 0, k = 1, rate = 1) => { if (!AC || !bufs[n]) return false; play(n, d, FXVOL[n] * k, rate); return true; };
+const fxOr = (n, f, d = 0, k = 1) => { if (!fxPlay(n, d, k)) f(); };
 function initAudio() {
-  if (AC) { AC.resume?.(); return; }
-  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  if (AC) { if (!REC) AC.resume?.(); return; }
+  try { AC = REC ? new OfflineAudioContext(2, Math.ceil(REC_DUR * 44100), 44100) : new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
   master = AC.createGain(); master.gain.value = soundOn ? 1 : 0; master.connect(AC.destination);
   const comp = AC.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3; comp.connect(master);
   bgmBus = AC.createGain(); bgmBus.gain.value = .5; bgmLP = AC.createBiquadFilter(); bgmLP.type = 'lowpass'; bgmLP.frequency.value = 18000; bgmBus.connect(bgmLP); bgmLP.connect(comp);
   sfxBus = AC.createGain(); sfxBus.gain.value = .9; sfxBus.connect(comp);
   const n = AC.sampleRate * 2; noiseBuf = AC.createBuffer(1, n, AC.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
   vBus = AC.createGain(); vBus.connect(master); vAn = AC.createAnalyser(); vAn.fftSize = 512; vBus.connect(vAn);
-  for (const k of Object.keys(VOICES)) fetch('voice/fortuna/' + k + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).then(b => b && AC.decodeAudioData(b)).then(b => { if (b) bufs[k] = b; }).catch(() => {});
-  for (const k of ['karen_snap', 'ui_coin', 'karen_star']) fetch('sfx/' + k + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).then(b => b && AC.decodeAudioData(b)).then(b => { if (b) bufs[k] = b; }).catch(() => {});
+  for (const k of Object.keys(VOICES)) audioLoads.push(fetch('voice/fortuna/' + k + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).then(b => b && AC.decodeAudioData(b)).then(b => { if (b) bufs[k] = b; }).catch(() => {}));
+  for (const k of Object.keys(FXVOL)) audioLoads.push(fetch('sfx/' + k + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).then(b => b && AC.decodeAudioData(b)).then(b => { if (b) bufs[k] = b; }).catch(() => {}));
+  for (const k of ['karen_snap', 'ui_coin', 'karen_star']) audioLoads.push(fetch('sfx/' + k + '.mp3').then(r => r.ok ? r.arrayBuffer() : null).then(b => b && AC.decodeAudioData(b)).then(b => { if (b) bufs[k] = b; }).catch(() => {}));
 }
-const at = d => AC.currentTime + Math.max(0, d);
+const at = d => acT() + Math.max(0, d);
 function env(g, t, a, peak, dec, sus = 0) { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(Math.max(1e-4, sus), t + a + dec); }
 function tone(d, f, type, vol, dec, bus = sfxBus, a = .005) {
   const t = at(d), o = AC.createOscillator(), g = AC.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); o.connect(g); g.connect(bus); env(g, t, a, vol, dec); o.start(t); o.stop(t + a + dec + .05); return o;
@@ -653,7 +669,12 @@ const SFX = {
   hit(d = 0) { tone(d, 55, 'sine', .9, 1.2); noise(d, 1.4, 'highpass', 5000, .4, .18); [62, 69, 74, 78, 81].forEach(m => tone(d, 440 * Math.pow(2, (m - 69) / 12), 'triangle', .07, 2.4)); },
   coin(d = 0) { play('ui_coin', d, .35, .9 + Math.random() * .3); },
 };
-for (const k in SFX) { const f = SFX[k]; SFX[k] = (...a) => { if (AC) f(...a); }; }   // 音を準備する前（確認用の描画など）は鳴らさない
+for (const k in SFX) { const f = SFX[k]; SFX[k] = (...a) => { if (AC) f(...a); }; }
+const FX_INSTALL = () => {          // 技の効果音（SFX へ後から足したもの）も含めて、ElevenLabs の音へつなぎ替える
+  const M = { thunk: () => ['fx_spot'], whoosh: (d, up = 1) => [up > 0 ? 'fx_hat_throw' : 'fx_card_fan'], kuru: (d, p = 1) => ['fx_hat_spin', 1, p], catch: () => ['fx_hat_catch'], flutter: () => ['fx_card_burst'], hit: () => ['fx_logo'],
+    pew: (d, big) => [big ? 'fx_shot_big' : 'fx_shot'], clunk: () => ['fx_reel_stop'], fanfare: () => ['fx_jackpot'], ting: () => ['fx_coin_flip'], boom: (d, big = 1) => [big === 1 ? 'fx_bomb' : null] };
+  for (const k in M) { const old = SFX[k]; if (!old) continue; SFX[k] = (d = 0, ...a) => { const [n, kk = 1, r = 1] = M[k](d, ...a); if (!(n && fxPlay(n, d, kk, r))) old(d, ...a); }; }
+};   // 音を準備する前（確認用の描画など）は鳴らさない
 // BGM：4小節のラウンジ風（Dm9 – G13 – Cmaj9 – A7）
 const BPM = 112, BEAT = 60 / BPM;
 const CHORDS = [
@@ -701,7 +722,7 @@ function pvMusic(now) {
 }
 function setSound(on) {
   soundOn = on; $('snd').textContent = '音：' + (on ? 'ON' : 'OFF'); $('snd').setAttribute('aria-pressed', on);
-  if (master) master.gain.setTargetAtTime(on ? 1 : 0, AC.currentTime, .05);
+  if (master) master.gain.setTargetAtTime(on ? 1 : 0, acT(), .05);
 }
 $('snd').onclick = () => { initAudio(); setSound(!soundOn); };
 
@@ -1010,7 +1031,7 @@ function showCam(s, set, L) {      // どれもキャラの位置が基準
 
 /* 演出の合図（その時刻を通り過ぎたら一度だけ） */
 const CUES = [
-  [0.0, () => { SFX.thunk(); titleCards(); }],
+  [0.0, () => { fxOr('fx_title_hit', () => SFX.thunk()); titleCards(); }],
   [0.4, () => { $('place').classList.add('on'); SFX.coin(0); SFX.coin(.35); SFX.coin(.9); }],
   [2.3, () => { SFX.thunk(); $('place').classList.remove('on'); }],
   [3.2, () => { flash(); }],
@@ -1028,15 +1049,15 @@ const CUES = [
   [real(TL.cards) + .2, () => SFX.chime(0)],
   [real(TL.fan), () => SFX.whoosh(0, -1)],
   // ---- 技紹介
-  [SHOW0 - .45, () => replay('wipe')],
+  [SHOW0 - .45, () => { replay('wipe'); fxPlay('fx_wipe'); }],
   [SHOW0, () => { SK.respawn = false; [[-2.4, 5.6], [0, 4.2], [2.4, 5.6]].forEach(([x, z], i) => { const d = makeDummy(x, z, 1100, i); d.rise = 0; }); SFX.thunk(); }],
   [SHOW0 + .2, () => voice('pv_05', '見せてあげる。わたしの勝ち方。')],
   [SHOW0 + 4.1, () => { showSkp('s1', 3.4); SK.force.s1 = 'jack'; pvUse('s1'); }],
   [SHOW0 + 7.9, () => { showSkp('s2'); pvUse('s2'); }],
   [SHOW0 + 10.0, () => { showSkp('s3'); SK.force.s3 = 'omote'; SK.dash = 6; pvUse('s3'); }],
-  [SHOW0 + 12.0, () => { showSkp('charge', 1.6); vrm.scene.rotation.y = Math.PI; pvUse('charge'); }],      // 振り向いて、的のほうへ
-  [SHOW0 + 13.4, () => releaseCharge()],
-  [SHOW0 + 13.75, () => { SK.luck = 100; replay('cut'); speedOn(true); pvUse('awaken'); }],
+  [SHOW0 + 12.6, () => { showSkp('charge', 1.4); vrm.scene.rotation.y = Math.PI; pvUse('charge'); }],      // 振り向いて、的のほうへ
+  [SHOW0 + 13.55, () => releaseCharge()],
+  [SHOW0 + 13.75, () => { SK.luck = 100; replay('cut'); fxPlay('fx_cutin'); speedOn(true); pvUse('awaken'); }],
   [SHOW0 + 15.5, () => { speedOn(false); showSkp('awaken', 2); }],
   [SHOW1, () => { SK.dash = 0; resetSkills(); vrm.scene.position.set(0, DAIS_Y, 0); vrm.scene.rotation.y = 0; flash(); vrm.springBoneManager?.reset?.(); }],
   [P2 - .1, () => flash()],
@@ -1219,6 +1240,8 @@ Object.assign(SFX, {
   ting(d = 0) { if (!AC) return; tone(d, 2600, 'sine', .14, .45); tone(d + .01, 3900, 'sine', .08, .3); },
   fanfare(d = 0) { if (!AC) return; [67, 72, 76, 79, 84].forEach((m, i) => { tone(d + i * .09, mf(m), 'square', .06, .35); tone(d + i * .09, mf(m + 12), 'sine', .08, .6); }); [84, 88, 91].forEach(m => tone(d + .5, mf(m), 'triangle', .1, 1.4)); for (let i = 0; i < 8; i++) SFX.coin(d + .3 + i * .09); },
 });
+
+FX_INSTALL();
 
 /* ---- 表示：技名の帯・出目・ダメージの数字 ---- */
 function showSkill(tag, name) {
@@ -1477,7 +1500,7 @@ function skillRoulette() {
   SK.missRow = k === 'none' ? SK.missRow + 1 : 0;
   SK.turret = Object.assign(T0, { t: 0, k, o: OUTCOME[k], res: reelsFor(k), stop: [1.05, 1.3, 1.6], from: [0, 0, 0], shown: false, fired: 0, nextShot: 0, mul: RAISE_MUL[r], tick: 0 });
   burstRing(p, 1.4, 0xffd77a);
-  SFX.ting(); SFX.coin(.05);
+  SFX.coin(.05); fxPlay('fx_reel_spin', .05);
 }
 const FIRE0 = 1.75;
 function updateTurret(dt) {
@@ -1498,7 +1521,7 @@ function updateTurret(dt) {
       if (!tu['s' + i]) { tu['s' + i] = 1; SFX.clunk(); }
     }
   });
-  if (tu.t < tu.stop[2]) { tu.tick -= dt; if (tu.tick <= 0) { tu.tick = .055; SFX.tick(); } }
+  if (tu.t < tu.stop[2] && !bufs.fx_reel_spin) { tu.tick -= dt; if (tu.tick <= 0) { tu.tick = .055; SFX.tick(); } }
   tu.lamp.material.color.setHSL((tu.t * 2) % 1, 1, .6);
   // 出目の発表
   if (!tu.shown && tu.t >= tu.stop[2] + .15) {
@@ -1595,7 +1618,7 @@ function updateCoin(dt) {
     c.m.rotation.set(c.face === 'omote' ? 0 : Math.PI, vrm.scene.rotation.y, 0);
     SFX.ting(); showRes(c.face === 'omote' ? '表！ ダッシュ' : '裏！ トラップ', c.face === 'omote' ? '#ffe9a8' : '#c9a8ff', .8);
     c.p0 = actorPos().clone(); c.f = fwdOf();
-    SFX.whoosh(0, 1);
+    fxOr('fx_dash', () => SFX.whoosh(0, 1));
   }
   if (c.done) {
     const k = c.t - FLIP;
@@ -1653,7 +1676,7 @@ function updateCharge(dt) {
       c.lvl = lvl; const a = vrm.scene.rotation.y + (lvl - 2) * .9, p = actorPos();
       const g = new THREE.Group(); g.position.set(p.x + Math.sin(a) * .55, p.y, p.z + Math.cos(a) * .55); scene.add(g);
       SK.chips.push({ g, n: 0, max: 6 + lvl * 3, col: chipMats[(lvl * 2) % chipMats.length], fade: false, t: 0 });
-      SFX.ding(0, 880 * Math.pow(1.26, lvl)); burstRing(p, 1 + lvl * .4, 0xffd77a, .4);
+      SFX.ding(0, 880 * Math.pow(1.26, lvl)); fxPlay('fx_chips', 0, .8, 1 + lvl * .06); burstRing(p, 1 + lvl * .4, 0xffd77a, .4);
     }
     const p = actorPos(); if (rnd() < .6) { const a = rnd() * 6.28; SP.emit(p.x + Math.sin(a) * .6, p.y + .1, p.z + Math.cos(a) * .6, 0, 1.2 + c.lvl * .4, 0, .7, false); }
   }
@@ -1698,7 +1721,7 @@ function updateRoyal(dt) {
       c.m.position.lerpVectors(c.sky, c.gnd, u * u);
       c.m.rotation.set(-.25 * u, yaw, lerp(-c.a * .8, (i - 2) * .12, u));
       if (u >= 1 && !c.slam) {
-        c.slam = true; SFX.thunk(); SFX.boom(0, .5); SK.shake = Math.max(SK.shake, .12);
+        c.slam = true; fxOr('fx_card_slam', () => { SFX.thunk(); SFX.boom(0, .5); }); SK.shake = Math.max(SK.shake, .12);
         const p = c.gnd.clone(); burstRing(p, 2.6, 0xffd77a, .5); hitArea(p, 2.1, 170, 2.5);
         for (let k = 0; k < 40; k++) SP.emit(p.x, p.y - .8, p.z, (rnd() - .5) * 5, rnd() * 3, (rnd() - .5) * 5, .7, k % 2 === 0);
       }
@@ -1709,7 +1732,7 @@ function updateRoyal(dt) {
   if (R.t > 2.95 && !R.done) {      // 5枚そろって、一斉に弾ける
     R.done = true;
     const mid = R.o.clone().addScaledVector(R.f, 4.9); mid.y = groundY(mid.x, mid.z) + .8;
-    showRes('ROYAL FLUSH', '#ffe066', 1.4); flash(); SFX.hit(); SFX.boom(0, 1.6); SK.shake = .28;
+    showRes('ROYAL FLUSH', '#ffe066', 1.4); flash(); fxOr('fx_finale', () => { SFX.hit(); SFX.boom(0, 1.6); }); SK.shake = .28;
     burstRing(mid, 7, 0xffd77a, .9); burstRing(mid, 5, 0xc9a8ff, .7);
     hitArea(mid, 6.5, 520, 4, null, 'crit');
     for (let i = 0; i < 260; i++) SP.emit(mid.x + (rnd() - .5) * 5, mid.y, mid.z + (rnd() - .5) * 5, (rnd() - .5) * 8, rnd() * 7, (rnd() - .5) * 8, 1 + rnd(), i % 2 === 0);
@@ -1814,7 +1837,7 @@ function updateSkillUI() {
    ===================================================================== */
 let mode = 'idle', T = 0, prevT = -1, clock = new THREE.Clock(), wallT = 0;
 function resetPV() {
-  try { vSrc?.stop(); } catch (e) {} vSrc = null; mouthOpen = 0; talking = false;
+  try { vSrc?.stop(AC ? acT() : 0); } catch (e) {} vSrc = null; mouthOpen = 0; talking = false;
   T = 0; prevT = -1; hat.rel = null; cardOrigin = null; SP.clear(); seed = 99; duck = 1;
   for (const d of dummies) if (d.col) { const i = colliders.indexOf(d.col); if (i >= 0) colliders.splice(i, 1); }
   resetSkills();
@@ -1828,7 +1851,7 @@ function startPV() {
   $('gate').classList.add('hide'); $('fade').style.opacity = 0;
   $('replay').hidden = true; $('skip').hidden = false;
   pvClock = 0; pvNext = 0;
-  if (AC) { bgmStart(0); bgmLP.frequency.cancelScheduledValues(AC.currentTime); bgmLP.frequency.setValueAtTime(500, AC.currentTime); bgmLP.frequency.exponentialRampToValueAtTime(18000, AC.currentTime + TL.spot + .1); }
+  if (AC) { bgmStart(0); bgmLP.frequency.cancelScheduledValues(acT()); bgmLP.frequency.setValueAtTime(500, acT()); bgmLP.frequency.exponentialRampToValueAtTime(18000, acT() + TL.spot + .1); }
 }
 function startWalk() {
   initAudio(); resetPV(); mode = 'walk'; document.body.className = 'walk';
@@ -1837,7 +1860,7 @@ function startWalk() {
   player.pos.set(0, 0, 5.2); player.yaw = Math.PI; player.speed = 0; camYaw = 0;
   spot.intensity = SPOT_I; keyLight.intensity = .8;
   hat.rel = null;
-  if (AC) { bgmStart(wallT); bgmLP.frequency.cancelScheduledValues(AC.currentTime); bgmLP.frequency.setValueAtTime(18000, AC.currentTime); }
+  if (AC) { bgmStart(wallT); bgmLP.frequency.cancelScheduledValues(acT()); bgmLP.frequency.setValueAtTime(18000, acT()); }
   duck = .8;
   camera.position.set(0, 4, 9);
   spawnWalkDummies();
@@ -1909,10 +1932,41 @@ function snapshot(t) {
   const n = Math.round(t * 60); for (let i = 0; i < n; i++) update(1 / 60);
   render(); window.__ready = true; document.title = 'READY ' + t;
 }
+document.fonts.load('40px "Mochiy Pop One"', 'くるっパシッ！').catch(() => {});      // 擬音の書体は先に読み込んでおく
 window.__snap = snapshot;
+if (REC) {
+  const q = []; let tid = 0;
+  const recTimers = () => { for (let g = 0; g < 500; g++) { q.sort((a, b) => a.at - b.at || a.id - b.id); if (!q.length || q[0].at > recClock + 1e-9) break; const x = q.shift(); try { x.fn(); } catch (e) { console.error(e); } } };
+  const recAnims = () => { for (const a of document.getAnimations()) { if (a._r === undefined) { a.pause(); a._r = recClock - (a.currentTime || 0) / 1000; } a.currentTime = Math.max(0, (recClock - a._r) * 1000); } };
+  window.__recStart = async () => {
+    await Promise.all(['40px "Mochiy Pop One"', '40px "Dela Gothic One"', '800 40px "Shippori Mincho B1"', '700 40px Rajdhani'].map(f => document.fonts.load(f, 'くるっパシッ！JACKPOT').catch(() => {})));
+    await document.fonts.ready;
+    initAudio(); await Promise.all(audioLoads);
+    window.setTimeout = (fn, ms = 0) => { q.push({ id: ++tid, at: recClock + (ms || 0) / 1000, fn }); return tid; };
+    window.clearTimeout = i => { const k = q.findIndex(x => x.id === i); if (k >= 0) q.splice(k, 1); };
+    window.requestAnimationFrame = fn => window.setTimeout(() => fn(recClock * 1000), 0);
+    startPV(); document.body.classList.add('rec');
+    recTimers(); recAnims(); render();
+    return { voices: Object.keys(bufs).length };
+  };
+  window.__recStep = () => {
+    recClock += 1 / REC_FPS; update(1 / REC_FPS); recTimers(); recAnims(); render();
+    return { T: +T.toFixed(3), done: T > real(TL.end) - .4 };
+  };
+  window.__recAudio = async () => {          // 音を書き出して WAV にし、サーバーへ送る
+    const buf = await AC.startRendering(), n = Math.ceil((recClock + .5) * buf.sampleRate), ch = [buf.getChannelData(0), buf.getChannelData(1)];
+    const out = new DataView(new ArrayBuffer(44 + n * 4)); const W = (o, s) => [...s].forEach((c, i) => out.setUint8(o + i, c.charCodeAt(0)));
+    W(0, 'RIFF'); out.setUint32(4, 36 + n * 4, true); W(8, 'WAVE'); W(12, 'fmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 2, true);
+    out.setUint32(24, buf.sampleRate, true); out.setUint32(28, buf.sampleRate * 4, true); out.setUint16(32, 4, true); out.setUint16(34, 16, true); W(36, 'data'); out.setUint32(40, n * 4, true);
+    for (let i = 0; i < n; i++) for (let c = 0; c < 2; c++) out.setInt16(44 + i * 4 + c * 2, Math.max(-1, Math.min(1, ch[c][i] || 0)) * 32767, true);
+    await fetch('/put?name=pv_audio.wav', { method: 'POST', body: out.buffer });
+    return { seconds: n / buf.sampleRate };
+  };
+}
 window.__dbg = { get ac() { return AC; }, get mouth() { return mouthOpen; }, get talking() { return talking; }, get vrm() { return vrm; }, bufs, voice, get vSrc() { return vSrc; } };   // 確認用
 window.__step = n => { for (let i = 0; i < n; i++) update(1 / 60); render(); };   // 確認用
-if (SNAP_T === null && !SNAP_WALK) requestAnimationFrame(loop);
+if (SNAP_T === null && !SNAP_WALK && !REC) requestAnimationFrame(loop);
+if (REC) setTimeout(function waitLoad() { if (vrm) window.__recReady = true; else setTimeout(waitLoad, 200); }, 200);
 </script>
 </body>
 </html>

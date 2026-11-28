@@ -178,7 +178,33 @@
 
   /* スマホ横持ち（高さが低い画面）ではUI全体を縮小 */
   @media (max-height:520px) and (min-aspect-ratio:1/1){ #ui{zoom:.62} #bubble{zoom:.8} #toast{zoom:.8} }
+  /* ---- イベント画面 ---- */
+  #evp{position:fixed;inset:0;z-index:60;display:none;place-items:center;background:rgba(4,2,10,.66)}
+  #evp.on{display:grid}
+  #evp .box{width:min(560px,calc(100vw - 24px));max-height:calc(100vh - 32px);overflow:auto;background:linear-gradient(180deg,#2a0a1a,#10050c);border:1px solid rgba(255,215,122,.75);box-shadow:0 0 40px rgba(255,180,80,.25);color:#f6efe2}
+  #evp .kv{padding:18px 18px 14px;background:radial-gradient(ellipse at 70% 0%,rgba(155,107,255,.35),transparent 60%),linear-gradient(120deg,#3a0c1c,#16060e);border-bottom:1px solid rgba(255,215,122,.4)}
+  #evp .kv small{font:700 11px var(--en);letter-spacing:.4em;color:#c9a8ff}
+  #evp .kv h2{margin:4px 0;font:800 26px "Shippori Mincho B1",serif;letter-spacing:.06em;color:#ffd77a}
+  #evp .kv p{margin:0;font-size:12px;line-height:1.7;color:#e8dcc8}
+  #evp .st{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px}
+  #evp .st div{padding:10px;background:rgba(255,215,122,.08);border:1px solid rgba(255,215,122,.3)}
+  #evp .st small{display:block;font-size:11px;color:#b9a98f} #evp .st b{font:800 20px var(--en);color:#ffe9b8}
+  #evp .bar{height:6px;margin-top:6px;background:rgba(255,215,122,.18)} #evp .bar i{display:block;height:100%;background:linear-gradient(90deg,#9b6bff,#ffd77a)}
+  #evp h4{margin:6px 16px 0;font:700 13px var(--jp);letter-spacing:.1em;color:#ffd77a}
+  #evp .acts{display:flex;gap:8px;justify-content:center;padding:14px}
+  #evp .acts button{padding:12px 18px;font:700 14px var(--jp);border:0;cursor:pointer;background:linear-gradient(120deg,#fff1c4,#ffd77a);color:#1a0d02}
+  #evp .acts .x{background:rgba(20,8,14,.8);color:#f6efe2;border:1px solid rgba(255,215,122,.5)}
+.lcm{display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid rgba(255,215,122,.18)}
+.lcm .lcmt{flex:1;min-width:0}.lcm small{font-size:10px;letter-spacing:.15em;color:#c9a8ff;margin-right:6px}.lcm b{font-size:13px;color:#f6efe2}
+.lcm span{display:block;font-size:11px;color:#b9a98f;margin-top:2px}.lcm button{flex:none;min-width:78px;height:32px;font:700 12px sans-serif;border:1px solid rgba(255,215,122,.5);background:rgba(20,8,14,.7);color:#b9a98f;cursor:pointer}
+.lcm.ok button{background:linear-gradient(120deg,#fff1c4,#ffd77a);color:#1a0d02;border-color:#ffd77a}.lcm.got{opacity:.55}
 </style>
+<div id="evp"><div class="box">
+  <div class="kv"><small>EVENT // LUCE D'ORO GRAND OPENING</small><h2>ルーチェ・ドーロ開幕祭</h2><p>カジノのミニゲームでルーチェコインを集めよう。舞台のフォルトゥナに話しかければ、<b>運命のルーレット</b>で運試しも、コインで<b>契約</b>して確定で仲間にすることもできる。</p></div>
+  <div class="st"><div><small>ルーチェコイン</small><b id="evCoin">0</b></div><div><small id="evFL">フォルトゥナとの契約まで あと</small><b id="evCost">3,000</b><div class="bar"><i id="evBar"></i></div></div></div>
+  <h4>ミッション</h4><div id="evMis"></div>
+  <div class="acts"><button id="evGo" type="button">カジノへ行く</button><button class="x" id="evX" type="button">閉じる</button></div>
+</div></div>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
@@ -232,7 +258,7 @@
 
   <nav id="left" class="tiltL">
     <button class="lm panel tap" data-msg="ミッション報酬を受け取りました"><span class="hx">◎</span><span><b>ミッション</b><small>MISSION</small></span><span class="dot"></span></button>
-    <button class="lm panel tap" data-msg="イベント画面（デモ）"><span class="hx">★</span><span><b>イベント</b><small>EVENT</small></span><span class="dot"></span></button>
+    <button class="lm panel tap" id="evBtn"><span class="hx">★</span><span><b>イベント</b><small>EVENT</small></span><span class="dot"></span></button>
     <button class="lm panel tap" id="friendBtn"><span class="hx">⚇</span><span><b>フレンド</b><small>FRIEND</small></span></button>
     <button class="lm panel tap" data-msg="お知らせ（デモ）"><span class="hx">!</span><span><b>お知らせ</b><small>NEWS</small></span></button>
     <button class="lm panel tap" id="sfxBtn"><span class="hx">♪</span><span><b>効果音</b><small>SFX ON</small></span></button>
@@ -249,13 +275,13 @@
   </div>
 
   <aside id="right" class="tiltR">
-    <button class="event panel tap" data-msg="イベント画面（デモ）">
+    <button class="event panel tap" id="evBanner">
       <span class="stripe"></span>
       <span class="lab"><b>EVENT</b>開催中</span>
-      <h2>ネオン・ナイトパレード</h2>
+      <h2>ルーチェ・ドーロ開幕祭</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261128002838">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261128124853">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
@@ -264,11 +290,11 @@
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261128002838">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261128002838">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261128124853">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261128124853">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261128002838">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261128124853">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -300,6 +326,86 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 
+
+/* ---------- イベント「ルーチェ・ドーロ開幕祭」：ルーチェコイン・チャレンジ回数・ミッション ----------
+   どれも、この端末のブラウザに保存する（キーは lc_ で始まる）。ロビーとカジノで同じものを使う */
+const LC = (() => {
+  const get = (k, d) => { try { const v = localStorage.getItem('lc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+  const set = (k, v) => { try { localStorage.setItem('lc_' + k, JSON.stringify(v)); } catch (e) {} };
+  const PRICE = 3000, SPIN = 100, CH_MAX = 5, CH_REGEN = 12 * 60 * 1000;
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+  const MISSIONS = [
+    { id: 'login', daily: true, name: 'ログインする', reward: 100, goal: 1 },
+    { id: 'play3', daily: true, name: 'ミニゲームを3回遊ぶ', reward: 100, goal: 3 },
+    { id: 'talk', daily: true, name: 'フォルトゥナと話す', reward: 50, goal: 1 },
+    { id: 'slot777', name: 'スロットで 7-7-7 をそろえる', reward: 300, goal: 1 },
+    { id: 'hilo5', name: 'ハイ＆ローで5連勝する', reward: 300, goal: 5 },
+    { id: 'shuffle5', name: 'シャッフルで5回続けて当てる', reward: 300, goal: 5 },
+    { id: 'allgames', name: '3つのミニゲームを全部遊ぶ', reward: 200, goal: 3 },
+  ];
+  const mstate = () => { const m = get('m', { day: '', d: {}, e: {}, played: [] }); if (m.day !== today()) { m.day = today(); m.d = {}; } return m; };
+  const boxOf = (m, M) => M.daily ? m.d : m.e;
+  return {
+    PRICE, SPIN, CH_MAX, MISSIONS,
+    coins: () => get('coins', 0),
+    add(n) { set('coins', Math.max(0, get('coins', 0) + Math.round(n))); },
+    spent: () => Math.min(PRICE, get('spent', 0)),
+    owned: () => { try { return !!localStorage.getItem('unlock_fortuna'); } catch (e) { return false; } },
+    cost() { return Math.max(0, PRICE - get('spent', 0)); },
+    spin() { const c = get('coins', 0); if (c < SPIN) return false; set('coins', c - SPIN); set('spent', get('spent', 0) + SPIN); return true; },
+    pay() { const c = this.cost(), have = get('coins', 0); if (have < c) return false; set('coins', have - c); set('spent', PRICE); return true; },
+    unlock() { try { localStorage.setItem('unlock_fortuna', 'ルーチェ・ドーロ'); } catch (e) {} },
+    // チャレンジ回数（ミニゲームごと。12分で1回ふえる、最大5回）
+    ch(g) {
+      const now = Date.now(), s = get('ch_' + g, { n: CH_MAX, t: now });
+      if (s.n >= CH_MAX) s.t = now;
+      else { const add = Math.floor((now - s.t) / CH_REGEN); if (add > 0) { s.n = Math.min(CH_MAX, s.n + add); s.t = s.n >= CH_MAX ? now : s.t + add * CH_REGEN; } }
+      set('ch_' + g, s); return { n: s.n, next: s.n >= CH_MAX ? 0 : CH_REGEN - (now - s.t) };
+    },
+    useCh(g) { const c = this.ch(g); if (c.n <= 0) return false; const s = get('ch_' + g, { n: CH_MAX, t: Date.now() }); if (s.n >= CH_MAX) s.t = Date.now(); s.n--; set('ch_' + g, s); return true; },
+    // ミッション
+    progress(id) { const M = MISSIONS.find(x => x.id === id), m = mstate(); return boxOf(m, M)[id] || { v: 0, got: false }; },
+    bump(id, v = 1, mode = 'add') { const M = MISSIONS.find(x => x.id === id); if (!M) return; const m = mstate(), b = boxOf(m, M), p = b[id] || { v: 0, got: false }; p.v = mode === 'max' ? Math.max(p.v, v) : p.v + v; b[id] = p; set('m', m); },
+    played(g) { const m = mstate(); if (!m.played.includes(g)) m.played.push(g); set('m', m); this.bump('allgames', m.played.length, 'max'); this.bump('play3', 1); },
+    claim(id) { const M = MISSIONS.find(x => x.id === id), m = mstate(), b = boxOf(m, M), p = b[id] || { v: 0, got: false }; if (p.got || p.v < M.goal) return 0; p.got = true; b[id] = p; set('m', m); this.add(M.reward); return M.reward; },
+    claimable() { return MISSIONS.filter(M => { const p = this.progress(M.id); return !p.got && p.v >= M.goal; }).length; },
+  };
+})();
+LC.bump('login', 1, 'max');
+// ミッション一覧を el に描く（受け取ると onClaim(報酬) を呼ぶ）
+function lcMissions(el, onClaim) {
+  el.innerHTML = '';
+  for (const M of LC.MISSIONS) {
+    const p = LC.progress(M.id), done = p.v >= M.goal, row = document.createElement('div');
+    row.className = 'lcm' + (p.got ? ' got' : done ? ' ok' : '');
+    const t = document.createElement('div'); t.className = 'lcmt';
+    const tag = document.createElement('small'); tag.textContent = M.daily ? '毎日' : 'イベント'; t.appendChild(tag);
+    const nm = document.createElement('b'); nm.textContent = M.name; t.appendChild(nm);
+    const pr = document.createElement('span'); pr.textContent = `${Math.min(p.v, M.goal)} / ${M.goal}　◆${M.reward}`; t.appendChild(pr);
+    const btn = document.createElement('button'); btn.type = 'button'; btn.textContent = p.got ? '受取済み' : done ? '受け取る' : '未達成'; btn.disabled = p.got || !done;
+    btn.addEventListener('click', () => { const r = LC.claim(M.id); if (r) { onClaim?.(r); lcMissions(el, onClaim); } });
+    row.append(t, btn); el.appendChild(row);
+  }
+}
+const LC_CSS = `.lcm{display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid rgba(255,215,122,.18)}
+.lcm .lcmt{flex:1;min-width:0}.lcm small{font-size:10px;letter-spacing:.15em;color:#c9a8ff;margin-right:6px}.lcm b{font-size:13px;color:#f6efe2}
+.lcm span{display:block;font-size:11px;color:#b9a98f;margin-top:2px}.lcm button{flex:none;min-width:78px;height:32px;font:700 12px sans-serif;border:1px solid rgba(255,215,122,.5);background:rgba(20,8,14,.7);color:#b9a98f;cursor:pointer}
+.lcm.ok button{background:linear-gradient(120deg,#fff1c4,#ffd77a);color:#1a0d02;border-color:#ffd77a}.lcm.got{opacity:.55}`;
+
+// イベント画面
+function evRender() {
+  document.getElementById('evCoin').textContent = LC.coins().toLocaleString();
+  const owned = LC.owned();
+  document.getElementById('evFL').textContent = owned ? 'フォルトゥナ' : 'フォルトゥナとの契約まで あと';
+  document.getElementById('evCost').textContent = owned ? '仲間になりました' : '◆ ' + LC.cost().toLocaleString();
+  document.getElementById('evBar').style.width = (owned ? 100 : LC.spent() / LC.PRICE * 100) + '%';
+  lcMissions(document.getElementById('evMis'), () => evRender());
+}
+function evOpen() { evRender(); document.getElementById('evp').classList.add('on'); }
+document.getElementById('evBtn').addEventListener('click', evOpen);
+document.getElementById('evBanner').addEventListener('click', evOpen);
+document.getElementById('evX').addEventListener('click', () => document.getElementById('evp').classList.remove('on'));
+document.getElementById('evGo').addEventListener('click', () => { location.href = 'walk.html?area=casino&v=20261128124853'; });
 /* ---------- パートナー：キャラ選択画面で選んだキャラ（shino / karen）を使う ---------- */
 // フォルトゥナは招待コードで解放した人だけ（キャラ選択画面・タイトル画面で入力）
 const FORTUNA_OK = (() => { try { return !!localStorage.getItem('unlock_fortuna'); } catch (e) { return false; } })();
@@ -459,7 +565,7 @@ function socDupCheck() {
   }
   return false;
 }
-const areaLabel = a => a === 'lobby' ? 'ロビー' : a === 'noelberg' ? '出撃中' : /^dg:/.test(a) ? 'ダンジョン' : '';
+const areaLabel = a => a === 'lobby' ? 'ロビー' : a === 'noelberg' ? '出撃中' : a === 'casino' ? 'カジノ' : /^dg:/.test(a) ? 'ダンジョン' : '';
 /*MODEL_FETCH*/
 // モデルを ArrayBuffer で読む（公開版では、この部分が Base64 テキストの分割読み込みに置き換わる）
 const MODEL_URL = { shino: './shino_lite.vrm', karen: './karen.vrm', fortuna: './fortuna_lite.vrm' };

@@ -56,11 +56,11 @@
     <label class="name">プレイヤー名 <input id="name" maxlength="12" autocomplete="nickname"></label>
     <button id="start" type="button">TAP TO START</button>
     <nav aria-label="画面へ直接移動">
-      <a href="lobby.html?v=20261128002838">ロビー</a>
-      <a href="walk.html?v=20261128002838">出撃：ノエルベルク</a>
-      <a href="gacha.html?v=20261128002838">ガチャ</a>
-      <a href="select.html?v=20261128002838">キャラ選択</a>
-      <a href="fortuna.html?v=20261128002838">新キャラPV</a>
+      <a href="lobby.html?v=20261128124853">ロビー</a>
+      <a href="walk.html?v=20261128124853">出撃：ノエルベルク</a>
+      <a href="gacha.html?v=20261128124853">ガチャ</a>
+      <a href="select.html?v=20261128124853">キャラ選択</a>
+      <a href="fortuna.html?v=20261128124853">新キャラPV</a>
     </nav>
     <p class="note">初回はキャラクターデータ（約12MB）の読み込みに少し時間がかかります。出撃中は、同じ時間に出撃しているプレイヤーと一緒に街を歩けます。名前はほかのプレイヤーに表示されます。</p>
     <div id="online">オンライン：準備中</div>
@@ -78,7 +78,7 @@ const CHANNEL = 'noelberg-v1' + ((new URLSearchParams(location.search).get('ch')
 const $ = id => document.getElementById(id);
 const game = $('game');
 function play(href) { game.src = href; document.body.classList.add('playing'); }
-$('start').addEventListener('click', () => play('lobby.html?v=20261128002838'));
+$('start').addEventListener('click', () => play('lobby.html?v=20261128124853'));
 document.querySelectorAll('nav a').forEach(a => a.addEventListener('click', e => { e.preventDefault(); play(a.getAttribute('href')); }));
 
 /* ---- プレイヤー名（この端末に保存） ---- */
@@ -109,7 +109,7 @@ function setStatus(available, connected) {
    broadcast：位置・向き・速さ（1秒に5回まで） */
 const myId = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)).replace(/-/g, '').slice(0, 16);
 const me = { name: myName, area: null, say: null, ch: 'shino', x: null };
-const validArea = a => (a === 'noelberg' || a === 'lobby' || (typeof a === 'string' && /^dg:[a-z0-9]{4,12}$/.test(a))) ? a : null;   // 街・ロビー・パーティのダンジョン
+const validArea = a => (a === 'noelberg' || a === 'lobby' || a === 'casino' || (typeof a === 'string' && /^dg:[a-z0-9]{4,12}$/.test(a))) ? a : null;   // 街・ロビー・パーティのダンジョン
 const jsonCap = (v, max) => { if (!v || typeof v !== 'object') return null; try { const s = JSON.stringify(v); return s.length <= max ? JSON.parse(s) : null; } catch (e) { return null; } };   // フレンド・パーティ・ダンジョンの同期（大きさだけ確かめて中継）
 let pendingDg = null, lastDgSent = '', dgT = 0;
 /* ほかのプレイヤー：presence が一瞬抜けたり遅れたりしても消さない。

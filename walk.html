@@ -237,6 +237,61 @@
   #loading .bar i{position:absolute;inset:0 auto 0 0;background:var(--cy)}
   #loading .m{font-family:var(--en);font-size:12px;letter-spacing:.3em;color:rgba(200,250,255,.6)}
   @media (max-aspect-ratio:1/1){ #map{width:120px;height:120px} #mapLabel{width:120px;top:142px} #sub{font-size:14px;white-space:normal;width:90%;text-align:center} }
+  /* ---- カジノ（イベント） ---- */
+  #cHud{position:fixed;left:50%;top:max(12px,env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:14;display:none;gap:8px;align-items:center}
+  #cHud.on{display:flex}
+  #cHud .chip{display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;background:rgba(30,8,18,.78);border:1px solid rgba(255,215,122,.6);color:#ffe9b8;font:700 14px var(--en)}
+  #cHud .chip i{font-style:normal;color:#ffd77a}
+  #cCoin.bump{animation:cbump .5s}
+  @keyframes cbump{40%{transform:scale(1.35);color:#fff}}
+  #cMisB{position:relative;height:34px;padding:0 12px;background:rgba(30,8,18,.78);border:1px solid rgba(255,215,122,.6);color:#ffe9b8;font:700 12px var(--jp);cursor:pointer}
+  #cMisN{position:absolute;right:-6px;top:-6px;width:18px;height:18px;border-radius:50%;background:#ff4a6a;color:#fff;font:700 11px sans-serif;display:none;place-items:center}
+  #cdlg{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(620px,calc(100vw - 24px));z-index:40;display:none;padding:14px 16px 12px;background:linear-gradient(180deg,rgba(40,10,24,.92),rgba(16,6,14,.95));border:1px solid rgba(255,215,122,.65);box-shadow:0 0 30px rgba(0,0,0,.6)}
+  #cdlg.on{display:block}
+  #cdlg .nm{font:800 12px var(--en);letter-spacing:.3em;color:#c9a8ff}
+  #cdlgT{margin:4px 0 10px;font:700 15px/1.6 var(--min);color:#fff6e4;min-height:3.2em}
+  #cdlgC{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px}
+  #cdlgC button{padding:8px 10px;text-align:left;background:rgba(255,215,122,.1);border:1px solid rgba(255,215,122,.5);color:#ffe9b8;cursor:pointer}
+  #cdlgC button b{display:block;font:700 13px var(--jp)} #cdlgC button small{display:block;font-size:10px;color:#b9a98f;margin-top:2px}
+  .cpanel{position:fixed;inset:0;z-index:45;display:none;place-items:center;background:rgba(6,2,6,.6)}
+  .cpanel.on{display:grid}
+  .cpanel .box{width:min(560px,calc(100vw - 24px));max-height:calc(100vh - 40px);overflow:auto;padding:16px;background:linear-gradient(180deg,#2a0a1a,#12060e);border:1px solid rgba(255,215,122,.7);box-shadow:0 0 40px rgba(255,180,80,.25);color:#f6efe2}
+  .cpanel h3{margin:0 0 2px;font:800 20px var(--min);letter-spacing:.08em;color:#ffd77a}
+  .cpanel .sub{font-size:12px;color:#b9a98f;margin-bottom:10px}
+  .cpanel .acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+  .cpanel .acts button,.cpanel .x{padding:10px 16px;font:700 13px var(--jp);background:linear-gradient(120deg,#fff1c4,#ffd77a);color:#1a0d02;border:0;cursor:pointer}
+  .cpanel .acts button:disabled{filter:grayscale(1) brightness(.6)}
+  .cpanel .x{background:rgba(20,8,14,.8);color:#f6efe2;border:1px solid rgba(255,215,122,.5)}
+  #cgMsg{min-height:1.5em;text-align:center;font:800 16px var(--min);color:#ffe066;margin-top:8px}
+  #cgC{font-size:11px;color:#c9a8ff}
+  .reels{display:flex;gap:10px;justify-content:center;padding:12px;background:#1a0610;border:2px solid #d9a64a}
+  .reel{width:84px;height:192px;overflow:hidden;background:linear-gradient(180deg,#9a917f,#fffaf0 30%,#fffaf0 70%,#9a917f);position:relative;border:2px solid #8a6a2a}
+  .reel::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:#ffcf5a;transform:translateY(-1px)}
+  .strip{will-change:transform}
+  .strip i{display:grid;place-items:center;height:64px;font:900 40px serif;font-style:normal;color:#16121e}
+  .strip i.r7{color:#c8102e;font-size:48px} .strip i.red{color:#c8102e} .strip i.bar{font:900 22px sans-serif}
+  #cgA{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+  #cgA button{min-width:90px;padding:10px 14px;font:700 14px var(--jp);background:linear-gradient(120deg,#fff1c4,#ffd77a);color:#1a0d02;border:0;cursor:pointer}
+  #cgA button.stop{min-width:84px} #cgA button:disabled{filter:grayscale(1) brightness(.5)}
+  #cgA button.hi{background:linear-gradient(120deg,#ffd0d8,#ff6b8a)} #cgA button.lo{background:linear-gradient(120deg,#d8ccff,#9b6bff)}
+  .hrow{display:flex;gap:18px;justify-content:center;align-items:center;padding:8px}
+  .pcard,.scard{width:96px;height:134px;border-radius:8px;background:#fffaf0;border:3px solid #d9a64a;display:grid;place-items:center;align-content:center;color:#16121e;box-shadow:0 6px 16px rgba(0,0,0,.5)}
+  .pcard b,.scard b{font:900 40px serif} .pcard span,.scard span{font-size:32px} .pcard.red{color:#c8102e}
+  .hinfo b{display:block;font:800 22px var(--min);color:#ffd77a} .hinfo small{color:#b9a98f}
+  .srow{position:relative;height:150px;margin:6px 4%}
+  .scard{position:absolute;top:6px;width:30%;height:134px;cursor:pointer;background:#1c0a30;border-color:#d9a64a;color:transparent}
+  .scard>*{opacity:0} .scard.face{background:#fffaf0;color:#16121e} .scard.face>*{opacity:1}
+  .scard:not(.face)::before{content:"F";position:absolute;inset:0;display:grid;place-items:center;font:800 44px serif;color:#e8bd62;background:repeating-linear-gradient(45deg,rgba(217,166,74,.18) 0 6px,transparent 6px 12px)}
+  #croulC{display:block;width:min(300px,70vw);height:auto;margin:0 auto}
+  #croulWrap{position:relative} #croulWrap::before{content:"▼";position:absolute;left:50%;top:-8px;transform:translateX(-50%);font-size:26px;color:#ffd77a;text-shadow:0 0 8px #000;z-index:2}
+  #croulR{text-align:center;font:800 18px var(--min);color:#ffe066;min-height:1.6em;margin-top:8px}
+  #cjoin .box{text-align:center}
+  #cjoin .big{font:900 clamp(30px,8vw,54px) var(--min);background:linear-gradient(180deg,#fffbe8,#ffd77a 60%,#b07a25);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.06em}
+  #cjoin .who{font:800 22px var(--min);margin:6px 0}
+.lcm{display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid rgba(255,215,122,.18)}
+.lcm .lcmt{flex:1;min-width:0}.lcm small{font-size:10px;letter-spacing:.15em;color:#c9a8ff;margin-right:6px}.lcm b{font-size:13px;color:#f6efe2}
+.lcm span{display:block;font-size:11px;color:#b9a98f;margin-top:2px}.lcm button{flex:none;min-width:78px;height:32px;font:700 12px sans-serif;border:1px solid rgba(255,215,122,.5);background:rgba(20,8,14,.7);color:#b9a98f;cursor:pointer}
+.lcm.ok button{background:linear-gradient(120deg,#fff1c4,#ffd77a);color:#1a0d02;border-color:#ffd77a}.lcm.got{opacity:.55}
 </style>
 <script type="importmap">
 { "imports": {
@@ -274,6 +329,12 @@
   <button id="back" class="panel tap">◀ LOBBY</button>
   <div id="area"><small>AREA 01 // NOELBERG</small><b id="areaName">ノエルベルク</b></div>
 </div>
+<div id="cHud"><div class="chip"><i>◆</i><span>ルーチェコイン</span><b id="cCoin">0</b></div><button id="cMisB" type="button">ミッション<span id="cMisN"></span></button></div>
+<div id="cdlg"><div class="nm">FORTUNA</div><div id="cdlgT"></div><div id="cdlgC"></div></div>
+<div id="cgame" class="cpanel"><div class="box"><h3 id="cgN"></h3><div class="sub" id="cgH"></div><div id="cgC"></div><div id="cgB"></div><div id="cgMsg"></div><div id="cgA"></div><div class="acts"><button class="x" id="cgX" type="button">閉じる</button></div></div></div>
+<div id="croul" class="cpanel"><div class="box"><h3>運命のルーレット</h3><div class="sub">緑の「0★」に止まれば、フォルトゥナが仲間になる</div><div id="croulWrap"><canvas id="croulC" width="420" height="420"></canvas></div><div id="croulR"></div><div class="acts"><button id="croulOk" type="button" hidden>OK</button></div></div></div>
+<div id="cmis" class="cpanel"><div class="box"><h3>ミッション</h3><div class="sub">ルーチェ・ドーロ開幕祭</div><div id="cmisL"></div><div class="acts"><button class="x" id="cmisX" type="button">閉じる</button></div></div></div>
+<div id="cjoin" class="cpanel"><div class="box"><div class="big">JACKPOT 7-7-7</div><div class="who">フォルトゥナ・レイズが仲間になった！</div><div class="sub">キャラ選択画面で選べるようになりました</div><div class="acts"><button id="cjoinP" type="button">パートナーにする</button><button class="x" id="cjoinX" type="button">閉じる</button></div></div></div>
 <div id="map"><canvas id="mapc" width="340" height="340"></canvas></div>
 <div id="mapLabel">MAP</div>
 <div id="help" class="panel"><b>W</b><b>A</b><b>S</b><b>D</b> / 矢印：移動　<b>Shift</b>：走る　<b>ドラッグ</b>：カメラ　<b>E</b>：話す<span class="tr">　<b>J</b>：攻撃　<b>1</b><b>2</b><b>3</b>：スキル　<span class="kF"><b>F</b>：チャージ</span>　<b>R</b>：覚醒</span></div>
@@ -284,7 +345,7 @@
 <div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
 <div id="bossHud"><small>BOSS</small><b>氷殻の守護者グラキエス</b><div class="bb"><i id="bossBar"></i></div><span id="bossNum"></span></div>
-<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261128002838">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261128002838">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
+<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261128124853">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261128124853">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
   <header><div class="logo" id="shopLogo">夜</div><div class="nm"><b id="shopName">ヨルマート</b><small id="shopEn">YORU MART</small></div><button class="close tap" id="shopClose">✕ 店を出る</button></header>
@@ -329,6 +390,8 @@ document.documentElement.classList.toggle('karen', PARTNER === 'karen');
 document.documentElement.classList.toggle('fortuna', PARTNER === 'fortuna');
 // ダンジョン：walk.html?area=dungeon で開くと、街の代わりに地下迷宮になる
 const DUNGEON = new URLSearchParams(location.search).get('area') === 'dungeon';
+// カジノ：walk.html?area=casino で開くと、街の代わりにイベント会場のカジノになる（ほかのプレイヤーとも一緒に歩ける）
+const CASINO = !DUNGEON && new URLSearchParams(location.search).get('area') === 'casino';
 document.documentElement.classList.toggle('dungeon', DUNGEON);
 
 /* ---------- オンライン共通：プレイヤーID・フレンド・パーティ・メッセージ ----------
@@ -386,7 +449,7 @@ function socDupCheck() {
   }
   return false;
 }
-const areaLabel = a => a === 'lobby' ? 'ロビー' : a === 'noelberg' ? '出撃中' : /^dg:/.test(a) ? 'ダンジョン' : '';
+const areaLabel = a => a === 'lobby' ? 'ロビー' : a === 'noelberg' ? '出撃中' : a === 'casino' ? 'カジノ' : /^dg:/.test(a) ? 'ダンジョン' : '';
 // パーティで来たダンジョン（ロビーから walk.html?area=dungeon&party=..&lead=..&m=.. で来る）
 const DPARTY = DUNGEON ? (() => { const q = new URLSearchParams(location.search), id = q.get('party') || ''; if (!/^[a-z0-9]{4,12}$/.test(id)) return null;
   return { id, lead: PID_RE.test(q.get('lead') || '') ? q.get('lead') : SOC.pid, m: (q.get('m') || '').split(',').filter(v => PID_RE.test(v)).slice(0, 4) }; })() : null;
@@ -483,7 +546,7 @@ const BGM = (() => {
   };
 })();
 window.__bgm = BGM;
-BGM.play(DUNGEON ? 'explore' : 'city');
+BGM.play(DUNGEON ? 'explore' : CASINO ? 'casino' : 'city');
 SFX.preload(['ui_tap', 'ui_open', 'ui_notify', 'ui_coin', 'ui_clear', 'step_snow', 'step_stone', 'shino_slash', 'shino_skill1', 'shino_wall', 'shino_step', 'shino_charge', 'shino_awaken', 'karen_snap', 'karen_note', 'karen_star', 'karen_step', 'karen_clone', 'karen_boom', 'karen_arpeggio', 'karen_awaken', 'karen_finale', 'hit_enemy', 'hurt_player', 'golem_step', 'golem_punch', 'golem_slam', 'golem_die', 'boss_roar', 'ice_spikes', 'wisp_cast', 'wisp_bolt', 'wisp_die', 'gate', 'chest', 'heal', 'portal']);
 // しののボイス（技名の掛け声）。音量はファイルごとにそろえ、頭の無音を少し飛ばす
 const VOICE = {
@@ -544,7 +607,7 @@ function sfxAct(A, name) {
   const k = isK(A), n = { s1: k ? 'karen_step' : null, s3: k ? 'karen_arpeggio' : 'shino_step', charge: k ? null : 'shino_charge' }[name];
   if (n) sfxAt(n, A.pos, A === player ? .9 : .6);
 }
-const MYAREA = DUNGEON ? (DPARTY ? 'dg:' + DPARTY.id : null) : 'noelberg';      // 同じ場所の人だけ表示する
+const MYAREA = DUNGEON ? (DPARTY ? 'dg:' + DPARTY.id : null) : CASINO ? 'casino' : 'noelberg';      // 同じ場所の人だけ表示する
 /*MODEL_FETCH*/
 // モデルを ArrayBuffer で読む（公開版では、この部分が Base64 テキストの分割読み込みに置き換わる）
 const MODEL_URL = { shino: './shino_lite.vrm', karen: './karen.vrm', fortuna: './fortuna_lite.vrm' };
@@ -760,6 +823,72 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const lerp = THREE.MathUtils.lerp;
 const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
+
+/* ---------- イベント「ルーチェ・ドーロ開幕祭」：ルーチェコイン・チャレンジ回数・ミッション ----------
+   どれも、この端末のブラウザに保存する（キーは lc_ で始まる）。ロビーとカジノで同じものを使う */
+const LC = (() => {
+  const get = (k, d) => { try { const v = localStorage.getItem('lc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+  const set = (k, v) => { try { localStorage.setItem('lc_' + k, JSON.stringify(v)); } catch (e) {} };
+  const PRICE = 3000, SPIN = 100, CH_MAX = 5, CH_REGEN = 12 * 60 * 1000;
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+  const MISSIONS = [
+    { id: 'login', daily: true, name: 'ログインする', reward: 100, goal: 1 },
+    { id: 'play3', daily: true, name: 'ミニゲームを3回遊ぶ', reward: 100, goal: 3 },
+    { id: 'talk', daily: true, name: 'フォルトゥナと話す', reward: 50, goal: 1 },
+    { id: 'slot777', name: 'スロットで 7-7-7 をそろえる', reward: 300, goal: 1 },
+    { id: 'hilo5', name: 'ハイ＆ローで5連勝する', reward: 300, goal: 5 },
+    { id: 'shuffle5', name: 'シャッフルで5回続けて当てる', reward: 300, goal: 5 },
+    { id: 'allgames', name: '3つのミニゲームを全部遊ぶ', reward: 200, goal: 3 },
+  ];
+  const mstate = () => { const m = get('m', { day: '', d: {}, e: {}, played: [] }); if (m.day !== today()) { m.day = today(); m.d = {}; } return m; };
+  const boxOf = (m, M) => M.daily ? m.d : m.e;
+  return {
+    PRICE, SPIN, CH_MAX, MISSIONS,
+    coins: () => get('coins', 0),
+    add(n) { set('coins', Math.max(0, get('coins', 0) + Math.round(n))); },
+    spent: () => Math.min(PRICE, get('spent', 0)),
+    owned: () => { try { return !!localStorage.getItem('unlock_fortuna'); } catch (e) { return false; } },
+    cost() { return Math.max(0, PRICE - get('spent', 0)); },
+    spin() { const c = get('coins', 0); if (c < SPIN) return false; set('coins', c - SPIN); set('spent', get('spent', 0) + SPIN); return true; },
+    pay() { const c = this.cost(), have = get('coins', 0); if (have < c) return false; set('coins', have - c); set('spent', PRICE); return true; },
+    unlock() { try { localStorage.setItem('unlock_fortuna', 'ルーチェ・ドーロ'); } catch (e) {} },
+    // チャレンジ回数（ミニゲームごと。12分で1回ふえる、最大5回）
+    ch(g) {
+      const now = Date.now(), s = get('ch_' + g, { n: CH_MAX, t: now });
+      if (s.n >= CH_MAX) s.t = now;
+      else { const add = Math.floor((now - s.t) / CH_REGEN); if (add > 0) { s.n = Math.min(CH_MAX, s.n + add); s.t = s.n >= CH_MAX ? now : s.t + add * CH_REGEN; } }
+      set('ch_' + g, s); return { n: s.n, next: s.n >= CH_MAX ? 0 : CH_REGEN - (now - s.t) };
+    },
+    useCh(g) { const c = this.ch(g); if (c.n <= 0) return false; const s = get('ch_' + g, { n: CH_MAX, t: Date.now() }); if (s.n >= CH_MAX) s.t = Date.now(); s.n--; set('ch_' + g, s); return true; },
+    // ミッション
+    progress(id) { const M = MISSIONS.find(x => x.id === id), m = mstate(); return boxOf(m, M)[id] || { v: 0, got: false }; },
+    bump(id, v = 1, mode = 'add') { const M = MISSIONS.find(x => x.id === id); if (!M) return; const m = mstate(), b = boxOf(m, M), p = b[id] || { v: 0, got: false }; p.v = mode === 'max' ? Math.max(p.v, v) : p.v + v; b[id] = p; set('m', m); },
+    played(g) { const m = mstate(); if (!m.played.includes(g)) m.played.push(g); set('m', m); this.bump('allgames', m.played.length, 'max'); this.bump('play3', 1); },
+    claim(id) { const M = MISSIONS.find(x => x.id === id), m = mstate(), b = boxOf(m, M), p = b[id] || { v: 0, got: false }; if (p.got || p.v < M.goal) return 0; p.got = true; b[id] = p; set('m', m); this.add(M.reward); return M.reward; },
+    claimable() { return MISSIONS.filter(M => { const p = this.progress(M.id); return !p.got && p.v >= M.goal; }).length; },
+  };
+})();
+LC.bump('login', 1, 'max');
+// ミッション一覧を el に描く（受け取ると onClaim(報酬) を呼ぶ）
+function lcMissions(el, onClaim) {
+  el.innerHTML = '';
+  for (const M of LC.MISSIONS) {
+    const p = LC.progress(M.id), done = p.v >= M.goal, row = document.createElement('div');
+    row.className = 'lcm' + (p.got ? ' got' : done ? ' ok' : '');
+    const t = document.createElement('div'); t.className = 'lcmt';
+    const tag = document.createElement('small'); tag.textContent = M.daily ? '毎日' : 'イベント'; t.appendChild(tag);
+    const nm = document.createElement('b'); nm.textContent = M.name; t.appendChild(nm);
+    const pr = document.createElement('span'); pr.textContent = `${Math.min(p.v, M.goal)} / ${M.goal}　◆${M.reward}`; t.appendChild(pr);
+    const btn = document.createElement('button'); btn.type = 'button'; btn.textContent = p.got ? '受取済み' : done ? '受け取る' : '未達成'; btn.disabled = p.got || !done;
+    btn.addEventListener('click', () => { const r = LC.claim(M.id); if (r) { onClaim?.(r); lcMissions(el, onClaim); } });
+    row.append(t, btn); el.appendChild(row);
+  }
+}
+const LC_CSS = `.lcm{display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid rgba(255,215,122,.18)}
+.lcm .lcmt{flex:1;min-width:0}.lcm small{font-size:10px;letter-spacing:.15em;color:#c9a8ff;margin-right:6px}.lcm b{font-size:13px;color:#f6efe2}
+.lcm span{display:block;font-size:11px;color:#b9a98f;margin-top:2px}.lcm button{flex:none;min-width:78px;height:32px;font:700 12px sans-serif;border:1px solid rgba(255,215,122,.5);background:rgba(20,8,14,.7);color:#b9a98f;cursor:pointer}
+.lcm.ok button{background:linear-gradient(120deg,#fff1c4,#ffd77a);color:#1a0d02;border-color:#ffd77a}.lcm.got{opacity:.55}`;
+
 const store = { get(k, d) { try { const v = localStorage.getItem('walk_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('walk_' + k, JSON.stringify(v)); } catch (e) {} } };
 const wallet = { coins: store.get('coins', 200), points: store.get('points', 0), bag: store.get('bag', {}) };
 function saveWallet() { store.set('coins', wallet.coins); store.set('points', wallet.points); store.set('bag', wallet.bag); }
@@ -1485,6 +1614,7 @@ loadPartner(loader, gltf => {
   syncRemotes();
   $('pbar').style.width = '100%'; $('lmsg').textContent = 'READY';
   if (DUNGEON) setTimeout(() => { $('loading').classList.add('hide'); dIntro(); }, 400);
+  else if (CASINO) setTimeout(() => { $('loading').classList.add('hide'); cIntro(); }, 400);
   else setTimeout(() => { $('loading').classList.add('hide'); $('title').classList.add('on'); setTimeout(() => $('title').classList.remove('on'), 3200); setTimeout(() => say('ここがノエルベルク……。雪、きれいやね。ちょっと歩こっか。'), 3800); setTimeout(() => { if (!speech && talking <= 0 && !shopOpen) say('うしろに訓練場があるけん、技の練習も、ほかの人との手合わせもできるよ。'); }, 9500); }, 400);
 }, e => { if (e.total) { const p = Math.round(e.loaded / e.total * 100); $('pbar').style.width = p + '%'; $('lmsg').textContent = `LOADING … ${p}%`; } },
 err => { console.error(err); $('lmsg').textContent = 'LOAD ERROR: ' + err.message; });
@@ -1674,7 +1804,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128002838');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128124853');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -1683,6 +1813,7 @@ $('prompt').addEventListener('click', interact);
 const WALK = 1.7, RUN = 4.0;
 function inside(x, z, skip) {
   if (DUNGEON) return dInside(x, z, skip);
+  if (CASINO) return cInside(x, z, skip);
   if (z > TRAIN.z1 || z < Z_END) return false;
   if (z > Z_START) { if (Math.abs(x) > (z < TRAIN.z0 ? STREET_HALF - .35 : TRAIN.x)) return false; }   // 訓練場
   else { const inPlaza = Math.hypot(x - PLAZA.x, z - PLAZA.z) < PLAZA.r - .4; if (!inPlaza && Math.abs(x) > STREET_HALF - .35) return false; }
@@ -1730,7 +1861,7 @@ function updatePlayer(dt) {
   const c = Math.cos(player.phase);
   if (player.walkW > .4 && Math.sign(c) !== Math.sign(lastC)) {
     const foot = vrm.humanoid.getRawBoneNode(c > 0 ? 'rightFoot' : 'leftFoot').getWorldPosition(new THREE.Vector3());
-    stepFX(foot, player.yaw, player.runW > .5); SFX.play(DUNGEON ? 'step_stone' : 'step_snow', player.runW > .5 ? .42 : .3, rand(.9, 1.1));
+    stepFX(foot, player.yaw, player.runW > .5); SFX.play(DUNGEON || CASINO ? 'step_stone' : 'step_snow', player.runW > .5 ? .42 : .3, rand(.9, 1.1));
   }
   lastC = c;
   vrm.scene.position.set(player.pos.x, footY + (player.hopY || 0), player.pos.z);
@@ -1800,6 +1931,7 @@ function updateCamera(dt) {
 const mapc = $('mapc'), mg = mapc.getContext('2d');
 function drawMap() {
   if (DUNGEON) return drawDungeonMap();
+  if (CASINO) return drawCasinoMap();
   const W = mapc.width, S = 6.5;    // 1m = 6.5px
   mg.clearRect(0, 0, W, W);
   mg.save(); mg.translate(W / 2, W / 2); mg.rotate(camYaw); mg.translate(-player.pos.x * S, -player.pos.z * S);
@@ -1902,7 +2034,7 @@ function showTitle(sm, b, sp) {
   $('title').classList.add('on'); clearTimeout(titleT); titleT = setTimeout(() => $('title').classList.remove('on'), 3200);
 }
 function updateArea() {
-  if (DUNGEON) return;
+  if (DUNGEON || CASINO) return;
   const inP = Math.hypot(player.pos.x - PLAZA.x, player.pos.z - PLAZA.z) < PLAZA.r;
   if (inP === inPlazaNow) return;
   inPlazaNow = inP; $('areaName').textContent = inP ? 'ノエルベルク中央広場' : 'ノエルベルク';
@@ -2253,7 +2385,7 @@ function makeGolem(o = {}) {
   }).catch(e => console.warn('golem', e));
   return d;
 }
-const golem = DUNGEON ? null : makeGolem();
+const golem = DUNGEON || CASINO ? null : makeGolem();
 // 骨を「モデルの向き」を基準に回す：x=前後に倒す（＋で前／下を向いた手足は後ろへ）、y=ひねり、z=左右
 function golemPose(d, R) {
   for (const n in d.bones) {
@@ -3712,6 +3844,7 @@ function kFrame(dt, t) {
     if (CB.kqT <= 0) { CB.kq++; CB.kqT = CB.kq < KAREN.step.max ? KAREN.step.cd : 0; }
   }
   kShotsTick(dt); kClonesTick(dt); kTrailsTick(dt); fFrame(dt);
+  if (CASINO) cFrame(dt, t);
   for (const m of confetti) if (m.visible) {
     const u = m.userData; u.life += dt; u.v.y -= 5 * dt; u.v.multiplyScalar(1 - dt * 1.6); m.position.addScaledVector(u.v, dt);
     m.rotation.x += u.w.x * dt; m.rotation.y += u.w.y * dt; m.rotation.z += u.w.z * dt;
@@ -4312,7 +4445,7 @@ function dBuild() {
   dWall(-1.75, 0, -1.75, 6.6); dWall(1.75, 0, 1.75, 6.6); dWall(-1.8, 6.6, 1.8, 6.6);     // 地上へ続く階段の壁
   const portal = new THREE.Mesh(new THREE.RingGeometry(.6, 1.1, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.5, 2.2), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   portal.rotation.x = -Math.PI / 2; portal.position.set(DX, .03, -1); scene.add(portal); DG.portalA = portal;
-  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128002838', 350); } });
+  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128124853', 350); } });
   dCorridor(-18, -10);
   // 戦闘の部屋1
   dRoom(-9, 9, -36, -18, { n: true, s: true }); for (const [x, z] of [[-5, -23], [5, -23], [-5, -31], [5, -31]]) dPillar(x, z);
@@ -4572,7 +4705,7 @@ function dClear() {
   // 帰り道のポータル
   const p = new THREE.Mesh(new THREE.RingGeometry(.8, 1.4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.4, .6), transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   p.rotation.x = -Math.PI / 2; p.position.set(DX, .04, -104); scene.add(p); DG.portalB = p;
-  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128002838', 350); } });
+  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128124853', 350); } });
   dChest(0, -112, 5000, 'boss');
   setTimeout(() => {
     $('dresTime').textContent = fmt(sec); $('dresBest').textContent = nb ? 'ベスト更新！' : `ベスト ${fmt(best)}`; $('dresCoin').textContent = `+${reward.toLocaleString()}円`;
@@ -4596,7 +4729,652 @@ function drawDungeonMap() {
   mg.beginPath(); mg.moveTo(0, -16); mg.lineTo(11, 12); mg.lineTo(0, 6); mg.lineTo(-11, 12); mg.closePath(); mg.fill();
   mg.restore();
 }
+
+// カジノの建物（PVページ fortuna.html と同じもの）を作る
+function cBuildCasino() {
+  const CROOT = new THREE.Group(); CROOT.position.set(CX, 0, 0); scene.add(CROOT);
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  function tex(w, h, draw, rep) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    draw(c.getContext('2d'), w, h);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); }
+    return t;
+  }
+  const std = (o) => new THREE.MeshStandardMaterial(o);
+  const GOLD = std({ color: 0xd9a64a, metalness: .9, roughness: .3, emissive: 0x3a2508, emissiveIntensity: .6 });
+  const BLACK = std({ color: 0x0d0a10, metalness: .5, roughness: .25 });
+  
+  /* =====================================================================
+     カジノ《ルーチェ・ドーロ》
+     ===================================================================== */
+  const DAIS_Y = 0.3, DAIS_R = 2.4;
+  const ROOM = { x: 21, z0: -15, z1: 17 };
+  const colliders = [];          // 歩くときにぶつかる丸 [x, z, r]
+  const spinners = [];           // 回り続けるもの
+  const blinkers = [];           // 点滅するランプ
+  
+  // 床：赤いじゅうたんに金の菱形模様
+  const carpet = tex(256, 256, (g, w, h) => {
+    g.fillStyle = '#4a0c16'; g.fillRect(0, 0, w, h);
+    const gr = g.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w * .7); gr.addColorStop(0, 'rgba(120,20,40,.5)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#b8862f'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(w / 2, 6); g.lineTo(w - 6, h / 2); g.lineTo(w / 2, h - 6); g.lineTo(6, h / 2); g.closePath(); g.stroke();
+    g.lineWidth = 1.5; g.strokeStyle = '#8a5f1e';
+    g.beginPath(); g.moveTo(w / 2, 34); g.lineTo(w - 34, h / 2); g.lineTo(w / 2, h - 34); g.lineTo(34, h / 2); g.closePath(); g.stroke();
+    g.fillStyle = '#d8a54a';
+    for (const [x, y] of [[w / 2, h / 2], [0, 0], [w, 0], [0, h], [w, h]]) { g.beginPath(); g.arc(x, y, 7, 0, 7); g.fill(); }
+    g.font = 'bold 34px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#9c6b22'; g.fillText('♦', w / 2, h / 2 + 1);
+  }, [14, 10]);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM.x * 2 + 2, ROOM.z1 - ROOM.z0 + 2), std({ map: carpet, roughness: .9 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.z = (ROOM.z0 + ROOM.z1) / 2; floor.receiveShadow = true; CROOT.add(floor);
+  // 中央の黒い大理石と金の円
+  const marble = tex(512, 512, (g, w, h) => {
+    g.fillStyle = '#0c090f'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 60; i++) { g.strokeStyle = `rgba(160,140,170,${.04 + rnd() * .06})`; g.lineWidth = rnd() * 2; g.beginPath(); let x = rnd() * w, y = rnd() * h; g.moveTo(x, y); for (let k = 0; k < 6; k++) { x += (rnd() - .5) * 120; y += (rnd() - .5) * 120; g.lineTo(x, y); } g.stroke(); }
+    g.strokeStyle = '#d6a64c'; g.lineWidth = 6; g.beginPath(); g.arc(w / 2, h / 2, w * .48, 0, 7); g.stroke();
+    g.lineWidth = 2; g.beginPath(); g.arc(w / 2, h / 2, w * .44, 0, 7); g.stroke();
+    g.save(); g.translate(w / 2, h / 2);
+    for (let i = 0; i < 16; i++) { g.rotate(Math.PI / 8); g.beginPath(); g.moveTo(w * .25, 0); g.lineTo(w * .43, -10); g.lineTo(w * .44, 0); g.lineTo(w * .43, 10); g.closePath(); g.fillStyle = i % 2 ? '#a8792c' : '#e2b75e'; g.fill(); }
+    g.restore();
+  });
+  const ring = new THREE.Mesh(new THREE.CircleGeometry(6.5, 64), std({ map: marble, roughness: .25, metalness: .3 }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = .006; ring.receiveShadow = true; CROOT.add(ring);
+  // 舞台（フォルトゥナが立つ丸い台）
+  {
+    const top = tex(512, 512, (g, w, h) => {
+      g.fillStyle = '#100a14'; g.fillRect(0, 0, w, h);
+      g.translate(w / 2, h / 2);
+      const cols = ['#5b0f1e', '#0d0a10'];
+      for (let i = 0; i < 37; i++) { g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, w * .47, i / 37 * Math.PI * 2, (i + 1) / 37 * Math.PI * 2); g.closePath(); g.fillStyle = i === 0 ? '#0d4a2a' : cols[i % 2]; g.fill(); }
+      g.fillStyle = '#100a14'; g.beginPath(); g.arc(0, 0, w * .36, 0, 7); g.fill();
+      g.strokeStyle = '#d6a64c'; g.lineWidth = 5; g.beginPath(); g.arc(0, 0, w * .36, 0, 7); g.stroke(); g.beginPath(); g.arc(0, 0, w * .475, 0, 7); g.stroke();
+      g.font = '800 64px serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#e8bd62'; g.fillText('F', 0, 4);
+      g.lineWidth = 2; g.beginPath(); g.arc(0, 0, 52, 0, 7); g.stroke();
+    });
+    const d = new THREE.Mesh(new THREE.CylinderGeometry(DAIS_R, DAIS_R + .15, DAIS_Y, 64), [std({ color: 0x1a0d12, metalness: .6, roughness: .35 }), std({ map: top, roughness: .3, metalness: .2 }), BLACK]);
+    d.position.y = DAIS_Y / 2; d.receiveShadow = true; d.castShadow = true; CROOT.add(d);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(DAIS_R + .02, .035, 8, 96), GOLD); rim.rotation.x = Math.PI / 2; rim.position.y = DAIS_Y; CROOT.add(rim);
+    // 台のふちの小さなランプ
+    for (let i = 0; i < 24; i++) {
+      const a = i / 24 * Math.PI * 2, m = new THREE.Mesh(new THREE.SphereGeometry(.035, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffd98a }));
+      m.position.set(Math.sin(a) * (DAIS_R + .09), DAIS_Y * .5, Math.cos(a) * (DAIS_R + .09)); CROOT.add(m); blinkers.push({ m, ph: i * .5, kind: 'chase' });
+    }
+  }
+  // 正面から舞台へ続く赤い通路
+  {
+    const run = tex(64, 256, (g, w, h) => { g.fillStyle = '#7a0f20'; g.fillRect(0, 0, w, h); g.fillStyle = '#d6a64c'; g.fillRect(3, 0, 4, h); g.fillRect(w - 7, 0, 4, h); }, [1, 4]);
+    const r = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 14), std({ map: run, roughness: .85 }));
+    r.rotation.x = -Math.PI / 2; r.position.set(0, .012, 9.2); r.receiveShadow = true; CROOT.add(r);
+    for (const sx of [-1.6, 1.6]) for (let z = 4; z <= 15; z += 2.75) {         // 赤いロープの柱
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(.05, .09, 1, 12), GOLD); p.position.set(sx, .5, z); CROOT.add(p);
+      const b = new THREE.Mesh(new THREE.SphereGeometry(.08, 12, 8), GOLD); b.position.set(sx, 1.03, z); CROOT.add(b);
+      if (z + 2.75 <= 15.1) {
+        const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(sx, .92, z), new THREE.Vector3(sx, .6, z + 1.37), new THREE.Vector3(sx, .92, z + 2.75));
+        CROOT.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 12, .025, 6), std({ color: 0x8a1022, roughness: .6 })));
+      }
+    }
+  }
+  // 壁：ワインレッドの壁板と金の枠
+  const wallTex = tex(256, 512, (g, w, h) => {
+    g.fillStyle = '#2a0710'; g.fillRect(0, 0, w, h);
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, 'rgba(0,0,0,.5)'); gr.addColorStop(.6, 'rgba(90,15,30,.25)'); gr.addColorStop(1, 'rgba(0,0,0,.4)');
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#a67a2c'; g.lineWidth = 4; g.strokeRect(22, 40, w - 44, h * .55);
+    g.lineWidth = 2; g.strokeRect(34, 52, w - 68, h * .55 - 24); g.strokeRect(22, h * .68, w - 44, h * .26);
+    g.fillStyle = '#c4923e'; g.fillRect(0, h * .63, w, 6);
+    g.font = 'bold 40px serif'; g.textAlign = 'center'; g.fillStyle = 'rgba(200,150,70,.35)'; g.fillText('♠', w / 2, h * .33);
+  }, [16, 1]);
+  {
+    const H = 10, W = ROOM.x * 2, D = ROOM.z1 - ROOM.z0;
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(W, H), std({ map: wallTex, roughness: .8 })); back.position.set(0, H / 2, ROOM.z0); CROOT.add(back);
+    const t2 = wallTex.clone(); t2.repeat.set(12, 1); t2.needsUpdate = true;
+    for (const s of [-1, 1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(D, H), std({ map: t2, roughness: .8 })); m.position.set(s * ROOM.x, H / 2, (ROOM.z0 + ROOM.z1) / 2); m.rotation.y = -s * Math.PI / 2; CROOT.add(m); }
+    const front = new THREE.Mesh(new THREE.PlaneGeometry(W, H), std({ map: wallTex, roughness: .8 })); front.position.set(0, H / 2, ROOM.z1); front.rotation.y = Math.PI; CROOT.add(front);
+    const ceilTex = tex(256, 256, (g, w, h) => { g.fillStyle = '#12070b'; g.fillRect(0, 0, w, h); g.strokeStyle = '#5a3c16'; g.lineWidth = 6; g.strokeRect(8, 8, w - 16, h - 16); g.strokeStyle = '#2e1b0a'; g.lineWidth = 3; g.strokeRect(34, 34, w - 68, h - 68); }, [10, 8]);
+    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), std({ map: ceilTex, roughness: .9 })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, H, (ROOM.z0 + ROOM.z1) / 2); CROOT.add(ceil);
+    // 金の柱
+    for (const x of [-13.5, -6.5, 6.5, 13.5]) for (const z of [-9, 6.5]) {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(.45, .45, H, 24), std({ color: 0x1a0c10, metalness: .5, roughness: .4 })); p.position.set(x, H / 2, z); CROOT.add(p);
+      for (const y of [.15, 3.2, H - .3]) { const b = new THREE.Mesh(new THREE.CylinderGeometry(.58, .58, .3, 24), GOLD); b.position.set(x, y, z); CROOT.add(b); }
+      for (let k = 0; k < 6; k++) { const s = new THREE.Mesh(new THREE.BoxGeometry(.04, H - .6, .04), GOLD); const a = k / 6 * Math.PI * 2; s.position.set(x + Math.sin(a) * .46, H / 2, z + Math.cos(a) * .46); CROOT.add(s); }
+      colliders.push([x, z, .9]);
+    }
+  }
+  // 奥の壁：大きなルーレット盤と光る看板
+  function neonText(text, w, h, font, color, glow) {
+    return tex(w, h, (g) => {
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = font;
+      g.shadowColor = glow; g.shadowBlur = 24; g.fillStyle = color;
+      g.fillText(text, w / 2, h / 2); g.shadowBlur = 8; g.fillText(text, w / 2, h / 2);
+    });
+  }
+  {
+    const wheelTex = tex(1024, 1024, (g, w, h) => {
+      g.translate(w / 2, h / 2);
+      const N = 37, nums = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+      g.fillStyle = '#2a1a08'; g.beginPath(); g.arc(0, 0, w * .5, 0, 7); g.fill();
+      for (let i = 0; i < N; i++) {
+        const a0 = i / N * Math.PI * 2, a1 = (i + 1) / N * Math.PI * 2;
+        g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, w * .46, a0, a1); g.closePath(); g.fillStyle = i === 0 ? '#0e6b3a' : (i % 2 ? '#8e1426' : '#0c0a10'); g.fill();
+        g.save(); g.rotate((a0 + a1) / 2 + Math.PI / 2); g.fillStyle = '#ffe9b8'; g.font = 'bold 34px serif'; g.textAlign = 'center'; g.fillText(String(nums[i]), 0, -w * .41); g.restore();
+      }
+      g.strokeStyle = '#e8bd62'; g.lineWidth = 10; g.beginPath(); g.arc(0, 0, w * .46, 0, 7); g.stroke();
+      g.fillStyle = '#1a0f06'; g.beginPath(); g.arc(0, 0, w * .33, 0, 7); g.fill();
+      g.lineWidth = 6; g.beginPath(); g.arc(0, 0, w * .33, 0, 7); g.stroke();
+      for (let i = 0; i < 8; i++) { g.save(); g.rotate(i * Math.PI / 4); g.fillStyle = '#d6a64c'; g.fillRect(-6, -w * .32, 12, w * .26); g.restore(); }
+      g.fillStyle = '#e8bd62'; g.beginPath(); g.arc(0, 0, w * .07, 0, 7); g.fill();
+    });
+    const wheel = new THREE.Mesh(new THREE.CircleGeometry(3.4, 96), std({ map: wheelTex, emissiveMap: wheelTex, emissive: 0xffffff, emissiveIntensity: .35, metalness: .4, roughness: .4 }));
+    wheel.position.set(0, 5.2, ROOM.z0 + .08); CROOT.add(wheel); spinners.push({ o: wheel, ax: 'z', v: -.12 });
+    const frame = new THREE.Mesh(new THREE.TorusGeometry(3.45, .12, 12, 120), GOLD); frame.position.copy(wheel.position); frame.position.z += .05; CROOT.add(frame);
+    for (let i = 0; i < 48; i++) {    // 盤のまわりの電球
+      const a = i / 48 * Math.PI * 2, m = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffe2a0 }));
+      m.position.set(Math.cos(a) * 3.72, 5.2 + Math.sin(a) * 3.72, ROOM.z0 + .15); CROOT.add(m); blinkers.push({ m, ph: i * .35, kind: 'chase' });
+    }
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.6), new THREE.MeshBasicMaterial({ map: neonText('LUCE D\'ORO', 1024, 180, '800 120px "Shippori Mincho B1", serif', '#fff0c8', '#ffb43a'), transparent: true, depthWrite: false }));
+    sign.position.set(0, 9.25, ROOM.z0 + .1); CROOT.add(sign); blinkers.push({ m: sign, ph: 0, kind: 'neon' });
+    // 左右の大きなトランプの印
+    const suits = [['♠', '#bfa4ff', '#8f5bff', -7.5], ['♥', '#ff9db0', '#ff2e62', -11], ['♦', '#ff9db0', '#ff2e62', 11], ['♣', '#bfa4ff', '#8f5bff', 7.5]];
+    for (const [s, c, gl, x] of suits) {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 2.2), new THREE.MeshBasicMaterial({ map: neonText(s, 256, 256, '200px serif', c, gl), transparent: true, depthWrite: false }));
+      m.position.set(x, 6, ROOM.z0 + .1); CROOT.add(m); blinkers.push({ m, ph: x, kind: 'neon' });
+    }
+  }
+  // シャンデリア
+  const chandeliers = [];
+  {
+    const crystal = new THREE.MeshStandardMaterial({ color: 0xfff1d0, emissive: 0xffd27a, emissiveIntensity: 1.6, metalness: .2, roughness: .1 });
+    for (const [x, z, s] of [[0, 3, 1.2], [-10, -4, 1], [10, -4, 1], [-10, 10, .9], [10, 10, .9]]) {
+      const g = new THREE.Group(); g.position.set(x, 8.2, z); g.scale.setScalar(s);
+      const chain = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, 1.8, 6), GOLD); chain.position.y = .9; g.add(chain);
+      for (const [r, y, n] of [[1.1, 0, 16], [.75, -.35, 12], [.4, -.7, 8]]) {
+        const t = new THREE.Mesh(new THREE.TorusGeometry(r, .03, 6, 48), GOLD); t.rotation.x = Math.PI / 2; t.position.y = y; g.add(t);
+        for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, c = new THREE.Mesh(new THREE.OctahedronGeometry(.07), crystal); c.position.set(Math.cos(a) * r, y - .12, Math.sin(a) * r); c.scale.y = 1.8; g.add(c); }
+      }
+      const core = new THREE.Mesh(new THREE.OctahedronGeometry(.22), crystal); core.position.y = -1; core.scale.y = 1.6; g.add(core);
+      const L = new THREE.PointLight(0xffc887, 26 * s, 16, 1.6); L.position.y = -.5; g.add(L);
+      CROOT.add(g); chandeliers.push(g);
+    }
+  }
+  // ルーレット台
+  const felt = (w, h, draw) => tex(w, h, (g) => { g.fillStyle = '#0d4a2e'; g.fillRect(0, 0, w, h); const gr = g.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w * .6); gr.addColorStop(0, 'rgba(60,160,100,.35)'); gr.addColorStop(1, 'rgba(0,0,0,.25)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); draw && draw(g, w, h); });
+  const chipCols = [0xc8102e, 0x1d4ed8, 0x111111, 0x0f9d58, 0xf4f1e8, 0x7c3aed];
+  function chipStack(x, y, z, n, col) {
+    const g = new THREE.Group();
+    const m = std({ color: col, roughness: .45 }), e = std({ color: 0xf4f1e8, roughness: .5 });
+    for (let i = 0; i < n; i++) { const c = new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, .009, 16), i % 3 === 1 ? e : m); c.position.y = i * .0095; c.rotation.y = rnd() * 6; g.add(c); }
+    g.position.set(x, y, z); return g;
+  }
+  function rouletteTable(x, z, rot) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot;
+    const layout = felt(512, 256, (c, w, h) => {
+      c.strokeStyle = '#f0e6c8'; c.lineWidth = 2; c.font = 'bold 20px serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      for (let i = 0; i < 12; i++) for (let j = 0; j < 3; j++) {
+        const n = i * 3 + (3 - j), red = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36].includes(n);
+        const X = 120 + i * 30, Y = 50 + j * 46; c.strokeRect(X, Y, 30, 46); c.fillStyle = red ? '#c8102e' : '#111'; c.beginPath(); c.arc(X + 15, Y + 23, 11, 0, 7); c.fill(); c.fillStyle = '#fff'; c.fillText(n, X + 15, Y + 24);
+      }
+      c.strokeRect(80, 50, 40, 138); c.fillStyle = '#fff'; c.fillText('0', 100, 120);
+      for (let k = 0; k < 3; k++) { c.strokeRect(120 + k * 120, 188, 120, 34); c.fillText(['1st 12', '2nd 12', '3rd 12'][k], 180 + k * 120, 206); }
+    });
+    const top = new THREE.Mesh(new THREE.BoxGeometry(3.6, .08, 1.8), [BLACK, BLACK, std({ map: layout, roughness: .95 }), BLACK, BLACK, BLACK]); top.position.y = .86; g.add(top);
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(3.8, .1, 2.0), std({ color: 0x4a2410, roughness: .5, metalness: .1 })); rail.position.y = .8; g.add(rail);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(3.2, .76, 1.4), std({ color: 0x1a0a08, roughness: .6 })); base.position.y = .38; g.add(base);
+    // 回る盤
+    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(.62, .55, .14, 48), std({ color: 0x3a1c0a, metalness: .3, roughness: .4 })); bowl.position.set(-2.3, .9, 0); g.add(bowl);
+    const wt = tex(256, 256, (c, w, h) => { c.translate(w / 2, h / 2); for (let i = 0; i < 37; i++) { c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, w / 2, i / 37 * 6.283, (i + 1) / 37 * 6.283); c.closePath(); c.fillStyle = i === 0 ? '#0e6b3a' : (i % 2 ? '#a3142a' : '#111'); c.fill(); } c.fillStyle = '#6b3a12'; c.beginPath(); c.arc(0, 0, w * .3, 0, 7); c.fill(); c.strokeStyle = '#e8bd62'; c.lineWidth = 4; c.stroke(); });
+    const disk = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .03, 48), [std({ color: 0x3a1c0a }), std({ map: wt, roughness: .35, metalness: .2 }), BLACK]); disk.position.set(-2.3, .98, 0); g.add(disk);
+    const turret = new THREE.Mesh(new THREE.ConeGeometry(.08, .2, 12), GOLD); turret.position.y = .1; disk.add(turret);
+    spinners.push({ o: disk, ax: 'y', v: 1.4 });
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(.022, 12, 8), std({ color: 0xffffff, roughness: .2 }));
+    g.add(ball); spinners.push({ o: ball, orbit: [-2.3, 1.02, 0, .53], v: -3.2 });
+    for (let i = 0; i < 9; i++) g.add(chipStack(-.8 + (i % 5) * .45 + rnd() * .1, .905, -.35 + Math.floor(i / 5) * .5 + rnd() * .1, 3 + Math.floor(rnd() * 9), chipCols[i % chipCols.length]));
+    CROOT.add(g); colliders.push([x, z, 2.2]);
+    return g;
+  }
+  rouletteTable(-7.5, 3.5, .35); rouletteTable(7.5, 3.5, -.35);
+  // カードの台（半月形）
+  function cardTable(x, z, rot) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot;
+    const ft = felt(512, 512, (c, w, h) => { c.strokeStyle = '#e8d9a8'; c.lineWidth = 3; c.beginPath(); c.arc(w / 2, 0, w * .38, 0, Math.PI); c.stroke(); c.font = 'bold 26px serif'; c.fillStyle = '#e8d9a8'; c.textAlign = 'center'; c.fillText('BLACKJACK PAYS 3 TO 2', w / 2, h * .3); for (let i = 0; i < 5; i++) { const a = .35 + i / 4 * (Math.PI - .7); c.beginPath(); c.arc(w / 2 + Math.cos(a) * w * .38, Math.sin(a) * w * .38, 26, 0, 7); c.stroke(); } });
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.7, .08, 48, 1, false, -Math.PI / 2, Math.PI), [std({ color: 0x4a2410 }), std({ map: ft, roughness: .95 }), BLACK]);
+    top.position.y = .86; g.add(top);
+    const rail = new THREE.Mesh(new THREE.TorusGeometry(1.72, .06, 8, 48, Math.PI), std({ color: 0x4a2410, roughness: .45 })); rail.rotation.x = Math.PI / 2; rail.rotation.z = Math.PI; rail.position.y = .9; g.add(rail);
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, .8, 32, 1, false, -Math.PI / 2, Math.PI), std({ color: 0x1a0a08 })); base.position.y = .4; g.add(base);
+    for (let i = 0; i < 6; i++) g.add(chipStack(-.9 + i * .36, .905, -.2 - rnd() * .2, 4 + Math.floor(rnd() * 10), chipCols[(i + 2) % chipCols.length]));
+    CROOT.add(g); colliders.push([x, z, 1.9]);
+    return g;
+  }
+  cardTable(-8, -7.5, .5); cardTable(8, -7.5, -.5); cardTable(-13.5, 12, 2.6); cardTable(13.5, 12, -2.6);
+  // スロットマシン（左右の壁ぞい）
+  const slotSyms = ['7', '♦', 'BAR', '♣', '★', '♥'];
+  function slotScreen(i) {
+    return tex(256, 160, (g, w, h) => {
+      g.fillStyle = '#120810'; g.fillRect(0, 0, w, h);
+      for (let k = 0; k < 3; k++) {
+        const x = 12 + k * 80; const gr = g.createLinearGradient(0, 14, 0, h - 14); gr.addColorStop(0, '#999'); gr.addColorStop(.5, '#fff'); gr.addColorStop(1, '#999');
+        g.fillStyle = gr; g.fillRect(x, 14, 72, h - 28);
+        const s = slotSyms[(i * 3 + k * 2) % slotSyms.length]; g.font = s === 'BAR' ? 'bold 30px sans-serif' : 'bold 64px serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillStyle = s === '7' || s === '♥' || s === '♦' ? '#d0102a' : '#1a1a2a'; g.fillText(s, x + 36, h / 2 + 2);
+      }
+      g.strokeStyle = '#ffcf5a'; g.lineWidth = 3; g.beginPath(); g.moveTo(4, h / 2); g.lineTo(w - 4, h / 2); g.stroke();
+    });
+  }
+  {
+    const bodyM = std({ color: 0x3a0a1a, metalness: .6, roughness: .35 });
+    let n = 0;
+    for (const s of [-1, 1]) for (let z = -12; z <= 14.5; z += 1.5) {
+      if (Math.abs(z - 6.5) < 1.2 || Math.abs(z + 9) < 1.2) continue;
+      const g = new THREE.Group(); g.position.set(s * (ROOM.x - .55), 0, z); g.rotation.y = -s * Math.PI / 2;
+      const b = new THREE.Mesh(new THREE.BoxGeometry(1, 1.7, .8), bodyM); b.position.y = .85; g.add(b);
+      const top = new THREE.Mesh(new THREE.BoxGeometry(1.04, .3, .84), GOLD); top.position.y = 1.85; g.add(top);
+      const scr = new THREE.Mesh(new THREE.PlaneGeometry(.8, .5), new THREE.MeshBasicMaterial({ map: slotScreen(n) })); scr.position.set(0, 1.25, .41); g.add(scr);
+      const lamp = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, .22, 16), new THREE.MeshBasicMaterial({ color: 0xff3a6a })); lamp.position.y = 2.12; g.add(lamp);
+      blinkers.push({ m: lamp, ph: n * .7, kind: 'slot' });
+      const lever = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, .45, 8), GOLD); lever.position.set(.56, 1.25, 0); lever.rotation.z = -.2; g.add(lever);
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(.06, 10, 8), std({ color: 0xc8102e })); knob.position.set(.6, 1.47, 0); g.add(knob);
+      const tray = new THREE.Mesh(new THREE.BoxGeometry(.7, .08, .2), GOLD); tray.position.set(0, .7, .45); g.add(tray);
+      CROOT.add(g); n++;
+    }
+  }
+  // 光
+  CROOT.add(new THREE.HemisphereLight(0xffd2a8, 0x2a0a12, .55));
+  const keyLight = new THREE.DirectionalLight(0xfff0dc, 1.2); keyLight.position.set(-2.5, 6, 6); CROOT.add(keyLight, keyLight.target);
+  // 影は正面上からの光だけで落とす（キャラの塗り MToon はスポットライトの影に対応していない）
+  keyLight.castShadow = true; keyLight.shadow.mapSize.set(1024, 1024); keyLight.shadow.bias = -.0005; Object.assign(keyLight.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: .5, far: 20 });
+  const spot = new THREE.SpotLight(0xfff2d6, 0, 18, .36, .45, 1.2); spot.position.set(0, 9.5, 3.2); spot.target.position.set(0, .8, 0); CROOT.add(spot, spot.target);
+  const rimLight = new THREE.PointLight(0x9b6bff, 3, 7, 1.5); rimLight.position.set(0, 2.6, -2.2); CROOT.add(rimLight);
+  const warmL = new THREE.PointLight(0xff4a6a, 2, 10, 1.6); warmL.position.set(-3, 1.5, 2); CROOT.add(warmL);
+  // 舞う金の粉
+  const dust = (() => {
+    const N = 260, pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) { pos[i * 3] = (rnd() - .5) * 30; pos[i * 3 + 1] = rnd() * 8; pos[i * 3 + 2] = (rnd() - .5) * 26; }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const p = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffd98a, size: .05, transparent: true, opacity: .7, depthWrite: false, blending: THREE.AdditiveBlending }));
+    CROOT.add(p); return p;
+  })();
+  const sparkTex = tex(64, 64, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.25, 'rgba(255,220,140,.9)'); gr.addColorStop(1, 'rgba(255,180,60,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+  dust.material.map = sparkTex; dust.material.size = .12;
+  
+  spot.intensity = 22;
+  return { colliders, spinners, blinkers, chandeliers, dust, DAIS_Y, DAIS_R, ROOM };
+}
+
+/* =====================================================================
+   カジノ《ルーチェ・ドーロ》（walk.html?area=casino）：イベント「ルーチェ・ドーロ開幕祭」
+   ・ノエルベルクと同じく、同じ時間にカジノにいるほかのプレイヤーと一緒に歩ける（エリア名 casino）
+   ・ミニゲーム（スロット／ハイ＆ロー／シャッフル）でルーチェコインを稼ぐ
+   ・舞台のフォルトゥナに話しかけ、運命のルーレットを回すか、コインで契約して仲間にする
+   街とは離れた場所（x = CX）に作り、街の建物は隠す（ダンジョンと同じやり方）
+   ===================================================================== */
+const CX = -200, C_ROOM = { x: 19.3, z0: -13.4, z1: 16.2 };
+let CAS = null;
+function cInside(x, z, skip) {
+  const lx = x - CX;
+  if (lx < -C_ROOM.x || lx > C_ROOM.x || z < C_ROOM.z0 || z > C_ROOM.z1) return false;
+  for (const c of colliders) if (!(skip && skip.has(c)) && (x - c.x) ** 2 + (z - c.z) ** 2 < (c.r + .25) ** 2) return false;
+  return true;
+}
+const C_SPOTS = {      // 話しかけられる場所（ローカル座標）
+  npc: [0, 3.3], slot: [-18.6, 2.25], hilo: [-8, -5.1], shuffle: [8, -5.1], exit: [0, 15.6],
+};
+function cInit() {
+  for (let i = CITY_FROM; i < CITY_TO; i++) { const o = scene.children[i]; if (o && !o.isLight && o.visible && o !== lookTarget) o.visible = false; }
+  for (const d of [...dummies]) d.g.visible = false;
+  dummies.length = 0; colliders.length = 0; boxes.length = 0; interactables.length = 0;
+  scene.fog = new THREE.Fog(0x12060b, 16, 52); scene.background = new THREE.Color(0x0a0408);
+  moon.intensity = .3; warm.intensity = .15;
+  document.querySelector('#area small').textContent = 'EVENT // CASINO'; $('areaName').textContent = 'ルーチェ・ドーロ';
+  document.querySelector('#loading .s').textContent = 'カジノ《ルーチェ・ドーロ》'; document.title = 'カジノ《ルーチェ・ドーロ》';
+  player.pos.set(CX, 0, 13.6); player.yaw = Math.PI; camYaw = 0;
+  CAS = cBuildCasino();
+  for (const [x, z, r] of CAS.colliders) colliders.push({ x: CX + x, z, r });
+  colliders.push({ x: CX, z: 0, r: CAS.DAIS_R + .2 });           // 舞台（フォルトゥナが立つ）
+  for (const s of [-1, 1]) colliders.push({ x: CX + s * 20.4, z: 0, r: .1 });
+  const I = (k, label, act, enabled) => interactables.push({ x: CX + C_SPOTS[k][0], z: C_SPOTS[k][1], r: 2.2, label, act, enabled });
+  I('npc', 'フォルトゥナに話しかける', cTalk);
+  I('slot', 'スロット「ルーチェ・セブン」で遊ぶ', () => cOpenGame('slot'));
+  I('hilo', 'ハイ＆ローで遊ぶ', () => cOpenGame('hilo'));
+  I('shuffle', 'シャッフル・ゲームで遊ぶ（ディーラー：フォルトゥナ）', () => cOpenGame('shuffle'));
+  I('exit', 'ロビーへ戻る', () => { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128124853', 350); });
+  $('cHud').classList.add('on'); cHud();
+  cLoadNpc();
+}
+function cIntro() {
+  showTitle('EVENT // ルーチェ・ドーロ開幕祭', 'カジノ《ルーチェ・ドーロ》', '── ミニゲームでコインを集めて、フォルトゥナに会いにいこう ──');
+  setTimeout(() => say(PARTNER === 'fortuna' ? 'ここがわたしの舞台。……ゆっくりしていって。' : 'わ……カジノ。きらきらしとるね。'), 3600);
+}
+
+/* ---------- 舞台のフォルトゥナ（キャラ選択と同じポーズで、近づくとこちらを見る） ---------- */
+let cNpc = null, cNpcHips = 0, cNpcTalkT = 0, cNpcBlink = 2;
+const C_POSE = {
+  hips: [0, .14, 0], spine: [.02, 0, 0], chest: [0, 0, -.04], neck: [0, 0, 0], head: [-.02, -.05, .13],
+  rightUpperArm: [0, .45, .55], rightLowerArm: [0, .35, 0], rightHand: [0, 0, -.25],
+  leftUpperArm: [0, -.7, -.75], leftLowerArm: [0, -2.05, 1.45], leftHand: [0, -.5, .1],
+  leftUpperLeg: [0, .06, -.02], leftLowerLeg: [.05, 0, 0], leftFoot: [0, -.12, 0], rightUpperLeg: [-.06, -.1, .2], rightLowerLeg: [.22, 0, 0], rightFoot: [-.06, .25, 0],
+};
+function cLoadNpc() {
+  getModelBuf('fortuna').then(buf => loader.parse(buf, './', gltf => {
+    const v = gltf.userData.vrm;
+    VRMUtils.removeUnnecessaryVertices(gltf.scene);
+    VRMUtils.combineSkeletons ? VRMUtils.combineSkeletons(gltf.scene) : VRMUtils.removeUnnecessaryJoints?.(gltf.scene);
+    VRMUtils.rotateVRM0(v);
+    v.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+    const box = new THREE.Box3().setFromObject(v.scene);
+    v.scene.position.set(CX, CAS.DAIS_Y - box.min.y, 0);
+    scene.add(v.scene);
+    cNpcHips = v.humanoid.getNormalizedBoneNode('hips').position.y;
+    v.springBoneManager?.joints?.forEach(j => { j.center = v.scene; });
+    cNpc = v;
+  }, e => console.warn('npc', e))).catch(e => console.warn('npc', e));
+}
+function cNpcTick(dt, t) {
+  if (!cNpc) return;
+  const b = n => cNpc.humanoid.getNormalizedBoneNode(n);
+  for (const n in C_POSE) { const bn = b(n); if (bn) bn.rotation.set(...C_POSE[n]); }
+  b('hips').position.y = cNpcHips + Math.sin(t * 1.7) * .004; b('spine').rotation.x += Math.sin(t * 1.7) * .012;
+  // 近くのプレイヤーへ顔を向ける
+  const dx = player.pos.x - CX, dz = player.pos.z, d = Math.hypot(dx, dz);
+  const yaw = d < 9 ? THREE.MathUtils.clamp(Math.atan2(dx, dz), -.8, .8) : 0;
+  cNpc.scene.userData.hy = damp(cNpc.scene.userData.hy || 0, yaw, 4, dt);
+  b('neck').rotation.y += cNpc.scene.userData.hy * .4; b('head').rotation.y += cNpc.scene.userData.hy * .6;
+  // まばたきと口
+  const em = cNpc.expressionManager;
+  cNpcBlink -= dt; let bl = 0; if (cNpcBlink < .15) bl = 1 - Math.abs(cNpcBlink) / .15; if (cNpcBlink < -.15) cNpcBlink = rand(2.5, 5);
+  cNpcTalkT = Math.max(0, cNpcTalkT - dt);
+  em?.setValue('blink', Math.max(0, bl)); em?.setValue('happy_mouth', cNpcTalkT > 0 ? 0 : .4); em?.setValue('brow_happy', .3);
+  em?.setValue('aa', cNpcTalkT > 0 ? Math.abs(Math.sin(t * 13)) * .55 : 0);
+  cNpc.update(dt);
+}
+
+/* ---------- 画面：所持コイン・会話・メニュー ---------- */
+function cHud() {
+  $('cCoin').textContent = LC.coins().toLocaleString();
+  const n = LC.claimable(); $('cMisN').textContent = n ? n : ''; $('cMisN').style.display = n ? 'grid' : 'none';
+}
+function cGain(n) { LC.add(n); cHud(); const e = $('cCoin'); e.classList.remove('bump'); void e.offsetWidth; e.classList.add('bump'); SFX.play('ui_coin', .6); }
+const cOpen = () => { shopOpen = true; document.body.classList.add('shopping'); };
+const cClose = () => { shopOpen = false; document.body.classList.remove('shopping'); };
+function cSay(text, voiceName, dur = 3) {
+  $('cdlgT').textContent = text; $('cdlg').classList.add('on');
+  if (voiceName) SFX.voice('voice/fortuna/' + voiceName, .8, .12);
+  cNpcTalkT = dur;
+}
+function cChoices(list) {
+  const box = $('cdlgC'); box.innerHTML = '';
+  for (const [label, fn, sub] of list) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'tap';
+    b.innerHTML = ''; const s1 = document.createElement('b'); s1.textContent = label; b.appendChild(s1);
+    if (sub) { const s2 = document.createElement('small'); s2.textContent = sub; b.appendChild(s2); }
+    b.addEventListener('click', () => { SFX.play('ui_tap', .5); fn(); }); box.appendChild(b);
+  }
+}
+function cEndTalk() { $('cdlg').classList.remove('on'); cClose(); }
+let cTalkN = 0;
+function cTalk() {
+  cOpen(); faceTo(CX, 0, 1.6);
+  LC.bump('talk', 1, 'max'); cHud();
+  if (LC.owned()) cSay('相棒になっても、ここはわたしの舞台よ。いつでもいらっしゃい。', 'npc_after', 4.2);
+  else if (!cTalkN) cSay('いらっしゃい。ルーチェ・ドーロへようこそ。……勝負していく？', 'npc_hello', 4.2);
+  else cSay('さあ、どうする？', 'npc_menu', 1.5);
+  cTalkN++;
+  cMenu();
+}
+function cMenu() {
+  const owned = LC.owned(), cost = LC.cost();
+  cChoices([
+    ['運命のルーレット', cRoulette, `◆ ${LC.SPIN}　${owned ? '大当たりで ◆1,000' : '0 に止まれば仲間に'}`],
+    ...(owned ? [] : [['契約する', cContract, cost > 0 ? `あと ◆ ${cost.toLocaleString()}（ルーレットに使った分は差し引き済み）` : '◆ 0 で契約できます']]),
+    ['話を聞く', () => { const L = [['ここはわたしの舞台。負ける気で来る人は、いないわ。', 'npc_talk1'], ['コインはミニゲームで稼げるわ。腕しだいで、ずっと増えるのよ。', 'npc_talk2'], ['ルーレットに使ったコインは、契約の支払いに回してあげる。……損はさせないわ。', 'npc_talk3']][cTalkN % 3]; cTalkN++; cSay(L[0], L[1], 4.5); }],
+    ['ミッション', () => { cEndTalk(); cMissions(); }],
+    ['やめる', cEndTalk],
+  ]);
+}
+function cContract() {
+  if (!LC.pay()) { cSay('チップが足りないわ。もう少し遊んでいらっしゃい。', 'npc_short', 3.2); return; }
+  cHud(); LC.unlock();
+  cSay('契約成立ね。今日から、あなたの勝ち筋はわたしが引くわ。', 'npc_contract', 4.5);
+  setTimeout(() => cJoin(), 2200);
+}
+// 仲間になった！
+function cJoin() {
+  cEndTalk(); cOpen();
+  SFX.play('fx_jackpot', .7); SFX.play('karen_finale', .5);
+  if (cNpc) burst(new THREE.Vector3(CX, 2, 0), 60, 5, 4, 1.6, [1.8, 1.4, .5]);
+  $('cjoin').classList.add('on');
+}
+$('cjoinP').addEventListener('click', () => { try { localStorage.setItem('partner', 'fortuna'); } catch (e) {} $('cjoinP').textContent = 'パートナーにしました（ロビーに戻ると変わります）'; $('cjoinP').disabled = true; });
+$('cjoinX').addEventListener('click', () => { $('cjoin').classList.remove('on'); cClose(); });
+
+/* ---------- 運命のルーレット（37マス。0 に止まれば仲間になる） ---------- */
+const C_NUMS = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+const C_RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+let cRoul = null;
+function cDrawWheel(rot) {
+  const cv = $('croulC'), g = cv.getContext('2d'), W = cv.width, R = W / 2 - 6;
+  g.clearRect(0, 0, W, W); g.save(); g.translate(W / 2, W / 2); g.rotate(rot);
+  for (let i = 0; i < 37; i++) {
+    const a0 = i / 37 * Math.PI * 2 - Math.PI / 2 - Math.PI / 37, a1 = a0 + Math.PI * 2 / 37, n = C_NUMS[i];
+    g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, R, a0, a1); g.closePath(); g.fillStyle = n === 0 ? '#0e8a4a' : C_RED.has(n) ? '#a3142a' : '#141018'; g.fill();
+    g.save(); g.rotate((a0 + a1) / 2 + Math.PI / 2); g.fillStyle = '#ffe9b8'; g.font = `bold ${W * .045}px serif`; g.textAlign = 'center'; g.fillText(n === 0 ? '0★' : n, 0, -R * .84); g.restore();
+  }
+  g.strokeStyle = '#e8bd62'; g.lineWidth = 5; g.beginPath(); g.arc(0, 0, R, 0, 7); g.stroke();
+  g.fillStyle = '#1a0f06'; g.beginPath(); g.arc(0, 0, R * .55, 0, 7); g.fill(); g.lineWidth = 3; g.stroke();
+  for (let i = 0; i < 8; i++) { g.save(); g.rotate(i * Math.PI / 4); g.fillStyle = '#d6a64c'; g.fillRect(-3, -R * .52, 6, R * .4); g.restore(); }
+  g.fillStyle = '#e8bd62'; g.beginPath(); g.arc(0, 0, R * .12, 0, 7); g.fill();
+  g.restore();
+}
+function cRoulette() {
+  if (!LC.spin()) { cSay('チップが足りないわ。もう少し遊んでいらっしゃい。', 'npc_short', 3.2); return; }
+  cHud(); $('cdlg').classList.remove('on');
+  cSay('運命のルーレット……回してみましょうか。', 'npc_spin', 3);
+  const idx = Math.floor(Math.random() * 37), turns = 6;
+  // 針（上）に idx のマスが来る角度
+  const target = -(idx / 37) * Math.PI * 2 - Math.PI * 2 * turns;
+  cRoul = { t: 0, dur: 4.2, from: 0, to: target, idx, done: false };
+  $('croulR').textContent = ''; $('croulOk').hidden = true; $('croul').classList.add('on');
+  SFX.play('fx_reel_spin', .6); setTimeout(() => SFX.play('fx_reel_spin', .5), 1700);
+  cDrawWheel(0);
+}
+function cRoulTick(dt) {
+  const R = cRoul; if (!R || R.done) return;
+  R.t += dt; const u = Math.min(1, R.t / R.dur), e = 1 - Math.pow(1 - u, 4);
+  cDrawWheel(R.from + (R.to - R.from) * e);
+  if (u >= 1) {
+    R.done = true; const n = C_NUMS[R.idx], el = $('croulR');
+    SFX.play('fx_reel_stop', 1.3);
+    if (n === 0) {
+      el.textContent = '★ 0 ★　大当たり！';
+      if (LC.owned()) { cGain(1000); el.textContent += '　◆ +1,000'; SFX.play('fx_jackpot', .7); cSay('あら、また引いたのね。……ご褒美よ。', null, 2.5); }
+      else { LC.unlock(); cSay('あら……引いたのね。いいわ、あなたについていってあげる。', 'npc_win', 4.5); setTimeout(() => { $('croul').classList.remove('on'); cJoin(); }, 2600); return; }
+    } else {
+      const back = C_RED.has(n) ? 30 : 20; cGain(back);
+      el.textContent = `${n}（${C_RED.has(n) ? '赤' : '黒'}）　◆ +${back}`;
+      cSay(`残念。でも、ツキは貯まっていくものよ。（契約まで あと ◆ ${LC.cost().toLocaleString()}）`, 'npc_lose', 3);
+    }
+    $('croulOk').hidden = false;
+  }
+}
+$('croulOk').addEventListener('click', () => { $('croul').classList.remove('on'); cRoul = null; cSay('さあ、どうする？', null, 1); cMenu(); $('cdlg').classList.add('on'); });
+
+/* ---------- ミッション ---------- */
+function cMissions() {
+  cOpen(); $('cmis').classList.add('on');
+  lcMissions($('cmisL'), r => { cGain(r); });
+}
+$('cmisX').addEventListener('click', () => { $('cmis').classList.remove('on'); cClose(); cHud(); });
+$('cMisB').addEventListener('click', () => { if (!shopOpen) cMissions(); });
+
+/* ---------- ミニゲーム（共通の枠） ---------- */
+const C_GAMES = {
+  slot: { name: 'スロット「ルーチェ・セブン」', help: 'STOP でリールを1本ずつ止めよう。7 を3つそろえれば ◆300！（キー：J・K・L）' },
+  hilo: { name: 'ハイ＆ロー', help: '次のカードが「上」か「下」か。当てるたびに賞金が増える。外れたら0。好きなところで降りよう。' },
+  shuffle: { name: 'シャッフル・ゲーム', help: 'フォルトゥナが混ぜる3枚のカードから、エースを当てよう。当てるたびに速くなる。' },
+};
+let cG = null;
+function cOpenGame(k) {
+  cOpen(); cG = { k, state: 'menu' };
+  $('cgN').textContent = C_GAMES[k].name; $('cgH').textContent = C_GAMES[k].help;
+  $('cgame').className = 'cpanel on g-' + k; $('cgB').innerHTML = ''; cGameMenu();
+}
+function cChLabel(k) { const c = LC.ch(k); return `チャレンジ ${c.n}/${LC.CH_MAX}` + (c.n < LC.CH_MAX ? `（次の回復まで ${Math.ceil(c.next / 60000)}分）` : ''); }
+function cGameMenu() {
+  const k = cG.k; $('cgC').textContent = cChLabel(k); $('cgMsg').textContent = '';
+  $('cgB').innerHTML = ''; $('cgA').innerHTML = '';
+  const go = document.createElement('button'); go.type = 'button'; go.className = 'cgo tap'; go.textContent = '▶ 遊ぶ（チャレンジ1回）';
+  go.disabled = LC.ch(k).n <= 0;
+  go.addEventListener('click', () => { if (!LC.useCh(k)) return; LC.played(k); cHud(); $('cgC').textContent = cChLabel(k); ({ slot: cSlotStart, hilo: cHiloStart, shuffle: cShufStart })[k](); });
+  $('cgA').appendChild(go);
+  if (LC.ch(k).n <= 0) $('cgMsg').textContent = 'チャレンジ回数がありません。少し待つと回復します。ほかのゲームも遊んでみよう。';
+}
+$('cgX').addEventListener('click', () => { $('cgame').className = 'cpanel'; cG = null; cClose(); cHud(); });
+function cBtn(label, fn, cls = '') { const b = document.createElement('button'); b.type = 'button'; b.className = 'tap ' + cls; b.textContent = label; b.addEventListener('click', fn); $('cgA').appendChild(b); return b; }
+function cPrize(n, msg) { if (n > 0) cGain(n); $('cgMsg').textContent = msg + (n > 0 ? `　◆ +${n}` : ''); }
+
+/* スロット「ルーチェ・セブン」：目押し。リールは右ほど速い */
+const S_SYM = ['7', 'BAR', '★', '♦', '♣', '♥', 'BAR', '♣', '♦', '★', '♥', '♣'], S_H = 64;
+function cSlotStart() {
+  cG.state = 'slot'; const B = $('cgB'); B.innerHTML = '<div class="reels"></div>';
+  cG.reels = [0, 1, 2].map(i => {
+    const w = document.createElement('div'); w.className = 'reel';
+    const st = document.createElement('div'); st.className = 'strip';
+    for (let r = 0; r < 3; r++) for (const s of S_SYM) { const c = document.createElement('i'); c.textContent = s; c.className = s === '7' ? 'r7' : s === 'BAR' ? 'bar' : s === '♦' || s === '♥' ? 'red' : ''; st.appendChild(c); }
+    w.appendChild(st); B.firstChild.appendChild(w);
+    return { st, pos: Math.random() * 12, speed: [7.5, 9.5, 11.5][i], stop: false, snap: null };
+  });
+  $('cgA').innerHTML = '';
+  cG.btns = [0, 1, 2].map(i => cBtn('STOP', () => cSlotStop(i), 'stop'));
+  $('cgMsg').textContent = ''; SFX.play('fx_reel_spin', .45);
+}
+function cSlotStop(i) {
+  const R = cG?.reels?.[i]; if (!R || R.stop) return;
+  R.stop = true; R.snap = { from: R.pos, to: Math.round(R.pos), t: 0 }; cG.btns[i].disabled = true; SFX.play('fx_reel_stop', 1.3);
+  if (cG.reels.every(r => r.stop)) setTimeout(cSlotJudge, 300);
+}
+function cSlotTick(dt) {
+  if (!cG || cG.state !== 'slot') return;
+  for (const R of cG.reels) {
+    if (!R.stop) R.pos = (R.pos + R.speed * dt) % 12;
+    else if (R.snap && R.snap.t < 1) { R.snap.t = Math.min(1, R.snap.t + dt / .12); R.pos = R.snap.from + (R.snap.to - R.snap.from) * R.snap.t; }
+    R.st.style.transform = `translateY(${-(12 + R.pos - 1) * S_H}px)`;          // 真ん中の段が pos の絵
+  }
+}
+function cSlotJudge() {
+  if (!cG || cG.state !== 'slot') return;
+  cG.state = 'slotDone';
+  const s = cG.reels.map(R => S_SYM[((Math.round(R.pos) % 12) + 12) % 12]);
+  const same = s[0] === s[1] && s[1] === s[2], pair = s[0] === s[1] || s[1] === s[2] || s[0] === s[2];
+  let n = 10, msg = 'はずれ…';
+  if (same && s[0] === '7') { n = 300; msg = 'JACKPOT!! 7-7-7'; LC.bump('slot777', 1, 'max'); SFX.play('fx_jackpot', .7); SFX.voice('voice/fortuna/mg_slot777', .8, .1); }
+  else if (same && s[0] === 'BAR') { n = 150; msg = 'BAR そろい！'; SFX.play('ui_clear', .6); }
+  else if (same && s[0] === '★') { n = 120; msg = '★ そろい！'; SFX.play('ui_clear', .6); }
+  else if (same) { n = 80; msg = `${s[0]} そろい！`; SFX.play('ui_clear', .5); }
+  else if (pair) { n = 30; msg = 'ペア！'; }
+  cPrize(n, msg); cHud();
+  $('cgA').innerHTML = ''; cBtn('もう一度（チャレンジ1回）', () => cGameMenu());
+}
+
+/* ハイ＆ロー */
+const H_SUITS = ['♠', '♥', '♦', '♣'], H_RANK = v => ({ 11: 'J', 12: 'Q', 13: 'K', 14: 'A' }[v] || String(v));
+function cCard(v, s) { const c = document.createElement('div'); c.className = 'pcard' + (s === '♥' || s === '♦' ? ' red' : ''); c.innerHTML = ''; const a = document.createElement('b'); a.textContent = H_RANK(v); const b = document.createElement('span'); b.textContent = s; c.append(a, b); return c; }
+const hDraw = () => ({ v: 2 + Math.floor(Math.random() * 13), s: H_SUITS[Math.floor(Math.random() * 4)] });
+function cHiloStart() {
+  cG.state = 'hilo'; cG.cur = hDraw(); cG.pot = 20; cG.streak = 0; cHiloDraw('どっち？');
+}
+function cHiloDraw(msg) {
+  const B = $('cgB'); B.innerHTML = '';
+  const row = document.createElement('div'); row.className = 'hrow'; row.appendChild(cCard(cG.cur.v, cG.cur.s));
+  const info = document.createElement('div'); info.className = 'hinfo'; info.innerHTML = '';
+  const p1 = document.createElement('b'); p1.textContent = `賞金 ◆ ${cG.pot}`; const p2 = document.createElement('small'); p2.textContent = `${cG.streak} 連勝中`; info.append(p1, p2); row.appendChild(info); B.appendChild(row);
+  $('cgMsg').textContent = msg; $('cgA').innerHTML = '';
+  cBtn('▲ HIGH', () => cHiloGuess(1), 'hi'); cBtn('▼ LOW', () => cHiloGuess(-1), 'lo');
+  if (cG.streak > 0) cBtn(`降りる（◆${cG.pot} 受け取る）`, () => { cPrize(cG.pot, `${cG.streak} 連勝で降りた！`); cHud(); $('cgA').innerHTML = ''; cBtn('もう一度（チャレンジ1回）', () => cGameMenu()); cG.state = 'done'; });
+}
+function cHiloGuess(dir) {
+  if (cG.state !== 'hilo') return;
+  const nx = hDraw(); SFX.play('fx_card_fan', 1.4);
+  const prev = cG.cur; cG.cur = nx;
+  if (nx.v === prev.v) { cHiloDraw(`${H_RANK(nx.v)}：引き分け。もう一度！`); return; }
+  if (Math.sign(nx.v - prev.v) === dir) {
+    cG.streak++; cG.pot = Math.min(600, Math.round(cG.pot * 1.6)); LC.bump('hilo5', cG.streak, 'max'); SFX.play('ui_tap', .6);
+    cHiloDraw(`当たり！ ${H_RANK(nx.v)}${nx.s}`);
+  } else {
+    cHiloDraw(`はずれ… ${H_RANK(nx.v)}${nx.s}`); cG.state = 'done';
+    $('cgA').innerHTML = ''; cPrize(0, `はずれ… ${H_RANK(nx.v)}${nx.s}　賞金なし`); SFX.play('karen_snap', .4, .7);
+    cBtn('もう一度（チャレンジ1回）', () => cGameMenu());
+  }
+}
+
+/* シャッフル・ゲーム：ディーラーはフォルトゥナ */
+function cShufStart() { cG.lv = 0; cShufRound(); SFX.voice('voice/fortuna/mg_shuffle', .8, .1); cNpcTalkT = 2; }
+function cShufRound() {
+  cG.state = 'shufShow'; const B = $('cgB'); B.innerHTML = '<div class="srow"></div>';
+  const row = B.firstChild; cG.ace = Math.floor(Math.random() * 3); cG.slots = [0, 1, 2];        // slots[カード] = 位置
+  cG.cards = [0, 1, 2].map(i => { const c = document.createElement('div'); c.className = 'scard face'; c.innerHTML = i === cG.ace ? '<b>A</b><span>♠</span>' : '<b>' + ['J', 'Q', 'K'][i] + '</b><span>♣</span>'; c.style.left = (i * 34) + '%'; c.addEventListener('click', () => cShufPick(i)); row.appendChild(c); return c; });
+  $('cgA').innerHTML = ''; $('cgMsg').textContent = `レベル ${cG.lv + 1}：エースの場所を覚えて…`;
+  setTimeout(() => { if (!cG || cG.k !== 'shuffle') return; cG.cards.forEach(c => c.classList.remove('face')); SFX.play('fx_card_fan', 1.4); setTimeout(cShufMix, 500); }, 1200);
+}
+function cShufMix() {
+  if (!cG || cG.k !== 'shuffle') return;
+  cG.state = 'shufMix'; let n = 3 + cG.lv * 2; const d = Math.max(.16, .45 - cG.lv * .05);
+  cG.cards.forEach(c => c.style.transition = `left ${d}s ease-in-out`);
+  const step = () => {
+    if (!cG || cG.k !== 'shuffle') return;
+    if (n-- <= 0) { cG.state = 'shufPick'; $('cgMsg').textContent = 'エースはどれ？'; return; }
+    const a = Math.floor(Math.random() * 3); let b = Math.floor(Math.random() * 2); if (b >= a) b++;
+    const ca = cG.slots.indexOf(a), cb = cG.slots.indexOf(b); cG.slots[ca] = b; cG.slots[cb] = a;
+    cG.cards[ca].style.left = (b * 34) + '%'; cG.cards[cb].style.left = (a * 34) + '%';
+    SFX.play('ui_tap', .25, 1.4); setTimeout(step, d * 1000 + 40);
+  };
+  step();
+}
+function cShufPick(i) {
+  if (!cG || cG.state !== 'shufPick') return;
+  cG.state = 'shufDone'; cG.cards.forEach(c => c.classList.add('face'));
+  if (i === cG.ace) {
+    const n = 40 + cG.lv * 20; cG.lv++; LC.bump('shuffle5', cG.lv, 'max'); cPrize(n, `お見事！ ${cG.lv} 回続けて当たり`);
+    SFX.voice('voice/fortuna/mg_good', .8, .1); cNpcTalkT = 1; cHud();
+    $('cgA').innerHTML = '';
+    if (cG.lv < 8) cBtn('続ける（もっと速くなる）', () => cShufRound());
+    cBtn('ここでやめる', () => cGameMenu());
+  } else {
+    $('cgMsg').textContent = `はずれ… ${cG.lv} 回続けて当たりで終了`; SFX.voice('voice/fortuna/mg_miss', .8, .1); cNpcTalkT = 1;
+    $('cgA').innerHTML = ''; cBtn('もう一度（チャレンジ1回）', () => cGameMenu());
+  }
+}
+
+/* ---------- 毎フレーム・ミニマップ ---------- */
+function cFrame(dt, t) {
+  if (!CAS) return;
+  for (const s of CAS.spinners) { if (s.orbit) { s.a = (s.a || 0) + s.v * dt; s.o.position.set(s.orbit[0] + Math.cos(s.a) * s.orbit[3], s.orbit[1], s.orbit[2] + Math.sin(s.a) * s.orbit[3]); } else s.o.rotation[s.ax] += s.v * dt; }
+  for (const b of CAS.blinkers) {
+    const m = b.m.material;
+    if (b.kind === 'chase') { const on = (Math.floor(t * 6 + b.ph) % 3) === 0; m.color.setRGB(on ? 1.6 : .45, on ? 1.3 : .32, on ? .75 : .18); }
+    else if (b.kind === 'slot') m.color.setHSL((t * .15 + b.ph * .1) % 1, 1, .55);
+    else m.opacity = .85 + .15 * Math.sin(t * 7 + b.ph) * (Math.sin(t * 1.3 + b.ph) > .97 ? 3 : .2);
+  }
+  for (const c of CAS.chandeliers) c.rotation.y += dt * .05;
+  const dp = CAS.dust.geometry.attributes.position.array; for (let i = 1; i < dp.length; i += 3) { dp[i] += dt * .08; if (dp[i] > 8) dp[i] = 0; } CAS.dust.geometry.attributes.position.needsUpdate = true;
+  cNpcTick(dt, t); cRoulTick(dt); cSlotTick(dt);
+}
+function drawCasinoMap() {
+  const W = mapc.width, S = 6;
+  mg.clearRect(0, 0, W, W);
+  mg.save(); mg.translate(W / 2, W / 2); mg.rotate(camYaw); mg.translate(-player.pos.x * S, -player.pos.z * S);
+  mg.fillStyle = 'rgba(120,30,50,.75)'; mg.fillRect((CX - C_ROOM.x) * S, C_ROOM.z0 * S, C_ROOM.x * 2 * S, (C_ROOM.z1 - C_ROOM.z0) * S);
+  mg.fillStyle = 'rgba(255,215,122,.9)'; mg.beginPath(); mg.arc(CX * S, 0, 2.4 * S, 0, 7); mg.fill();
+  mg.fillStyle = 'rgba(30,120,70,.9)'; for (const [x, z, r] of CAS.colliders) if (r > 1.5) { mg.beginPath(); mg.arc((CX + x) * S, z * S, r * S * .8, 0, 7); mg.fill(); }
+  mg.fillStyle = '#c9a8ff'; for (const k of ['slot', 'hilo', 'shuffle']) { mg.beginPath(); mg.arc((CX + C_SPOTS[k][0]) * S, C_SPOTS[k][1] * S, 7, 0, 7); mg.fill(); }
+  mg.restore();
+  mg.save(); mg.translate(W / 2, W / 2); mg.rotate(camYaw - player.yaw + Math.PI);
+  mg.fillStyle = '#3ff0ff'; mg.shadowColor = '#3ff0ff'; mg.shadowBlur = 12;
+  mg.beginPath(); mg.moveTo(0, -16); mg.lineTo(11, 12); mg.lineTo(0, 6); mg.lineTo(-11, 12); mg.closePath(); mg.fill();
+  mg.restore();
+}
+
 if (DUNGEON) dInit();
+if (CASINO) { cInit(); SFX.preload(['fx_reel_spin', 'fx_reel_stop', 'fx_jackpot', 'fx_card_fan', 'karen_finale', 'karen_snap', 'portal']); }
 $('dresClose').addEventListener('click', () => $('dres').classList.remove('on'));
 if (DPARTY) document.querySelector('#dres a[href*="area=dungeon"]').remove();
 
