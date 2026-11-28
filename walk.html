@@ -292,6 +292,9 @@
 .lcm .lcmt{flex:1;min-width:0}.lcm small{font-size:10px;letter-spacing:.15em;color:#c9a8ff;margin-right:6px}.lcm b{font-size:13px;color:#f6efe2}
 .lcm span{display:block;font-size:11px;color:#b9a98f;margin-top:2px}.lcm button{flex:none;min-width:78px;height:32px;font:700 12px sans-serif;border:1px solid rgba(255,215,122,.5);background:rgba(20,8,14,.7);color:#b9a98f;cursor:pointer}
 .lcm.ok button{background:linear-gradient(120deg,#fff1c4,#ffd77a);color:#1a0d02;border-color:#ffd77a}.lcm.got{opacity:.55}
+  #tutBtn{width:40px;height:40px;display:grid;place-items:center;font:800 17px var(--jp);color:#bff3ff;cursor:pointer}
+  @media (max-aspect-ratio:1/1){ body #tut{top:236px} }
+  @media (max-height:520px) and (min-aspect-ratio:1/1){ body #tut{width:min(400px,calc(100vw - 320px))} }
 </style>
 <script type="importmap">
 { "imports": {
@@ -332,7 +335,7 @@
 <div id="stage"></div>
 <div id="fx"></div>
 <div id="top">
-  <button id="back" class="panel tap">◀ LOBBY</button>
+  <button id="back" class="panel tap">◀ LOBBY</button><button id="tutBtn" class="panel tap" type="button" aria-label="チュートリアル" title="チュートリアル">？</button>
   <div id="area"><small>AREA 01 // NOELBERG</small><b id="areaName">ノエルベルク</b></div>
 </div>
 <div id="cHud"><div class="chip"><i>◆</i><span>ルーチェコイン</span><b id="cCoin">0</b></div><button id="cMisB" type="button">ミッション<span id="cMisN"></span></button></div>
@@ -351,7 +354,7 @@
 <div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
 <div id="bossHud"><small>BOSS</small><b>氷殻の守護者グラキエス</b><div class="bb"><i id="bossBar"></i></div><span id="bossNum"></span></div>
-<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261128134859">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261128134859">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
+<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261128141006">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261128141006">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
   <header><div class="logo" id="shopLogo">夜</div><div class="nm"><b id="shopName">ヨルマート</b><small id="shopEn">YORU MART</small></div><button class="close tap" id="shopClose">✕ 店を出る</button></header>
@@ -899,6 +902,94 @@ const LC_CSS = `.lcm{display:flex;align-items:center;gap:10px;padding:9px 10px;b
 .lcm .lcmt{flex:1;min-width:0}.lcm small{font-size:10px;letter-spacing:.15em;color:#c9a8ff;margin-right:6px}.lcm b{font-size:13px;color:#f6efe2}
 .lcm span{display:block;font-size:11px;color:#b9a98f;margin-top:2px}.lcm button{flex:none;min-width:78px;height:32px;font:700 12px sans-serif;border:1px solid rgba(255,215,122,.5);background:rgba(20,8,14,.7);color:#b9a98f;cursor:pointer}
 .lcm.ok button{background:linear-gradient(120deg,#fff1c4,#ffd77a);color:#1a0d02;border-color:#ffd77a}.lcm.got{opacity:.55}`;
+
+/* ---------- チュートリアル（共通の表示） ----------
+   steps: [{ t: 見出し, b: 本文（スマホ用 bt があればタッチの時はそちら）, hi: 光らせる要素のセレクタ, dim: 周りを暗くする,
+             done: () => 真になったら次へ（無ければ「次へ」ボタン）, enter: 始まった時, prog: () => 0〜1 の進み具合 }]
+   終わり／スキップで onEnd(skipped) を呼ぶ */
+const TUT_CSS = `
+#tut{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:80;width:min(440px,calc(100vw - 24px));padding:14px 16px 12px;
+  background:linear-gradient(180deg,rgba(14,26,48,.94),rgba(8,14,30,.94));border:1px solid rgba(140,220,255,.7);box-shadow:0 0 0 1px rgba(0,0,0,.4),0 10px 40px rgba(0,0,0,.5),0 0 24px rgba(90,200,255,.25);
+  color:#eef8ff;font-family:var(--jp,sans-serif);display:none;pointer-events:auto}
+#tut.on{display:block;animation:tutIn .35s ease-out}
+@keyframes tutIn{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+#tut .hd{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+#tut .tg{font:700 10px/1 var(--en,sans-serif);letter-spacing:.3em;color:#7fe0ff}
+#tut .ct{margin-left:auto;font:700 11px var(--en,sans-serif);color:#9fc6dd}
+#tut h4{margin:0 0 6px;font:800 17px/1.35 var(--jp,sans-serif);color:#fff;letter-spacing:.04em}
+#tut p{margin:0;font-size:13.5px;line-height:1.75;color:#d9ecf8}
+#tut p b{color:#ffe07a}
+#tut .pg{height:4px;margin-top:10px;background:rgba(140,220,255,.18);overflow:hidden}
+#tut .pg i{display:block;height:100%;width:0;background:linear-gradient(90deg,#5fd0ff,#b9f3ff);transition:width .2s}
+#tut .ft{display:flex;align-items:center;gap:8px;margin-top:10px}
+#tut .ft .ok{font:800 11px var(--en,sans-serif);color:#8dffc0;letter-spacing:.15em;opacity:0;transition:opacity .2s}
+#tut .ft .ok.on{opacity:1}
+#tut button{font:700 13px var(--jp,sans-serif);padding:9px 16px;border:0;cursor:pointer;min-height:40px}
+#tut .nx{margin-left:auto;background:linear-gradient(120deg,#bff3ff,#5fd0ff);color:#04121e}
+#tut .sk{background:transparent;color:#9fc6dd;border:1px solid rgba(140,220,255,.4)}
+#tutDim{position:fixed;inset:0;z-index:79;background:rgba(2,6,16,.55);display:none;pointer-events:none}
+#tutDim.on{display:block}
+.tutHole{position:fixed;z-index:79;pointer-events:none;border:3px solid #7fe0ff;border-radius:10px;animation:tutHi 1.1s ease-in-out infinite;transition:left .2s,top .2s,width .2s,height .2s}
+.tutHole.dim{box-shadow:0 0 0 9999px rgba(2,6,16,.58)}
+@keyframes tutHi{0%,100%{border-color:rgba(127,224,255,1)}50%{border-color:rgba(255,255,255,.95)}}
+@media (max-height:520px){#tut{top:8px;padding:10px 12px 8px}#tut p{font-size:12.5px;line-height:1.6}#tut h4{font-size:15px}}
+`;
+function tutRun(steps, onEnd, opts = {}) {
+  if (!document.getElementById('tutCss')) { const st = document.createElement('style'); st.id = 'tutCss'; st.textContent = TUT_CSS; document.head.appendChild(st); }
+  let box = document.getElementById('tut');
+  if (!box) {
+    box = document.createElement('div'); box.id = 'tut';
+    box.innerHTML = '<div class="hd"><span class="tg">TUTORIAL</span><span class="ct"></span></div><h4></h4><p></p><div class="pg"><i></i></div><div class="ft"><span class="ok">CLEAR!</span><button class="sk" type="button">スキップ</button><button class="nx" type="button">次へ</button></div>';
+    document.body.appendChild(box);
+    const dim = document.createElement('div'); dim.id = 'tutDim'; document.body.appendChild(dim);
+  }
+  const dim = document.getElementById('tutDim'), $q = s => box.querySelector(s);
+  const touch = () => document.body.classList.contains('touch') || matchMedia('(pointer:coarse)').matches;
+  let i = -1, hiEls = [], holes = [], doneAt = 0, timer = null, ended = false;
+  const clearHi = () => { holes.forEach(h => h.remove()); holes = []; hiEls = []; };
+  // 光らせる要素の上に枠を重ねる（要素そのものはさわらない）。暗くする時は、枠の外側を影で暗くする
+  const placeHoles = () => {
+    hiEls.forEach((e, k) => {
+      const r = e.getBoundingClientRect(), h = holes[k], vis = r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden';
+      h.style.display = vis ? '' : 'none';
+      Object.assign(h.style, { left: r.left - 6 + 'px', top: r.top - 6 + 'px', width: r.width + 12 + 'px', height: r.height + 12 + 'px' });
+    });
+  };
+  function show(k) {
+    clearHi(); i = k; doneAt = 0;
+    if (i >= steps.length) return finish(false);
+    const S = steps[i];
+    S.enter && S.enter();
+    $q('.ct').textContent = `${i + 1} / ${steps.length}`;
+    $q('h4').textContent = S.t;
+    $q('p').innerHTML = (touch() && S.bt) ? S.bt : S.b;
+    $q('.nx').style.display = S.done ? 'none' : '';
+    $q('.nx').textContent = i === steps.length - 1 ? (opts.lastLabel || 'はじめる') : '次へ';
+    $q('.pg').style.display = S.done ? '' : 'none'; $q('.pg i').style.width = '0%';
+    $q('.ok').classList.remove('on');
+    for (const sel of [].concat(S.hi || [])) document.querySelectorAll(sel).forEach(e => { const r = e.getBoundingClientRect(); if (r.width > 0 && r.height > 0) hiEls.push(e); });
+    holes = hiEls.map((e, k) => { const h = document.createElement('div'); h.className = 'tutHole' + (S.dim && k === 0 && hiEls.length === 1 ? ' dim' : ''); document.body.appendChild(h); return h; });
+    placeHoles();
+    dim.classList.toggle('on', !!S.dim && hiEls.length !== 1);       // 枠が1つの時は枠の影で暗くする
+    box.classList.remove('on'); void box.offsetWidth; box.classList.add('on');
+  }
+  function finish(skipped) {
+    if (ended) return; ended = true;
+    clearInterval(timer); clearHi(); box.classList.remove('on'); dim.classList.remove('on');
+    onEnd && onEnd(skipped);
+  }
+  $q('.nx').onclick = () => { if (!steps[i].done) show(i + 1); };
+  $q('.sk').onclick = () => finish(true);
+  timer = setInterval(() => {
+    placeHoles();
+    const S = steps[i]; if (!S || !S.done) return;
+    if (S.prog) $q('.pg i').style.width = Math.min(100, S.prog() * 100) + '%';
+    if (!doneAt && S.done()) { doneAt = performance.now(); $q('.pg i').style.width = '100%'; $q('.ok').classList.add('on'); opts.onClear && opts.onClear(); }
+    if (doneAt && performance.now() - doneAt > 900) show(i + 1);
+  }, 100);
+  show(0);
+  return { stop: () => finish(true) };
+}
 
 const store = { get(k, d) { try { const v = localStorage.getItem('walk_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('walk_' + k, JSON.stringify(v)); } catch (e) {} } };
 const wallet = { coins: store.get('coins', 200), points: store.get('points', 0), bag: store.get('bag', {}) };
@@ -1626,7 +1717,7 @@ loadPartner(loader, gltf => {
   $('pbar').style.width = '100%'; $('lmsg').textContent = 'READY';
   if (DUNGEON) setTimeout(() => { $('loading').classList.add('hide'); dIntro(); }, 400);
   else if (CASINO) setTimeout(() => { $('loading').classList.add('hide'); cIntro(); }, 400);
-  else setTimeout(() => { $('loading').classList.add('hide'); $('title').classList.add('on'); setTimeout(() => $('title').classList.remove('on'), 3200); setTimeout(() => say('ここがノエルベルク……。雪、きれいやね。ちょっと歩こっか。'), 3800); setTimeout(() => { if (!speech && talking <= 0 && !shopOpen) say('うしろに訓練場があるけん、技の練習も、ほかの人との手合わせもできるよ。'); }, 9500); }, 400);
+  else setTimeout(() => { $('loading').classList.add('hide'); $('title').classList.add('on'); setTimeout(() => $('title').classList.remove('on'), 3200); setTimeout(() => say('ここがノエルベルク……。雪、きれいやね。ちょっと歩こっか。'), 3800); setTimeout(() => tTownStart(false), 4600); setTimeout(() => { if (!tutS && !speech && talking <= 0 && !shopOpen) say('うしろに訓練場があるけん、技の練習も、ほかの人との手合わせもできるよ。'); }, 9500); }, 400);
 }, e => { if (e.total) { const p = Math.round(e.loaded / e.total * 100); $('pbar').style.width = p + '%'; $('lmsg').textContent = `LOADING … ${p}%`; } },
 err => { console.error(err); $('lmsg').textContent = 'LOAD ERROR: ' + err.message; });
 
@@ -1817,7 +1908,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128134859');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128141006');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -3875,6 +3966,48 @@ function kFrame(dt, t) {
   }
 }
 
+
+/* ---------- 街のチュートリアル（はじめて来た時。左上の「？」でもう一度） ---------- */
+const TUT_KEY = 'tut_town1';
+let tutS = null;
+function tTownStart(force) {
+  if (DUNGEON || CASINO || tutS) return;
+  let seen = null; try { seen = localStorage.getItem(TUT_KEY); } catch (e) {}
+  if (seen && !force) return;
+  const T = tutS = { dist: 0, last: player.pos.clone(), yawAcc: 0, lastYaw: camYaw, runT: 0, atk: 0, sk: 0, actN: myAct.n || 0, talked: false };
+  const R = (k, v) => () => { T[k] = v; };
+  tutRun([
+    { t: 'ノエルベルクへようこそ', b: 'ここは雪の街ノエルベルク。歩いて、話して、戦える街だよ。<br>まずは基本の操作を練習しよう。<br><small>（左上の「？」で、いつでもまた見られます）</small>' },
+    { t: '歩いてみよう', b: '<b>W A S D</b> か <b>矢印キー</b>で歩けます。', bt: '画面<b>左下のスティック</b>を指でドラッグすると歩けます。', hi: '#stick', enter: R('dist', 0), done: () => T.dist > 6, prog: () => T.dist / 6 },
+    { t: 'カメラを回そう', b: '画面を<b>マウスでドラッグ</b>すると、見る向きを変えられます。', bt: '画面の<b>右半分を指でドラッグ</b>すると、見る向きを変えられます。', enter: R('yawAcc', 0), done: () => T.yawAcc > 1.5, prog: () => T.yawAcc / 1.5 },
+    { t: '走ってみよう', b: '<b>Shift</b> を押しながら歩くと走れます。', bt: '<b>RUN</b> ボタンで、走る／歩くが切り替わります。押してから歩いてみよう。', hi: '#runBtn', enter: R('runT', 0), done: () => T.runT > 1.2, prog: () => T.runT / 1.2 },
+    { t: '通常攻撃', b: '<b>J</b> キーで通常攻撃。続けて押すと3段コンボになるよ。<b>3回</b>攻撃してみよう。', bt: '右下の大きな<b>攻撃ボタン</b>を押そう。続けて押すと3段コンボ。<b>3回</b>攻撃してみよう。', hi: '#sk_atk', enter: R('atk', 0), done: () => T.atk >= 3, prog: () => T.atk / 3 },
+    { t: 'スキルを使おう', b: '<b>1・2・3</b> キーでスキル。使ったあとは少しの間、待ち時間ができます。どれか1つ使ってみよう。', bt: '<b>光っているボタン</b>でスキル。使ったあとは少しの間、待ち時間ができます。どれか1つ使ってみよう。', hi: ['#sk_s1', '#sk_s2', '#sk_s3'], enter: R('sk', 0), done: () => T.sk >= 1 },
+    { t: 'チャージと覚醒', b: '<b>F</b>：チャージ。次のスキルが強くなります。<br><b>R</b>：覚醒。攻撃を当ててゲージを満タンにすると、しばらく大きく強くなれます。', bt: '<b>チャージ</b>：次のスキルが強くなります。<br><b>覚醒</b>：攻撃を当ててゲージを満タンにすると、しばらく大きく強くなれます。', hi: ['#sk_charge', '#sk_awaken'] },
+    { t: '話しかけよう', b: 'ものや人の近くに行くと、画面にボタンが出ます。<b>E</b> キーかそのボタンで、話したり調べたりできます。<br>広場の大きなツリー<b>「グラン・ノエル」</b>か、お店の入口へ行ってみよう。', bt: 'ものや人の近くに行くと、画面に<b>ボタン</b>が出ます。押すと話したり調べたりできます。<br>広場の大きなツリー<b>「グラン・ノエル」</b>か、お店の入口へ行ってみよう。', hi: ['#prompt', '#map'], enter: R('talked', false), done: () => T.talked },
+    { t: '街のあそびかた', b: '右上の<b>マップ</b>で場所がわかります。<br>ツリーの周りに<b>6つのお店</b>、街の奥に<b>訓練場</b>（ほかの人との手合わせ）があります。落ちている<b>宝箱</b>も探してみてね。', hi: '#map' },
+    { t: 'チュートリアル完了！', b: 'お祝いに <b>1,000円</b> をプレゼント。<br>左上の <b>LOBBY</b> からロビーに戻ると、キャラ選択やガチャ、イベントも遊べます。', hi: '#back' },
+  ], skipped => {
+    try { localStorage.setItem(TUT_KEY, skipped ? 'skip' : 'done'); } catch (e) {}
+    let paid = null; try { paid = localStorage.getItem('tut_town_paid'); } catch (e) {}
+    if (!skipped && !paid) {
+      try { localStorage.setItem('tut_town_paid', '1'); } catch (e) {}
+      wallet.coins += 1000; saveWallet(); refreshWallet('wCoin'); SFX.play('ui_coin', .8);
+      const g = $('gain'); $('gainV').textContent = '+1,000円'; g.classList.remove('on'); void g.offsetWidth; g.classList.add('on');
+    }
+    tutS = null;
+  }, { lastLabel: 'OK', onClear: () => SFX.play('ui_clear', .5) });
+}
+function tTutTick(dt) {
+  const T = tutS; if (!T) return;
+  const d = Math.hypot(player.pos.x - T.last.x, player.pos.z - T.last.z); if (d < 1) T.dist += d; T.last.copy(player.pos);
+  let dy = camYaw - T.lastYaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); T.yawAcc += Math.abs(dy); T.lastYaw = camYaw;
+  if (player.speed > WALK + .4) T.runT += dt;
+  if ((myAct.n || 0) !== T.actN) { T.actN = myAct.n || 0; if (/^atk/.test(myAct.k)) T.atk++; else if (/^s[123]$/.test(myAct.k)) T.sk++; }
+  if (talking > 0 || shopOpen) T.talked = true;
+}
+if (!DUNGEON && !CASINO) $('tutBtn').addEventListener('click', () => tTownStart(true)); else $('tutBtn').style.display = 'none';
+
 /* ---------- 毎フレーム ---------- */
 let wasCombat = false;
 function combatTick(dt, t) {
@@ -4458,7 +4591,7 @@ function dBuild() {
   dWall(-1.75, 0, -1.75, 6.6); dWall(1.75, 0, 1.75, 6.6); dWall(-1.8, 6.6, 1.8, 6.6);     // 地上へ続く階段の壁
   const portal = new THREE.Mesh(new THREE.RingGeometry(.6, 1.1, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.5, 2.2), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   portal.rotation.x = -Math.PI / 2; portal.position.set(DX, .03, -1); scene.add(portal); DG.portalA = portal;
-  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128134859', 350); } });
+  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128141006', 350); } });
   dCorridor(-18, -10);
   // 戦闘の部屋1
   dRoom(-9, 9, -36, -18, { n: true, s: true }); for (const [x, z] of [[-5, -23], [5, -23], [-5, -31], [5, -31]]) dPillar(x, z);
@@ -4718,7 +4851,7 @@ function dClear() {
   // 帰り道のポータル
   const p = new THREE.Mesh(new THREE.RingGeometry(.8, 1.4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.4, .6), transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   p.rotation.x = -Math.PI / 2; p.position.set(DX, .04, -104); scene.add(p); DG.portalB = p;
-  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128134859', 350); } });
+  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128141006', 350); } });
   dChest(0, -112, 5000, 'boss');
   setTimeout(() => {
     $('dresTime').textContent = fmt(sec); $('dresBest').textContent = nb ? 'ベスト更新！' : `ベスト ${fmt(best)}`; $('dresCoin').textContent = `+${reward.toLocaleString()}円`;
@@ -5067,7 +5200,7 @@ function cInit() {
   I('slot', 'スロット「ルーチェ・セブン」で遊ぶ', () => cOpenGame('slot'));
   I('hilo', 'ハイ＆ローで遊ぶ', () => cOpenGame('hilo'));
   I('shuffle', 'シャッフル・ゲームで遊ぶ（ディーラー：フォルトゥナ）', () => cOpenGame('shuffle'));
-  I('exit', 'ロビーへ戻る', () => { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128134859', 350); });
+  I('exit', 'ロビーへ戻る', () => { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128141006', 350); });
   $('cHud').classList.add('on'); cHud();
   cLoadNpc();
 }
@@ -5539,6 +5672,7 @@ function tick(dt) {
     vrm.humanoid.getRawBoneNode('head').getWorldPosition(headPos);
     netTick(dt, t);
     combatTick(dt, t);
+    tTutTick(dt);
     if (DUNGEON) dTick(dt, t);
   }
   // 雪（プレイヤーの周りで降り続ける）
