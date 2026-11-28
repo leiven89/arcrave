@@ -215,22 +215,28 @@
 </head>
 <body>
 <script>
-/* タップ補助（iPad・スマホ）：指を離した瞬間に、その場所へクリックを送る */
+/* タップ補助（iPad・スマホ）：指を離した瞬間に、その場所へクリックを送る。
+   どの指でも効く（スティックを押さえたままでも）。少しずれたり長めでもタップにする */
 (() => {
-  let st = null, lastUp = -1e9;
+  const downs = new Map(), sent = [];
   const FORM = 'input,textarea,select,label,option,[contenteditable]';
-  addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && e.isPrimary) st = { x: e.clientX, y: e.clientY, t: performance.now(), el: e.target }; }, true);
-  addEventListener('pointercancel', e => { if (e.pointerType === 'touch') st = null; }, true);
+  addEventListener('touchstart', () => {}, { passive: true });          // iOS で押した時の見た目（:active）を出す
+  addEventListener('pointerdown', e => { if (e.pointerType === 'touch') downs.set(e.pointerId, { x: e.clientX, y: e.clientY, t: performance.now(), el: e.target }); }, true);
+  addEventListener('pointercancel', e => { downs.delete(e.pointerId); }, true);
   addEventListener('pointerup', e => {
-    if (e.pointerType !== 'touch' || !e.isPrimary || !st) return;
-    const s = st; st = null;
+    if (e.pointerType !== 'touch') return;
+    const s = downs.get(e.pointerId); downs.delete(e.pointerId); if (!s) return;
     if (s.el.closest && s.el.closest(FORM)) return;                       // 入力欄はブラウザに任せる
-    lastUp = performance.now();
-    if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 24 || lastUp - s.t > 900) return;   // ドラッグや長押しはタップにしない
+    if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 48 || performance.now() - s.t > 1500) return;   // ドラッグや長押しはタップにしない
+    if (s.el.disabled || (s.el.closest && s.el.closest('button:disabled'))) return;
+    sent.push({ x: e.clientX, y: e.clientY, t: performance.now() }); if (sent.length > 6) sent.shift();
     s.el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY }));
   }, true);
+  // ブラウザが後から出すクリックは、こちらで送ったものと同じ場所・直後なら二重になるので止める
   addEventListener('click', e => {
-    if (e.isTrusted && performance.now() - lastUp < 800 && !(e.target.closest && e.target.closest(FORM))) { e.stopImmediatePropagation(); e.preventDefault(); }
+    if (!e.isTrusted || (e.target.closest && e.target.closest(FORM))) return;
+    const now = performance.now(), i = sent.findIndex(s => now - s.t < 900 && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 60);
+    if (i >= 0) { sent.splice(i, 1); e.stopImmediatePropagation(); e.preventDefault(); }
   }, true);
 })();
 </script>
@@ -281,7 +287,7 @@
       <h2>ルーチェ・ドーロ開幕祭</h2>
       <span class="tm" id="evTimer">残り 6D 12:04:33</span>
     </button>
-    <button id="sortie" class="tap" data-href="walk.html?v=20261128133151">
+    <button id="sortie" class="tap" data-href="walk.html?v=20261128134859">
       <span class="play">▶</span>
       <span class="t"><b>出撃</b><small>SORTIE</small></span>
       <span class="cost">ノエルベルク ／ ⚡12</span>
@@ -290,11 +296,11 @@
       <span class="ic">◆</span><span class="t"><b>ダンジョン</b><small>DUNGEON</small></span><span class="nm">氷晶の地下迷宮</span>
     </button>
     <div class="grid">
-      <button class="gb panel tap" data-href="select.html?v=20261128133151">⬡<b>編成</b><small>UNIT</small></button>
-      <button class="gb panel tap" data-href="gacha.html?v=20261128133151">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
+      <button class="gb panel tap" data-href="select.html?v=20261128134859">⬡<b>編成</b><small>UNIT</small></button>
+      <button class="gb panel tap" data-href="gacha.html?v=20261128134859">✦<b>ガチャ</b><small>GACHA</small><span class="dot"></span></button>
       <button class="gb panel tap" data-msg="ストーリー（デモ）">❖<b>ストーリー</b><small>STORY</small></button>
       <button class="gb panel tap" data-msg="ショップ（デモ）">◈<b>ショップ</b><small>SHOP</small></button>
-      <button class="gb panel tap" data-href="select.html?v=20261128133151">♟<b>キャラ</b><small>CHARA</small></button>
+      <button class="gb panel tap" data-href="select.html?v=20261128134859">♟<b>キャラ</b><small>CHARA</small></button>
     </div>
   </aside>
 
@@ -405,7 +411,7 @@ function evOpen() { evRender(); document.getElementById('evp').classList.add('on
 document.getElementById('evBtn').addEventListener('click', evOpen);
 document.getElementById('evBanner').addEventListener('click', evOpen);
 document.getElementById('evX').addEventListener('click', () => document.getElementById('evp').classList.remove('on'));
-document.getElementById('evGo').addEventListener('click', () => { location.href = 'walk.html?area=casino&v=20261128133151'; });
+document.getElementById('evGo').addEventListener('click', () => { location.href = 'walk.html?area=casino&v=20261128134859'; });
 /* ---------- パートナー：キャラ選択画面で選んだキャラ（shino / karen）を使う ---------- */
 // フォルトゥナは招待コードで解放した人だけ（キャラ選択画面・タイトル画面で入力）
 const FORTUNA_OK = (() => { try { return !!localStorage.getItem('unlock_fortuna'); } catch (e) { return false; } })();

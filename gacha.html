@@ -234,22 +234,28 @@
 </head>
 <body>
 <script>
-/* タップ補助（iPad・スマホ）：指を離した瞬間に、その場所へクリックを送る */
+/* タップ補助（iPad・スマホ）：指を離した瞬間に、その場所へクリックを送る。
+   どの指でも効く（スティックを押さえたままでも）。少しずれたり長めでもタップにする */
 (() => {
-  let st = null, lastUp = -1e9;
+  const downs = new Map(), sent = [];
   const FORM = 'input,textarea,select,label,option,[contenteditable]';
-  addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && e.isPrimary) st = { x: e.clientX, y: e.clientY, t: performance.now(), el: e.target }; }, true);
-  addEventListener('pointercancel', e => { if (e.pointerType === 'touch') st = null; }, true);
+  addEventListener('touchstart', () => {}, { passive: true });          // iOS で押した時の見た目（:active）を出す
+  addEventListener('pointerdown', e => { if (e.pointerType === 'touch') downs.set(e.pointerId, { x: e.clientX, y: e.clientY, t: performance.now(), el: e.target }); }, true);
+  addEventListener('pointercancel', e => { downs.delete(e.pointerId); }, true);
   addEventListener('pointerup', e => {
-    if (e.pointerType !== 'touch' || !e.isPrimary || !st) return;
-    const s = st; st = null;
+    if (e.pointerType !== 'touch') return;
+    const s = downs.get(e.pointerId); downs.delete(e.pointerId); if (!s) return;
     if (s.el.closest && s.el.closest(FORM)) return;                       // 入力欄はブラウザに任せる
-    lastUp = performance.now();
-    if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 24 || lastUp - s.t > 900) return;   // ドラッグや長押しはタップにしない
+    if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 48 || performance.now() - s.t > 1500) return;   // ドラッグや長押しはタップにしない
+    if (s.el.disabled || (s.el.closest && s.el.closest('button:disabled'))) return;
+    sent.push({ x: e.clientX, y: e.clientY, t: performance.now() }); if (sent.length > 6) sent.shift();
     s.el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY }));
   }, true);
+  // ブラウザが後から出すクリックは、こちらで送ったものと同じ場所・直後なら二重になるので止める
   addEventListener('click', e => {
-    if (e.isTrusted && performance.now() - lastUp < 800 && !(e.target.closest && e.target.closest(FORM))) { e.stopImmediatePropagation(); e.preventDefault(); }
+    if (!e.isTrusted || (e.target.closest && e.target.closest(FORM))) return;
+    const now = performance.now(), i = sent.findIndex(s => now - s.t < 900 && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 60);
+    if (i >= 0) { sent.splice(i, 1); e.stopImmediatePropagation(); e.preventDefault(); }
   }, true);
 })();
 </script>
@@ -1327,7 +1333,7 @@ $('detailBtn').addEventListener('click', () => $('detail').classList.remove('hid
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('.modal').classList.add('hide')));
 document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.add('hide'); }));
 $('addCrys').addEventListener('click', () => { crystals += 10000; store.set('crystals', crystals); refreshUI(); toast('テスト用クリスタル ◆10,000 を追加しました'); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128133151');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128134859');
 $('skip').addEventListener('click', e => { e.stopPropagation(); skipSummon(); });
 $('summon').addEventListener('click', () => { if (S?.done) finishSummon(); });
 $('rClose').addEventListener('click', backToBanner);

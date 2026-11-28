@@ -303,22 +303,28 @@
 </head>
 <body>
 <script>
-/* タップ補助（iPad・スマホ）：指を離した瞬間に、その場所へクリックを送る */
+/* タップ補助（iPad・スマホ）：指を離した瞬間に、その場所へクリックを送る。
+   どの指でも効く（スティックを押さえたままでも）。少しずれたり長めでもタップにする */
 (() => {
-  let st = null, lastUp = -1e9;
+  const downs = new Map(), sent = [];
   const FORM = 'input,textarea,select,label,option,[contenteditable]';
-  addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && e.isPrimary) st = { x: e.clientX, y: e.clientY, t: performance.now(), el: e.target }; }, true);
-  addEventListener('pointercancel', e => { if (e.pointerType === 'touch') st = null; }, true);
+  addEventListener('touchstart', () => {}, { passive: true });          // iOS で押した時の見た目（:active）を出す
+  addEventListener('pointerdown', e => { if (e.pointerType === 'touch') downs.set(e.pointerId, { x: e.clientX, y: e.clientY, t: performance.now(), el: e.target }); }, true);
+  addEventListener('pointercancel', e => { downs.delete(e.pointerId); }, true);
   addEventListener('pointerup', e => {
-    if (e.pointerType !== 'touch' || !e.isPrimary || !st) return;
-    const s = st; st = null;
+    if (e.pointerType !== 'touch') return;
+    const s = downs.get(e.pointerId); downs.delete(e.pointerId); if (!s) return;
     if (s.el.closest && s.el.closest(FORM)) return;                       // 入力欄はブラウザに任せる
-    lastUp = performance.now();
-    if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 24 || lastUp - s.t > 900) return;   // ドラッグや長押しはタップにしない
+    if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 48 || performance.now() - s.t > 1500) return;   // ドラッグや長押しはタップにしない
+    if (s.el.disabled || (s.el.closest && s.el.closest('button:disabled'))) return;
+    sent.push({ x: e.clientX, y: e.clientY, t: performance.now() }); if (sent.length > 6) sent.shift();
     s.el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window, clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY }));
   }, true);
+  // ブラウザが後から出すクリックは、こちらで送ったものと同じ場所・直後なら二重になるので止める
   addEventListener('click', e => {
-    if (e.isTrusted && performance.now() - lastUp < 800 && !(e.target.closest && e.target.closest(FORM))) { e.stopImmediatePropagation(); e.preventDefault(); }
+    if (!e.isTrusted || (e.target.closest && e.target.closest(FORM))) return;
+    const now = performance.now(), i = sent.findIndex(s => now - s.t < 900 && Math.hypot(e.clientX - s.x, e.clientY - s.y) < 60);
+    if (i >= 0) { sent.splice(i, 1); e.stopImmediatePropagation(); e.preventDefault(); }
   }, true);
 })();
 </script>
@@ -345,7 +351,7 @@
 <div id="net" class="panel"><i></i><span id="netText">つないでいます…</span></div>
 <div id="netToast"></div>
 <div id="bossHud"><small>BOSS</small><b>氷殻の守護者グラキエス</b><div class="bb"><i id="bossBar"></i></div><span id="bossNum"></span></div>
-<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261128133151">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261128133151">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
+<div id="dres"><div class="box"><small>DUNGEON CLEAR</small><b>氷晶の地下迷宮 踏破！</b><dl><dt>タイム</dt><dd id="dresTime">0:00</dd><dt>記録</dt><dd id="dresBest"></dd><dt>報酬</dt><dd id="dresCoin"></dd></dl><div class="btns"><a href="lobby.html?v=20261128134859">ロビーへ戻る</a><a href="walk.html?area=dungeon&v=20261128134859">もう一度</a><button type="button" id="dresClose">ここに残る</button></div></div></div>
 <div id="gain"><small>GET!</small><b id="gainV">+0</b></div>
 <div id="shop"><div class="box" style="position:relative">
   <header><div class="logo" id="shopLogo">夜</div><div class="nm"><b id="shopName">ヨルマート</b><small id="shopEn">YORU MART</small></div><button class="close tap" id="shopClose">✕ 店を出る</button></header>
@@ -1794,6 +1800,7 @@ stage.addEventListener('pointermove', e => {
   drag.x = e.clientX; drag.y = e.clientY;
 });
 stage.addEventListener('pointerup', e => { if (drag && e.pointerId === drag.id) drag = null; });
+stage.addEventListener('pointercancel', e => { if (drag && e.pointerId === drag.id) drag = null; });
 addEventListener('wheel', e => { camDist = THREE.MathUtils.clamp(camDist + e.deltaY * .003, 2.4, 7); }, { passive: true });
 // スティック
 const stick = { x: 0, y: 0, id: null };
@@ -1801,7 +1808,8 @@ const stickEl = $('stick'), knob = $('knob');
 addEventListener('touchstart', () => document.body.classList.add('touch'), { once: true });
 stickEl.addEventListener('pointerdown', e => { stick.id = e.pointerId; stickEl.setPointerCapture(e.pointerId); moveStick(e); });
 stickEl.addEventListener('pointermove', e => { if (e.pointerId === stick.id) moveStick(e); });
-stickEl.addEventListener('pointerup', () => { stick.id = null; stick.x = stick.y = 0; knob.style.transform = ''; });
+const stickOff = () => { stick.id = null; stick.x = stick.y = 0; knob.style.transform = ''; };
+stickEl.addEventListener('pointerup', stickOff); stickEl.addEventListener('pointercancel', stickOff); stickEl.addEventListener('lostpointercapture', stickOff);
 function moveStick(e) {
   const r = stickEl.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
   let dx = (e.clientX - cx) / (r.width / 2), dy = (e.clientY - cy) / (r.height / 2); const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
@@ -1809,7 +1817,7 @@ function moveStick(e) {
 }
 let runToggle = false;
 $('runBtn').addEventListener('click', () => { runToggle = !runToggle; $('runBtn').classList.toggle('on', runToggle); });
-$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128133151');
+$('back').addEventListener('click', () => location.href = 'lobby.html?v=20261128134859');
 $('prompt').addEventListener('click', interact);
 
 /* =====================================================================
@@ -4450,7 +4458,7 @@ function dBuild() {
   dWall(-1.75, 0, -1.75, 6.6); dWall(1.75, 0, 1.75, 6.6); dWall(-1.8, 6.6, 1.8, 6.6);     // 地上へ続く階段の壁
   const portal = new THREE.Mesh(new THREE.RingGeometry(.6, 1.1, 40), new THREE.MeshBasicMaterial({ color: new THREE.Color(.5, 1.5, 2.2), transparent: true, opacity: .8, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   portal.rotation.x = -Math.PI / 2; portal.position.set(DX, .03, -1); scene.add(portal); DG.portalA = portal;
-  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128133151', 350); } });
+  interactables.push({ x: DX, z: -1, r: 1.6, label: '地上（ロビー）へ戻る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128134859', 350); } });
   dCorridor(-18, -10);
   // 戦闘の部屋1
   dRoom(-9, 9, -36, -18, { n: true, s: true }); for (const [x, z] of [[-5, -23], [5, -23], [-5, -31], [5, -31]]) dPillar(x, z);
@@ -4710,7 +4718,7 @@ function dClear() {
   // 帰り道のポータル
   const p = new THREE.Mesh(new THREE.RingGeometry(.8, 1.4, 48), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.4, .6), transparent: true, opacity: .85, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide }));
   p.rotation.x = -Math.PI / 2; p.position.set(DX, .04, -104); scene.add(p); DG.portalB = p;
-  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128133151', 350); } });
+  interactables.push({ x: DX, z: -104, r: 1.8, label: '地上（ロビー）へ帰る', act() { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128134859', 350); } });
   dChest(0, -112, 5000, 'boss');
   setTimeout(() => {
     $('dresTime').textContent = fmt(sec); $('dresBest').textContent = nb ? 'ベスト更新！' : `ベスト ${fmt(best)}`; $('dresCoin').textContent = `+${reward.toLocaleString()}円`;
@@ -5059,7 +5067,7 @@ function cInit() {
   I('slot', 'スロット「ルーチェ・セブン」で遊ぶ', () => cOpenGame('slot'));
   I('hilo', 'ハイ＆ローで遊ぶ', () => cOpenGame('hilo'));
   I('shuffle', 'シャッフル・ゲームで遊ぶ（ディーラー：フォルトゥナ）', () => cOpenGame('shuffle'));
-  I('exit', 'ロビーへ戻る', () => { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128133151', 350); });
+  I('exit', 'ロビーへ戻る', () => { SFX.play('portal'); setTimeout(() => location.href = 'lobby.html?v=20261128134859', 350); });
   $('cHud').classList.add('on'); cHud();
   cLoadNpc();
 }
@@ -5313,7 +5321,7 @@ function cGameMenu() {
   if (LC.ch(k).n <= 0) $('cgMsg').textContent = 'チャレンジ回数がありません。少し待つと回復します。ほかのゲームも遊んでみよう。';
 }
 $('cgX').addEventListener('click', () => { $('cgame').className = 'cpanel'; cG = null; cClose(); cHud(); });
-function cBtn(label, fn, cls = '') { const b = document.createElement('button'); b.type = 'button'; b.className = 'tap ' + cls; b.textContent = label; b.addEventListener('click', fn); $('cgA').appendChild(b); return b; }
+function cBtn(label, fn, cls = '') { const b = document.createElement('button'); b.type = 'button'; b.className = 'tap ' + cls; b.textContent = label; b.addEventListener('click', fn); if (cls === 'stop') b.addEventListener('pointerdown', e => { e.preventDefault(); fn(); }); $('cgA').appendChild(b); return b; }
 function cPrize(n, msg) { if (n > 0) cGain(n); $('cgMsg').textContent = msg + (n > 0 ? `　◆ +${n}` : ''); }
 
 /* スロット「ルーチェ・セブン」：目押し。リールは右ほど速い。止めた時、1コマ先が左のリールと同じ絵ならすべって合わせる */
